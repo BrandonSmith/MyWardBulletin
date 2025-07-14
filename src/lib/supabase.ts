@@ -306,7 +306,7 @@ export const bulletinService = {
       announcements: bulletinData.announcements || [],
       meetings: bulletinData.meetings || [],
       special_events: bulletinData.specialEvents || [],
-      speakers: bulletinData.speakers || [],
+      agenda: bulletinData.agenda || [], // NEW
       prayers: bulletinData.prayers || {},
       music_program: bulletinData.musicProgram || {},
       leadership: bulletinData.leadership || {}
@@ -324,7 +324,7 @@ export const bulletinService = {
         tokenService.saveToken(userId, `bulletin-${slug}-announcements`, JSON.stringify(bulletinData.announcements || [])),
         tokenService.saveToken(userId, `bulletin-${slug}-meetings`, JSON.stringify(bulletinData.meetings || [])),
         tokenService.saveToken(userId, `bulletin-${slug}-events`, JSON.stringify(bulletinData.specialEvents || [])),
-        tokenService.saveToken(userId, `bulletin-${slug}-speakers`, JSON.stringify(bulletinData.speakers || [])),
+        tokenService.saveToken(userId, `bulletin-${slug}-agenda`, JSON.stringify(bulletinData.agenda || [])), // NEW
         tokenService.saveToken(userId, `bulletin-${slug}-prayers`, JSON.stringify(bulletinData.prayers || {})),
         tokenService.saveToken(userId, `bulletin-${slug}-music`, JSON.stringify(bulletinData.musicProgram || {})),
         tokenService.saveToken(userId, `bulletin-${slug}-leadership`, JSON.stringify(bulletinData.leadership || {}))

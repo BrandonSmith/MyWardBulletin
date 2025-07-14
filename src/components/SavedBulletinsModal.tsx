@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, FileText, Calendar, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface SavedBulletinsModalProps {
   isOpen: boolean;
@@ -19,6 +19,7 @@ export default function SavedBulletinsModal({
   onDeleteBulletin 
 }: SavedBulletinsModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: bulletins = [], isLoading: loading, error } = useQuery({
     queryKey: ['user-bulletins', user?.id],
@@ -34,8 +35,8 @@ export default function SavedBulletinsModal({
     setDeletingId(bulletinId);
     try {
       await bulletinService.deleteBulletin(bulletinId, user.id);
-      // The bulletins state is now managed by React Query, so we don't need to update it here directly.
-      // The query will refetch automatically.
+      // Invalidate the user-bulletins query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['user-bulletins', user.id] });
       onDeleteBulletin(bulletinId);
     } catch (error: any) {
       alert('Failed to delete bulletin: ' + error.message);

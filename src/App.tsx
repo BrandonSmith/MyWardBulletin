@@ -37,7 +37,6 @@ function App() {
     meetingType: 'sacrament',
     theme: '',
     bishopricMessage: '',
-    selectedImage: 'none',
     announcements: [],
     meetings: [],
     specialEvents: [],
@@ -77,18 +76,71 @@ function App() {
     setHasUnsavedChanges(true);
   };
 
+  // Check for profile slug in URL
+  const path = window.location.pathname;
+  const profileSlugMatch = path.match(/^\/u\/([^\/]+)$/);
+  const profileSlug = profileSlugMatch ? profileSlugMatch[1] : null;
+
+  // Use React Query for public bulletin loading
+  const {
+    data: publicBulletin,
+    isLoading: publicBulletinLoading,
+    error: publicErrorObj
+  } = useQuery({
+    queryKey: ['public-bulletin', profileSlug],
+    queryFn: () => profileSlug ? bulletinService.getLatestBulletinByProfileSlug(profileSlug) : Promise.resolve(null),
+    enabled: !!profileSlug
+  });
+  React.useEffect(() => {
+    if (publicBulletin) {
+      // Convert database format to app format
+      const bulletinData: BulletinData = {
+        wardName: publicBulletin.ward_name,
+        date: publicBulletin.date,
+        meetingType: publicBulletin.meeting_type,
+        theme: publicBulletin.theme || '',
+        bishopricMessage: publicBulletin.bishopric_message || '',
+        announcements: publicBulletin.announcements || [],
+        meetings: publicBulletin.meetings || [],
+        specialEvents: publicBulletin.special_events || [],
+        speakers: publicBulletin.speakers || [],
+        prayers: publicBulletin.prayers || {
+          opening: '',
+          closing: '',
+          invocation: '',
+          benediction: ''
+        },
+        musicProgram: publicBulletin.music_program || {
+          prelude: '',
+          openingHymn: '',
+          openingHymnNumber: '',
+          openingHymnTitle: '',
+          sacramentHymn: '',
+          sacramentHymnNumber: '',
+          sacramentHymnTitle: '',
+          closingHymn: '',
+          closingHymnNumber: '',
+          closingHymnTitle: '',
+          specialMusical: '',
+          musicalPerformers: ''
+        },
+        leadership: publicBulletin.leadership || {
+          presiding: '',
+          musicDirector: '',
+          organist: ''
+        }
+      };
+      setPublicBulletinData(bulletinData);
+      setCurrentView('public');
+      setPublicError('');
+    } else if (publicErrorObj) {
+      setPublicError(publicErrorObj.message || 'Bulletin not found');
+      setCurrentView('public');
+    }
+  }, [publicBulletin, publicErrorObj]);
+
   // Check for existing session on mount
   React.useEffect(() => {
-    // Check if this is a profile slug URL
-    const path = window.location.pathname;
-    const profileSlugMatch = path.match(/^\/u\/([^\/]+)$/);
-    
-    if (profileSlugMatch) {
-      const profileSlug = profileSlugMatch[1];
-      loadPublicBulletin(profileSlug);
-      return;
-    }
-    
     if (isSupabaseConfigured() && supabase) {
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         setUser(session?.user ?? null);
@@ -131,73 +183,6 @@ function App() {
       return () => subscription.unsubscribe();
     }
   }, []);
-
-  const loadPublicBulletin = async (profileSlug: string) => {
-    if (!isSupabaseConfigured()) {
-      setPublicError('Service not available');
-      return;
-    }
-    
-    setPublicLoading(true);
-    setPublicError('');
-    setCurrentView('public');
-    
-    // Replace loadPublicBulletin with React Query usage
-    const {
-      data: publicBulletin,
-      isLoading: publicLoading,
-      error: publicErrorObj
-    } = useQuery({
-      queryKey: ['public-bulletin', profileSlug],
-      queryFn: () => bulletinService.getLatestBulletinByProfileSlug(profileSlug),
-      enabled: !!profileSlug
-    });
-
-    // Use publicBulletin, publicLoading, and publicErrorObj in place of previous state/logic
-    if (publicBulletin) {
-      // Convert database format to app format
-      const bulletinData: BulletinData = {
-        wardName: publicBulletin.ward_name,
-        date: publicBulletin.date,
-        meetingType: publicBulletin.meeting_type,
-        theme: publicBulletin.theme || '',
-        bishopricMessage: publicBulletin.bishopric_message || '',
-        announcements: publicBulletin.announcements || [],
-        meetings: publicBulletin.meetings || [],
-        specialEvents: publicBulletin.special_events || [],
-        speakers: publicBulletin.speakers || [],
-        prayers: publicBulletin.prayers || {
-          opening: '',
-          closing: '',
-          invocation: '',
-          benediction: ''
-        },
-        musicProgram: publicBulletin.music_program || {
-          prelude: '',
-          openingHymn: '',
-          openingHymnNumber: '',
-          openingHymnTitle: '',
-          sacramentHymn: '',
-          sacramentHymnNumber: '',
-          sacramentHymnTitle: '',
-          closingHymn: '',
-          closingHymnNumber: '',
-          closingHymnTitle: '',
-          specialMusical: '',
-          musicalPerformers: ''
-        },
-        leadership: publicBulletin.leadership || {
-          presiding: '',
-          musicDirector: '',
-          organist: ''
-        }
-      };
-      setPublicBulletinData(bulletinData);
-    } else {
-      setPublicError('Bulletin not found');
-    }
-    setPublicLoading(false);
-  };
 
   const handleBackToEditor = () => {
     setCurrentView('editor');
@@ -266,7 +251,6 @@ function App() {
       date: bulletin.date,
       meetingType: bulletin.meeting_type,
       theme: bulletin.theme || '',
-      selectedImage: bulletin.selected_image || 'none',
       bishopricMessage: bulletin.bishopric_message || '',
       announcements: bulletin.announcements || [],
       meetings: bulletin.meetings || [],
@@ -426,7 +410,7 @@ function App() {
     return (
       <PublicBulletinView
         bulletinData={publicBulletinData}
-        loading={publicLoading}
+        loading={publicBulletinLoading}
         error={publicError}
         onBackToEditor={handleBackToEditor}
       />

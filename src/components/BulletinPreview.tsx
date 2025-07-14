@@ -61,6 +61,11 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
           <DottedLine rightAlign={data.leadership.presiding}>
             <span>Presiding</span>
           </DottedLine>
+          {data.leadership.conducting && (
+            <DottedLine rightAlign={data.leadership.conducting}>
+              <span>Conducting</span>
+            </DottedLine>
+          )}
           <DottedLine rightAlign={data.leadership.musicDirector}>
             <span>Music Director</span>
           </DottedLine>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Calendar, FileText } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 interface BulletinSelectorProps {
   user: any;
@@ -13,28 +14,11 @@ export default function BulletinSelector({
   currentActiveBulletinId, 
   onBulletinSelect 
 }: BulletinSelectorProps) {
-  const [bulletins, setBulletins] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (user) {
-      fetchBulletins();
-    }
-  }, [user]);
-
-  const fetchBulletins = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await bulletinService.getUserBulletins(user.id);
-      setBulletins(data || []);
-    } catch (error: any) {
-      setError('Failed to load bulletins: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: bulletins = [], isLoading: loading, error } = useQuery({
+    queryKey: ['user-bulletins', user?.id],
+    queryFn: () => bulletinService.getUserBulletins(user.id),
+    enabled: !!user
+  });
 
   const formatDate = (dateString: string) => {
     // Fix timezone issue by creating date in local timezone

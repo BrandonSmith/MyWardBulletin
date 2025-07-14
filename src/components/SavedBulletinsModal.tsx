@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, FileText, Calendar, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 interface SavedBulletinsModalProps {
   isOpen: boolean;
@@ -17,29 +18,13 @@ export default function SavedBulletinsModal({
   onLoadBulletin,
   onDeleteBulletin 
 }: SavedBulletinsModalProps) {
-  const [bulletins, setBulletins] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchBulletins();
-    }
-  }, [isOpen, user]);
-
-  const fetchBulletins = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await bulletinService.getUserBulletins(user.id);
-      setBulletins(data || []);
-    } catch (error: any) {
-      setError('Failed to load bulletins: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: bulletins = [], isLoading: loading, error } = useQuery({
+    queryKey: ['user-bulletins', user?.id],
+    queryFn: () => bulletinService.getUserBulletins(user.id),
+    enabled: isOpen && !!user
+  });
 
   const handleDelete = async (bulletinId: string) => {
     if (!confirm('Are you sure you want to delete this bulletin? This action cannot be undone.')) {
@@ -49,7 +34,8 @@ export default function SavedBulletinsModal({
     setDeletingId(bulletinId);
     try {
       await bulletinService.deleteBulletin(bulletinId, user.id);
-      setBulletins(bulletins.filter(b => b.id !== bulletinId));
+      // The bulletins state is now managed by React Query, so we don't need to update it here directly.
+      // The query will refetch automatically.
       onDeleteBulletin(bulletinId);
     } catch (error: any) {
       alert('Failed to delete bulletin: ' + error.message);
@@ -59,7 +45,10 @@ export default function SavedBulletinsModal({
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse as local date (not UTC)
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
@@ -104,7 +93,7 @@ export default function SavedBulletinsModal({
           {error && (
             <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
               <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
-              <p className="text-red-600">{error}</p>
+              <p className="text-red-600">{error.message}</p>
             </div>
           )}
 

@@ -14,6 +14,7 @@ import PublicBulletinView from './components/PublicBulletinView';
 import { BulletinData } from './types/bulletin';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useQuery } from '@tanstack/react-query';
 
 function App() {
   const [currentView, setCurrentView] = useState<'editor' | 'public'>('editor');
@@ -141,56 +142,61 @@ function App() {
     setPublicError('');
     setCurrentView('public');
     
-    try {
-      const bulletin = await bulletinService.getLatestBulletinByProfileSlug(profileSlug);
-      if (bulletin) {
-        // Convert database format to app format
-        const bulletinData: BulletinData = {
-          wardName: bulletin.ward_name,
-          date: bulletin.date,
-          meetingType: bulletin.meeting_type,
-          theme: bulletin.theme || '',
-          bishopricMessage: bulletin.bishopric_message || '',
-          announcements: bulletin.announcements || [],
-          meetings: bulletin.meetings || [],
-          specialEvents: bulletin.special_events || [],
-          speakers: bulletin.speakers || [],
-          prayers: bulletin.prayers || {
-            opening: '',
-            closing: '',
-            invocation: '',
-            benediction: ''
-          },
-          musicProgram: bulletin.music_program || {
-            prelude: '',
-            openingHymn: '',
-            openingHymnNumber: '',
-            openingHymnTitle: '',
-            sacramentHymn: '',
-            sacramentHymnNumber: '',
-            sacramentHymnTitle: '',
-            closingHymn: '',
-            closingHymnNumber: '',
-            closingHymnTitle: '',
-            specialMusical: '',
-            musicalPerformers: ''
-          },
-          leadership: bulletin.leadership || {
-            presiding: '',
-            musicDirector: '',
-            organist: ''
-          }
-        };
-        setPublicBulletinData(bulletinData);
-      } else {
-        setPublicError('Bulletin not found');
-      }
-    } catch (error: any) {
-      console.error('Error loading public bulletin:', error);
-      setPublicError('Failed to load bulletin: ' + error.message);
-    } finally {
-      setPublicLoading(false);
+    // Replace loadPublicBulletin with React Query usage
+    const {
+      data: publicBulletin,
+      isLoading: publicLoading,
+      error: publicErrorObj
+    } = useQuery({
+      queryKey: ['public-bulletin', profileSlug],
+      queryFn: () => bulletinService.getLatestBulletinByProfileSlug(profileSlug),
+      enabled: !!profileSlug
+    });
+
+    // Use publicBulletin, publicLoading, and publicErrorObj in place of previous state/logic
+    if (publicBulletin) {
+      // Convert database format to app format
+      const bulletinData: BulletinData = {
+        wardName: publicBulletin.ward_name,
+        date: publicBulletin.date,
+        meetingType: publicBulletin.meeting_type,
+        theme: publicBulletin.theme || '',
+        bishopricMessage: publicBulletin.bishopric_message || '',
+        announcements: publicBulletin.announcements || [],
+        meetings: publicBulletin.meetings || [],
+        specialEvents: publicBulletin.special_events || [],
+        speakers: publicBulletin.speakers || [],
+        prayers: publicBulletin.prayers || {
+          opening: '',
+          closing: '',
+          invocation: '',
+          benediction: ''
+        },
+        musicProgram: publicBulletin.music_program || {
+          prelude: '',
+          openingHymn: '',
+          openingHymnNumber: '',
+          openingHymnTitle: '',
+          sacramentHymn: '',
+          sacramentHymnNumber: '',
+          sacramentHymnTitle: '',
+          closingHymn: '',
+          closingHymnNumber: '',
+          closingHymnTitle: '',
+          specialMusical: '',
+          musicalPerformers: ''
+        },
+        leadership: publicBulletin.leadership || {
+          presiding: '',
+          musicDirector: '',
+          organist: ''
+        }
+      };
+      setPublicBulletinData(bulletinData);
+    } else {
+      setPublicError('Bulletin not found');
     }
+    setPublicLoading(false);
   };
 
   const handleBackToEditor = () => {

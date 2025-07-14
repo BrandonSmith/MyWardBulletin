@@ -68,8 +68,8 @@ export interface BulletinData {
   announcements: Announcement[];
   meetings: Meeting[];
   specialEvents: SpecialEvent[];
+  speakers: Speaker[];
   prayers: Prayers;
   musicProgram: MusicProgram;
   leadership: Leadership;
-  speakers: Speaker[];
 }

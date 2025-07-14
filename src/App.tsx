@@ -131,66 +131,55 @@ function App() {
     queryFn: () => profileSlug ? bulletinService.getLatestBulletinByProfileSlug(profileSlug) : Promise.resolve(null),
     enabled: !!profileSlug
   });
-  React.useEffect(() => {
-    if (publicBulletin) {
-      // Convert database format to app format
-      const bulletinData: BulletinData = {
-        wardName: publicBulletin.ward_name,
-        date: publicBulletin.date,
-        meetingType: publicBulletin.meeting_type,
-        theme: publicBulletin.theme || '',
-        bishopricMessage: publicBulletin.bishopric_message || '',
-        announcements: publicBulletin.announcements || [],
-        meetings: publicBulletin.meetings || [],
-        specialEvents: publicBulletin.special_events || [],
-        agenda: publicBulletin.agenda || [],
-        prayers: publicBulletin.prayers || {
-          opening: '',
-          closing: '',
-          invocation: '',
-          benediction: ''
-        },
-        musicProgram: publicBulletin.music_program || {
-          openingHymn: '',
-          openingHymnNumber: '',
-          openingHymnTitle: '',
-          sacramentHymn: '',
-          sacramentHymnNumber: '',
-          sacramentHymnTitle: '',
-          closingHymn: '',
-          closingHymnNumber: '',
-          closingHymnTitle: ''
-        },
-        leadership: publicBulletin.leadership || {
-          presiding: '',
-          chorister: '',
-          organist: ''
-        },
-        wardLeadership: publicBulletin.wardLeadership || [
-          { title: 'Bishop', name: '', phone: '' },
-          { title: '1st Counselor', name: '', phone: '' },
-          { title: '2nd Counselor', name: '', phone: '' },
-          { title: 'Executive Secretary', name: '', phone: '' },
-          { title: 'Ward Clerk', name: '', phone: '' },
-          { title: 'Elders Quorum President', name: '', phone: '' },
-          { title: 'Relief Society President', name: '', phone: '' },
-          { title: 'Young Women\'s President', name: '', phone: '' },
-          { title: 'Primary President', name: '', phone: '' },
-          { title: 'Sunday School President', name: '', phone: '' },
-          { title: 'Ward Mission Leader', name: '', phone: '' },
-          { title: 'Building Representative', name: '', phone: '' },
-          { title: 'Temple & Family History', name: '', phone: '' }
-        ],
-        missionaries: publicBulletin.missionaries || []
-      };
-      setPublicBulletinData(bulletinData);
-      setCurrentView('public');
-      setPublicError('');
-    } else if (publicErrorObj) {
-      setPublicError(publicErrorObj.message || 'Bulletin not found');
-      setCurrentView('public');
+
+  // If on a public slug, show loading, public view, or error only
+  if (profileSlug) {
+    if (publicBulletinLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading bulletin...</p>
+          </div>
+        </div>
+      );
     }
-  }, [publicBulletin, publicErrorObj]);
+    return (
+      <PublicBulletinView
+        bulletinData={publicBulletin ? {
+          wardName: publicBulletin.ward_name || '',
+          date: publicBulletin.date || '',
+          meetingType: publicBulletin.meeting_type || '',
+          theme: publicBulletin.theme || '',
+          bishopricMessage: publicBulletin.bishopric_message || '',
+          announcements: publicBulletin.announcements || [],
+          meetings: publicBulletin.meetings || [],
+          specialEvents: publicBulletin.special_events || [],
+          agenda: publicBulletin.agenda || publicBulletin.speakers || [],
+          prayers: publicBulletin.prayers || { opening: '', closing: '', invocation: '', benediction: '' },
+          musicProgram: publicBulletin.music_program || {
+            openingHymn: '',
+            openingHymnNumber: '',
+            openingHymnTitle: '',
+            sacramentHymn: '',
+            sacramentHymnNumber: '',
+            sacramentHymnTitle: '',
+            closingHymn: '',
+            closingHymnNumber: '',
+            closingHymnTitle: ''
+          },
+          leadership: publicBulletin.leadership || { presiding: '', conducting: '', chorister: '', organist: '' },
+          wardLeadership: publicBulletin.wardLeadership || (publicBulletin.leadership && publicBulletin.leadership.wardLeadership) || [],
+          missionaries: publicBulletin.missionaries || (publicBulletin.leadership && publicBulletin.leadership.missionaries) || []
+        } : null}
+        loading={publicBulletinLoading}
+        error={publicErrorObj ? (publicErrorObj.message || 'Bulletin not found') : ''}
+        onBackToEditor={() => {
+          window.location.href = '/';
+        }}
+      />
+    );
+  }
 
   // Check for existing session on mount
   React.useEffect(() => {

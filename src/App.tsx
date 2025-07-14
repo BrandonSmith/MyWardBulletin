@@ -31,8 +31,34 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [bulletinData, setBulletinData] = useState<BulletinData>({
-    wardName: '',
+
+  // Move DEFAULT_KEYS and getDefault above useState
+  const DEFAULT_KEYS: Record<
+    'wardName' | 'presiding' | 'conducting' | 'chorister' | 'organist' | 'wardLeadership' | 'missionaries',
+    string
+  > = {
+    wardName: 'default_wardName',
+    presiding: 'default_presiding',
+    conducting: 'default_conducting',
+    chorister: 'default_chorister',
+    organist: 'default_organist',
+    wardLeadership: 'default_wardLeadership',
+    missionaries: 'default_missionaries',
+  };
+  function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
+    const val = localStorage.getItem(DEFAULT_KEYS[key]);
+    if (val) {
+      if (key === 'wardLeadership' || key === 'missionaries') {
+        try { return JSON.parse(val) as T; } catch { return fallback; }
+      }
+      return val as T;
+    }
+    return fallback;
+  }
+
+  // Use a function to initialize bulletinData from localStorage defaults
+  const [bulletinData, setBulletinData] = useState<BulletinData>(() => ({
+    wardName: getDefault('wardName', ''),
     date: new Date().toISOString().split('T')[0],
     meetingType: 'sacrament',
     theme: '',
@@ -40,7 +66,7 @@ function App() {
     announcements: [],
     meetings: [],
     specialEvents: [],
-    speakers: [],
+    agenda: [],
     prayers: {
       opening: '',
       closing: '',
@@ -48,7 +74,6 @@ function App() {
       benediction: ''
     },
     musicProgram: {
-      prelude: '',
       openingHymn: '',
       openingHymnNumber: '',
       openingHymnTitle: '',
@@ -57,16 +82,31 @@ function App() {
       sacramentHymnTitle: '',
       closingHymn: '',
       closingHymnNumber: '',
-      closingHymnTitle: '',
-      specialMusical: '',
-      musicalPerformers: ''
+      closingHymnTitle: ''
     },
     leadership: {
-      presiding: '',
-      musicDirector: '',
-      organist: ''
-    }
-  });
+      presiding: getDefault('presiding', ''),
+      conducting: getDefault('conducting', ''),
+      chorister: getDefault('chorister', ''),
+      organist: getDefault('organist', '')
+    },
+    wardLeadership: getDefault('wardLeadership', [
+      { title: 'Bishop', name: '', phone: '' },
+      { title: '1st Counselor', name: '', phone: '' },
+      { title: '2nd Counselor', name: '', phone: '' },
+      { title: 'Executive Secretary', name: '', phone: '' },
+      { title: 'Ward Clerk', name: '', phone: '' },
+      { title: 'Elders Quorum President', name: '', phone: '' },
+      { title: 'Relief Society President', name: '', phone: '' },
+      { title: "Young Women's President", name: '', phone: '' },
+      { title: 'Primary President', name: '', phone: '' },
+      { title: 'Sunday School President', name: '', phone: '' },
+      { title: 'Ward Mission Leader', name: '', phone: '' },
+      { title: 'Building Representative', name: '', phone: '' },
+      { title: 'Temple & Family History', name: '', phone: '' }
+    ]),
+    missionaries: getDefault('missionaries', [])
+  }));
 
   const [showQRCode, setShowQRCode] = useState(false);
   const bulletinRef = useRef<HTMLDivElement>(null);
@@ -103,7 +143,7 @@ function App() {
         announcements: publicBulletin.announcements || [],
         meetings: publicBulletin.meetings || [],
         specialEvents: publicBulletin.special_events || [],
-        speakers: publicBulletin.speakers || [],
+        agenda: publicBulletin.agenda || [],
         prayers: publicBulletin.prayers || {
           opening: '',
           closing: '',
@@ -111,7 +151,6 @@ function App() {
           benediction: ''
         },
         musicProgram: publicBulletin.music_program || {
-          prelude: '',
           openingHymn: '',
           openingHymnNumber: '',
           openingHymnTitle: '',
@@ -120,15 +159,29 @@ function App() {
           sacramentHymnTitle: '',
           closingHymn: '',
           closingHymnNumber: '',
-          closingHymnTitle: '',
-          specialMusical: '',
-          musicalPerformers: ''
+          closingHymnTitle: ''
         },
         leadership: publicBulletin.leadership || {
           presiding: '',
-          musicDirector: '',
+          chorister: '',
           organist: ''
-        }
+        },
+        wardLeadership: publicBulletin.wardLeadership || [
+          { title: 'Bishop', name: '', phone: '' },
+          { title: '1st Counselor', name: '', phone: '' },
+          { title: '2nd Counselor', name: '', phone: '' },
+          { title: 'Executive Secretary', name: '', phone: '' },
+          { title: 'Ward Clerk', name: '', phone: '' },
+          { title: 'Elders Quorum President', name: '', phone: '' },
+          { title: 'Relief Society President', name: '', phone: '' },
+          { title: 'Young Women\'s President', name: '', phone: '' },
+          { title: 'Primary President', name: '', phone: '' },
+          { title: 'Sunday School President', name: '', phone: '' },
+          { title: 'Ward Mission Leader', name: '', phone: '' },
+          { title: 'Building Representative', name: '', phone: '' },
+          { title: 'Temple & Family History', name: '', phone: '' }
+        ],
+        missionaries: publicBulletin.missionaries || []
       };
       setPublicBulletinData(bulletinData);
       setCurrentView('public');
@@ -255,7 +308,7 @@ function App() {
       announcements: bulletin.announcements || [],
       meetings: bulletin.meetings || [],
       specialEvents: bulletin.special_events || [],
-      speakers: bulletin.speakers || [],
+      agenda: bulletin.agenda || [],
       prayers: bulletin.prayers || {
         opening: '',
         closing: '',
@@ -263,7 +316,6 @@ function App() {
         benediction: ''
       },
       musicProgram: bulletin.music_program || {
-        prelude: '',
         openingHymn: '',
         openingHymnNumber: '',
         openingHymnTitle: '',
@@ -272,15 +324,29 @@ function App() {
         sacramentHymnTitle: '',
         closingHymn: '',
         closingHymnNumber: '',
-        closingHymnTitle: '',
-        specialMusical: '',
-        musicalPerformers: ''
+        closingHymnTitle: ''
       },
       leadership: bulletin.leadership || {
         presiding: '',
-        musicDirector: '',
+        chorister: '',
         organist: ''
-      }
+      },
+      wardLeadership: bulletin.wardLeadership || [
+        { title: 'Bishop', name: '', phone: '' },
+        { title: '1st Counselor', name: '', phone: '' },
+        { title: '2nd Counselor', name: '', phone: '' },
+        { title: 'Executive Secretary', name: '', phone: '' },
+        { title: 'Ward Clerk', name: '', phone: '' },
+        { title: 'Elders Quorum President', name: '', phone: '' },
+        { title: 'Relief Society President', name: '', phone: '' },
+        { title: 'Young Women\'s President', name: '', phone: '' },
+        { title: 'Primary President', name: '', phone: '' },
+        { title: 'Sunday School President', name: '', phone: '' },
+        { title: 'Ward Mission Leader', name: '', phone: '' },
+        { title: 'Building Representative', name: '', phone: '' },
+        { title: 'Temple & Family History', name: '', phone: '' }
+      ],
+      missionaries: bulletin.missionaries || []
     };
 
     setBulletinData(loadedData);
@@ -304,9 +370,32 @@ function App() {
       }
     }
 
-    // Reset to default bulletin data
+    // Load defaults from localStorage if present
+    const DEFAULT_KEYS: Record<
+      'wardName' | 'presiding' | 'conducting' | 'chorister' | 'organist' | 'wardLeadership' | 'missionaries',
+      string
+    > = {
+      wardName: 'default_wardName',
+      presiding: 'default_presiding',
+      conducting: 'default_conducting',
+      chorister: 'default_chorister',
+      organist: 'default_organist',
+      wardLeadership: 'default_wardLeadership',
+      missionaries: 'default_missionaries',
+    };
+    function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
+      const val = localStorage.getItem(DEFAULT_KEYS[key]);
+      if (val) {
+        if (key === 'wardLeadership' || key === 'missionaries') {
+          try { return JSON.parse(val) as T; } catch { return fallback; }
+        }
+        return val as T;
+      }
+      return fallback;
+    }
+
     setBulletinData({
-      wardName: '',
+      wardName: getDefault('wardName', ''),
       date: new Date().toISOString().split('T')[0],
       meetingType: 'sacrament',
       theme: '',
@@ -314,7 +403,7 @@ function App() {
       announcements: [],
       meetings: [],
       specialEvents: [],
-      speakers: [],
+      agenda: [],
       prayers: {
         opening: '',
         closing: '',
@@ -322,7 +411,6 @@ function App() {
         benediction: ''
       },
       musicProgram: {
-        prelude: '',
         openingHymn: '',
         openingHymnNumber: '',
         openingHymnTitle: '',
@@ -331,15 +419,30 @@ function App() {
         sacramentHymnTitle: '',
         closingHymn: '',
         closingHymnNumber: '',
-        closingHymnTitle: '',
-        specialMusical: '',
-        musicalPerformers: ''
+        closingHymnTitle: ''
       },
       leadership: {
-        presiding: '',
-        musicDirector: '',
-        organist: ''
-      }
+        presiding: getDefault('presiding', ''),
+        conducting: getDefault('conducting', ''),
+        chorister: getDefault('chorister', ''),
+        organist: getDefault('organist', '')
+      },
+      wardLeadership: getDefault('wardLeadership', [
+        { title: 'Bishop', name: '', phone: '' },
+        { title: '1st Counselor', name: '', phone: '' },
+        { title: '2nd Counselor', name: '', phone: '' },
+        { title: 'Executive Secretary', name: '', phone: '' },
+        { title: 'Ward Clerk', name: '', phone: '' },
+        { title: 'Elders Quorum President', name: '', phone: '' },
+        { title: 'Relief Society President', name: '', phone: '' },
+        { title: "Young Women's President", name: '', phone: '' },
+        { title: 'Primary President', name: '', phone: '' },
+        { title: 'Sunday School President', name: '', phone: '' },
+        { title: 'Ward Mission Leader', name: '', phone: '' },
+        { title: 'Building Representative', name: '', phone: '' },
+        { title: 'Temple & Family History', name: '', phone: '' }
+      ]),
+      missionaries: getDefault('missionaries', [])
     });
     setCurrentBulletinId(null);
     setHasUnsavedChanges(false);
@@ -626,12 +729,12 @@ function App() {
                 Bulletin Preview
                 </h2>
                 {currentBulletinId && (
-                  <div className="text-sm text-gray-500">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-2">
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                       Saved Bulletin
                     </span>
                     {hasUnsavedChanges && (
-                      <span className="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                      <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs">
                         Unsaved Changes
                       </span>
                     )}
@@ -641,6 +744,14 @@ function App() {
               <div ref={bulletinRef}>
                 <BulletinPreview data={bulletinData} />
               </div>
+              {user && currentBulletinId && activeBulletinId !== currentBulletinId && (
+                <button
+                  onClick={() => handleActiveBulletinSelect(currentBulletinId)}
+                  className="mt-4 w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Set This Bulletin as QR Code Bulletin
+                </button>
+              )}
             </div>
           </div>
         </div>

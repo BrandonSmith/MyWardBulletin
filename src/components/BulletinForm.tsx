@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { BulletinData, Announcement, Meeting, SpecialEvent, Speaker } from '../types/bulletin';
+import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getHymnTitle, isValidHymnNumber } from '../data/hymns';
+import { toast } from 'react-toastify';
 
 interface BulletinFormProps {
   data: BulletinData;
@@ -9,6 +10,7 @@ interface BulletinFormProps {
 }
 
 export default function BulletinForm({ data, onChange }: BulletinFormProps) {
+  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -32,26 +34,6 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
 
   const removeAnnouncement = (id: string) => {
     updateField('announcements', data.announcements.filter(ann => ann.id !== id));
-  };
-
-  const addSpeaker = () => {
-    const newSpeaker: Speaker = {
-      id: Date.now().toString(),
-      name: '',
-      type: 'adult'
-    };
-    updateField('speakers', [...data.speakers, newSpeaker]);
-  };
-
-  const updateSpeaker = (id: string, field: keyof Speaker, value: any) => {
-    const updated = data.speakers.map(speaker => 
-      speaker.id === id ? { ...speaker, [field]: value } : speaker
-    );
-    updateField('speakers', updated);
-  };
-
-  const removeSpeaker = (id: string) => {
-    updateField('speakers', data.speakers.filter(speaker => speaker.id !== id));
   };
 
   const handleHymnNumberChange = (field: string, value: string) => {
@@ -126,8 +108,11 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const DEFAULT_KEYS = {
     wardName: 'default_wardName',
     presiding: 'default_presiding',
-    musicDirector: 'default_musicDirector',
+    conducting: 'default_conducting',
+    chorister: 'default_chorister',
     organist: 'default_organist',
+    wardLeadership: 'default_wardLeadership',
+    missionaries: 'default_missionaries',
   };
 
   // Load defaults from localStorage on mount
@@ -142,552 +127,779 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
       newData.leadership = { ...newData.leadership, presiding: localStorage.getItem(DEFAULT_KEYS.presiding) || '' };
       changed = true;
     }
-    if (!data.leadership.musicDirector && localStorage.getItem(DEFAULT_KEYS.musicDirector)) {
-      newData.leadership = { ...newData.leadership, musicDirector: localStorage.getItem(DEFAULT_KEYS.musicDirector) || '' };
+    if (!data.leadership.conducting && localStorage.getItem(DEFAULT_KEYS.conducting)) {
+      newData.leadership = { ...newData.leadership, conducting: localStorage.getItem(DEFAULT_KEYS.conducting) || '' };
+      changed = true;
+    }
+    if (!data.leadership.chorister && localStorage.getItem(DEFAULT_KEYS.chorister)) {
+      newData.leadership = { ...newData.leadership, chorister: localStorage.getItem(DEFAULT_KEYS.chorister) || '' };
       changed = true;
     }
     if (!data.leadership.organist && localStorage.getItem(DEFAULT_KEYS.organist)) {
       newData.leadership = { ...newData.leadership, organist: localStorage.getItem(DEFAULT_KEYS.organist) || '' };
       changed = true;
     }
+    // Ward Leadership
+    if ((!data.wardLeadership || data.wardLeadership.length === 0) && localStorage.getItem(DEFAULT_KEYS.wardLeadership)) {
+      try {
+        newData.wardLeadership = JSON.parse(localStorage.getItem(DEFAULT_KEYS.wardLeadership) || '[]');
+        changed = true;
+      } catch {}
+    }
+    // Missionaries
+    if ((!data.missionaries || data.missionaries.length === 0) && localStorage.getItem(DEFAULT_KEYS.missionaries)) {
+      try {
+        newData.missionaries = JSON.parse(localStorage.getItem(DEFAULT_KEYS.missionaries) || '[]');
+        changed = true;
+      } catch {}
+    }
     if (changed) onChange(newData);
     // eslint-disable-next-line
   }, []);
 
   // Save default handlers (to localStorage)
-  const saveDefault = (key: keyof typeof DEFAULT_KEYS, value: string) => {
-    localStorage.setItem(DEFAULT_KEYS[key], value);
+  const saveDefault = (key: keyof typeof DEFAULT_KEYS, value: any) => {
+    if (key === 'wardLeadership' || key === 'missionaries') {
+      localStorage.setItem(DEFAULT_KEYS[key], JSON.stringify(value));
+    } else {
+      localStorage.setItem(DEFAULT_KEYS[key], value);
+    }
+    toast.success('Default saved!');
+  };
+
+  // Move agenda item up or down
+  const moveAgendaItem = (idx: number, direction: -1 | 1) => {
+    const newAgenda = [...data.agenda];
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= newAgenda.length) return;
+    [newAgenda[idx], newAgenda[targetIdx]] = [newAgenda[targetIdx], newAgenda[idx]];
+    updateField('agenda', newAgenda);
+  };
+
+  // Update agenda item and auto-populate hymn title if needed
+  const updateAgendaItem = (id: string, changes: Partial<AgendaItem>) => {
+    updateField('agenda', data.agenda.map(item => {
+      if (item.id !== id) return item;
+      if (item.type === 'musical' && 'hymnNumber' in changes) {
+        const hymnNumber = changes.hymnNumber;
+        const number = parseInt(hymnNumber || '');
+        if (hymnNumber && isValidHymnNumber(number)) {
+          return { ...item, ...changes, hymnTitle: getHymnTitle(number) };
+        } else {
+          return { ...item, ...changes, hymnTitle: '' };
+        }
+      }
+      return { ...item, ...changes };
+    }));
   };
 
   return (
     <div className="space-y-8">
-      {/* Basic Information */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ward Name</label>
-            <div className="flex gap-2 md:flex-col md:gap-0">
-              <input
-                type="text"
-                value={data.wardName}
-                onChange={(e) => updateField('wardName', e.target.value)}
-                placeholder="e.g., Sunset Hills Ward"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => saveDefault('wardName', data.wardName)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input
-              type="date"
-              value={data.date}
-              onChange={(e) => updateField('date', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-        <div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Theme/Scripture</label>
-            <input
-              type="text"
-              value={data.theme}
-              onChange={(e) => updateField('theme', e.target.value)}
-              placeholder="Weekly theme or scripture reference"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Leadership</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Presiding</label>
-            <div className="flex gap-2 md:flex-col md:gap-0">
-              <input
-                type="text"
-                value={data.leadership.presiding}
-                onChange={(e) => updateField('leadership', { ...data.leadership, presiding: e.target.value })}
-                placeholder="e.g., Bishop Dave Stratham"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => saveDefault('presiding', data.leadership.presiding)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Conducting</label>
-            <input
-              type="text"
-              value={data.leadership.conducting || ''}
-              onChange={(e) => updateField('leadership', { ...data.leadership, conducting: e.target.value })}
-              placeholder="e.g., 1st Counselor John Smith"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Music Director</label>
-            <div className="flex gap-2 md:flex-col md:gap-0">
-              <input
-                type="text"
-                value={data.leadership.musicDirector}
-                onChange={(e) => updateField('leadership', { ...data.leadership, musicDirector: e.target.value })}
-                placeholder="e.g., Debbie Hanes"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => saveDefault('musicDirector', data.leadership.musicDirector)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Organist</label>
-            <div className="flex gap-2 md:flex-col md:gap-0">
-              <input
-                type="text"
-                value={data.leadership.organist}
-                onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
-                placeholder="e.g., Tom Webster"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => saveDefault('organist', data.leadership.organist)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Music Program */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Music Program</h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Prelude</label>
-          <input
-            type="text"
-            value={data.musicProgram.prelude}
-            onChange={(e) => updateField('musicProgram', { ...data.musicProgram, prelude: e.target.value })}
-            placeholder="e.g., Ward Choir"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Number</label>
-            <input
-              type="text"
-              value={data.musicProgram.openingHymnNumber}
-              onChange={(e) => handleHymnNumberChange('openingHymnNumber', e.target.value)}
-              placeholder="e.g., 9"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.openingHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) 
-                  ? 'border-red-300 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-            />
-            {data.musicProgram.openingHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) && (
-              <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Title</label>
-            <input
-              type="text"
-              value={data.musicProgram.openingHymnTitle}
-              onChange={(e) => updateField('musicProgram', { ...data.musicProgram, openingHymnTitle: e.target.value })}
-              placeholder="e.g., Come, Rejoice"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-gray-300'
-              }`}
-              readOnly={data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Number</label>
-            <input
-              type="text"
-              value={data.musicProgram.sacramentHymnNumber}
-              onChange={(e) => handleHymnNumberChange('sacramentHymnNumber', e.target.value)}
-              placeholder="e.g., 181"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.sacramentHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) 
-                  ? 'border-red-300 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-            />
-            {data.musicProgram.sacramentHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) && (
-              <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Title</label>
-            <input
-              type="text"
-              value={data.musicProgram.sacramentHymnTitle}
-              onChange={(e) => updateField('musicProgram', { ...data.musicProgram, sacramentHymnTitle: e.target.value })}
-              placeholder="e.g., We'll Sing All Hail to Jesus' Name"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-gray-300'
-              }`}
-              readOnly={data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Musical Number</label>
-            <input
-              type="text"
-              value={data.musicProgram.specialMusical}
-              onChange={(e) => updateField('musicProgram', { ...data.musicProgram, specialMusical: e.target.value })}
-              placeholder="e.g., CTR 8 Class"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Performers (optional)</label>
-            <input
-              type="text"
-              value={data.musicProgram.musicalPerformers}
-              onChange={(e) => updateField('musicProgram', { ...data.musicProgram, musicalPerformers: e.target.value })}
-              placeholder="Names of performers"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Number</label>
-            <input
-              type="text"
-              value={data.musicProgram.closingHymnNumber}
-              onChange={(e) => handleHymnNumberChange('closingHymnNumber', e.target.value)}
-              placeholder="e.g., 89"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.closingHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) 
-                  ? 'border-red-300 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-            />
-            {data.musicProgram.closingHymnNumber && !isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) && (
-              <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Title</label>
-            <input
-              type="text"
-              value={data.musicProgram.closingHymnTitle}
-              onChange={(e) => updateField('musicProgram', { ...data.musicProgram, closingHymnTitle: e.target.value })}
-              placeholder="e.g., The Lord Is My Light"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-gray-300'
-              }`}
-              readOnly={data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Prayers */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Prayers</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Prayer</label>
-            <input
-              type="text"
-              value={data.prayers.opening}
-              onChange={(e) => updateField('prayers', { ...data.prayers, opening: e.target.value })}
-              placeholder="Name of person giving opening prayer"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Closing Prayer</label>
-            <input
-              type="text"
-              value={data.prayers.closing}
-              onChange={(e) => updateField('prayers', { ...data.prayers, closing: e.target.value })}
-              placeholder="Name of person giving closing prayer"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Speakers */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Speakers</h3>
-          <button
-            onClick={addSpeaker}
-            className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Speaker
-          </button>
-        </div>
-        
-        {data.speakers.map((speaker) => (
-          <div key={speaker.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {/* Tab Navigation */}
+      <div className="flex border-b mb-4">
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'program' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('program')}
+        >
+          Program
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'announcements' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('announcements')}
+        >
+          Announcements
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'wardinfo' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('wardinfo')}
+        >
+          Ward Info
+        </button>
+      </div>
+      {/* Tab Content */}
+      {activeTab === 'program' && (
+        <>
+          {/* Basic Information */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Name</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
-                    value={speaker.name}
-                    onChange={(e) => updateSpeaker(speaker.id, 'name', e.target.value)}
-                    placeholder="Speaker name"
+                    value={data.wardName}
+                    onChange={(e) => updateField('wardName', e.target.value)}
+                    placeholder="e.g., Sunset Hills Ward"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <select
-                    value={speaker.type}
-                    onChange={(e) => updateSpeaker(speaker.id, 'type', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('wardName', data.wardName)}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
                   >
-                    <option value="youth">Youth Speaker</option>
-                    <option value="adult">Speaker</option>
-                  </select>
+                    Save as default
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => removeSpeaker(speaker.id)}
-                className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Announcements */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Announcements</h3>
-          <button
-            onClick={addAnnouncement}
-            className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Announcement
-          </button>
-        </div>
-        
-        {data.announcements.map((announcement) => (
-          <div key={announcement.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={announcement.title}
-                    onChange={(e) => updateAnnouncement(announcement.id, 'title', e.target.value)}
-                    placeholder="Announcement title"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <select
-                    value={announcement.category}
-                    onChange={(e) => updateAnnouncement(announcement.id, 'category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="general">General</option>
-                    <option value="baptism">Baptism</option>
-                    <option value="birthday">Birthday</option>
-                    <option value="calling">New Calling</option>
-                    <option value="activity">Activity</option>
-                    <option value="service">Service Opportunity</option>
-                  </select>
-                </div>
-                <textarea
-                  value={announcement.content}
-                  onChange={(e) => updateAnnouncement(announcement.id, 'content', e.target.value)}
-                  placeholder="Announcement content..."
-                  rows={2}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={data.date}
+                  onChange={(e) => updateField('date', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <button
-                onClick={() => removeAnnouncement(announcement.id)}
-                className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
             </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Meetings */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Meetings This Week</h3>
-          <button
-            onClick={addMeeting}
-            className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Meeting
-          </button>
-        </div>
-        
-        {data.meetings.map((meeting) => (
-          <div key={meeting.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input
-                    type="text"
-                    value={meeting.title}
-                    onChange={(e) => updateMeeting(meeting.id, 'title', e.target.value)}
-                    placeholder="Meeting title"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="text"
-                    value={meeting.time}
-                    onChange={(e) => updateMeeting(meeting.id, 'time', e.target.value)}
-                    placeholder="Time (e.g., 7:00 PM)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="text"
-                    value={meeting.location}
-                    onChange={(e) => updateMeeting(meeting.id, 'location', e.target.value)}
-                    placeholder="Location"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <textarea
-                  value={meeting.description || ''}
-                  onChange={(e) => updateMeeting(meeting.id, 'description', e.target.value)}
-                  placeholder="Meeting description (optional)"
-                  rows={1}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <button
-                onClick={() => removeMeeting(meeting.id)}
-                className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Special Events */}
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Special Events</h3>
-          <button
-            onClick={addSpecialEvent}
-            className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Event
-          </button>
-        </div>
-        
-        {data.specialEvents.map((event) => (
-          <div key={event.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={event.title}
-                    onChange={(e) => updateSpecialEvent(event.id, 'title', e.target.value)}
-                    placeholder="Event title"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="date"
-                    value={event.date}
-                    onChange={(e) => updateSpecialEvent(event.id, 'date', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={event.time}
-                    onChange={(e) => updateSpecialEvent(event.id, 'time', e.target.value)}
-                    placeholder="Time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input
-                    type="text"
-                    value={event.location}
-                    onChange={(e) => updateSpecialEvent(event.id, 'location', e.target.value)}
-                    placeholder="Location"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <textarea
-                  value={event.description}
-                  onChange={(e) => updateSpecialEvent(event.id, 'description', e.target.value)}
-                  placeholder="Event description"
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            <div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Theme/Scripture</label>
                 <input
                   type="text"
-                  value={event.contact || ''}
-                  onChange={(e) => updateSpecialEvent(event.id, 'contact', e.target.value)}
-                  placeholder="Contact person (optional)"
+                  value={data.theme}
+                  onChange={(e) => updateField('theme', e.target.value)}
+                  placeholder="Weekly theme or scripture reference"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+            </div>
+          </section>
+
+          {/* Leadership */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Leadership</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Presiding</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.presiding}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, presiding: e.target.value })}
+                    placeholder="e.g., Bishop Dave Stratham"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('presiding', data.leadership.presiding)}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Conducting</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.conducting || ''}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, conducting: e.target.value })}
+                    placeholder="e.g., 1st Counselor John Smith"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('conducting', data.leadership.conducting || '')}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chorister</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.chorister}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, chorister: e.target.value })}
+                    placeholder="e.g., Debbie Hanes (Chorister)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('chorister', data.leadership.chorister)}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Organist</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.organist}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
+                    placeholder="e.g., Tom Webster"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('organist', data.leadership.organist)}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Music Program */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Music Program</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Number</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.openingHymnNumber}
+                  onChange={(e) => handleHymnNumberChange('openingHymnNumber', e.target.value)}
+                  placeholder="e.g., 9"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    Boolean(data.musicProgram.openingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) === false
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {Boolean(data.musicProgram.openingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Title</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.openingHymnTitle}
+                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, openingHymnTitle: e.target.value })}
+                  placeholder="e.g., Come, Rejoice"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-300'
+                  }`}
+                  readOnly={!!data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Number</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.sacramentHymnNumber}
+                  onChange={(e) => handleHymnNumberChange('sacramentHymnNumber', e.target.value)}
+                  placeholder="e.g., 181"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    Boolean(data.musicProgram.sacramentHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) === false
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {Boolean(data.musicProgram.sacramentHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Title</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.sacramentHymnTitle}
+                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, sacramentHymnTitle: e.target.value })}
+                  placeholder="e.g., We'll Sing All Hail to Jesus' Name"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-300'
+                  }`}
+                  readOnly={!!data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Number</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.closingHymnNumber}
+                  onChange={(e) => handleHymnNumberChange('closingHymnNumber', e.target.value)}
+                  placeholder="e.g., 89"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    Boolean(data.musicProgram.closingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) === false
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {Boolean(data.musicProgram.closingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Title</label>
+                <input
+                  type="text"
+                  value={data.musicProgram.closingHymnTitle}
+                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, closingHymnTitle: e.target.value })}
+                  placeholder="e.g., The Lord Is My Light"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-gray-300'
+                  }`}
+                  readOnly={!!data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Prayers */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Prayers</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Invocation</label>
+                <input
+                  type="text"
+                  value={data.prayers.opening}
+                  onChange={(e) => updateField('prayers', { ...data.prayers, opening: e.target.value })}
+                  placeholder="Invocation name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Benediction</label>
+                <input
+                  type="text"
+                  value={data.prayers.closing}
+                  onChange={(e) => updateField('prayers', { ...data.prayers, closing: e.target.value })}
+                  placeholder="Benediction name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Agenda (After Sacrament) */}
+          <section className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Agenda (After Sacrament)</h3>
+            <div className="space-y-3">
+            {data.agenda.map((item, idx) => (
+              <div key={item.id} className="bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2 items-center">
+                {item.type === 'testimony' ? (
+                  <div className="w-full flex items-center justify-center">
+                    <span className="block w-full text-center font-bold text-lg text-gray-700 py-2">Bearing of Testimonies</span>
+                  </div>
+                ) : item.type === 'speaker' ? (
+                  <>
+                    <input type="text" value={item.name} onChange={e => updateAgendaItem(item.id, { name: e.target.value })} placeholder="Speaker name" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" />
+                    <select value={item.speakerType} onChange={e => updateAgendaItem(item.id, { speakerType: e.target.value as 'youth' | 'adult' })} className="px-2 py-1 border rounded-lg min-w-[120px]">
+                      <option value="youth">Youth Speaker</option>
+                      <option value="adult">Speaker</option>
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <input type="text" value={item.hymnNumber || ''} onChange={e => updateAgendaItem(item.id, { hymnNumber: e.target.value })} placeholder="Hymn # (optional)" className="min-w-[80px] max-w-[100px] px-3 py-2 border border-gray-300 rounded-lg" />
+                    <input type="text" value={item.hymnTitle || ''} onChange={e => updateAgendaItem(item.id, { hymnTitle: e.target.value })} placeholder="Hymn Title (auto)" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" readOnly={!!item.hymnNumber} />
+                    <input type="text" value={item.songName || ''} onChange={e => updateAgendaItem(item.id, { songName: e.target.value })} placeholder="Song Name (if not hymn)" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" />
+                    <input type="text" value={item.performers || ''} onChange={e => updateAgendaItem(item.id, { performers: e.target.value })} placeholder="Performers (optional)" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" />
+                  </>
+                )}
+                <div className="flex flex-row items-center space-x-1">
+                  <button onClick={() => moveAgendaItem(idx, -1)} disabled={idx === 0} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↑</button>
+                  <button onClick={() => moveAgendaItem(idx, 1)} disabled={idx === data.agenda.length - 1} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↓</button>
+                  <button onClick={() => updateField('agenda', data.agenda.filter(ag => ag.id !== item.id))} className="ml-2 p-2 text-red-600 hover:bg-red-100 rounded-lg">Remove</button>
+                </div>
+              </div>
+            ))}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'speaker', name: '', speakerType: 'adult' }])} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Add Speaker</button>
+              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'musical', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }])} className="px-3 py-1 bg-green-600 text-white rounded-lg">Add Musical Number</button>
+              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'testimony' }])} className="px-3 py-1 bg-yellow-500 text-white rounded-lg">Bearing of Testimonies</button>
+            </div>
+          </section>
+        </>
+      )}
+      {activeTab === 'announcements' && (
+        <>
+          {/* Announcements Section */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Announcements</h3>
               <button
-                onClick={() => removeSpecialEvent(event.id)}
-                className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                onClick={addAnnouncement}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
               >
-                <Trash2 className="w-4 h-4" />
+                <Plus className="w-4 h-4 mr-1" />
+                Add Announcement
               </button>
             </div>
+            {data.announcements.map((announcement) => (
+              <div key={announcement.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={announcement.title}
+                        onChange={(e) => updateAnnouncement(announcement.id, 'title', e.target.value)}
+                        placeholder="Announcement title"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <select
+                        value={announcement.category}
+                        onChange={(e) => updateAnnouncement(announcement.id, 'category', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="general">General</option>
+                        <option value="baptism">Baptism</option>
+                        <option value="birthday">Birthday</option>
+                        <option value="calling">New Calling</option>
+                        <option value="activity">Activity</option>
+                        <option value="service">Service Opportunity</option>
+                      </select>
+                    </div>
+                    <textarea
+                      value={announcement.content}
+                      onChange={(e) => updateAnnouncement(announcement.id, 'content', e.target.value)}
+                      placeholder="Announcement content..."
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeAnnouncement(announcement.id)}
+                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* Meetings Section */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Meetings This Week</h3>
+              <button
+                onClick={addMeeting}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Meeting
+              </button>
+            </div>
+            {data.meetings.map((meeting) => (
+              <div key={meeting.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        value={meeting.title}
+                        onChange={(e) => updateMeeting(meeting.id, 'title', e.target.value)}
+                        placeholder="Meeting title"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={meeting.time}
+                        onChange={(e) => updateMeeting(meeting.id, 'time', e.target.value)}
+                        placeholder="Time (e.g., 7:00 PM)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={meeting.location}
+                        onChange={(e) => updateMeeting(meeting.id, 'location', e.target.value)}
+                        placeholder="Location"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <textarea
+                      value={meeting.description || ''}
+                      onChange={(e) => updateMeeting(meeting.id, 'description', e.target.value)}
+                      placeholder="Meeting description (optional)"
+                      rows={1}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeMeeting(meeting.id)}
+                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* Special Events Section */}
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Special Events</h3>
+              <button
+                onClick={addSpecialEvent}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Event
+              </button>
+            </div>
+            {data.specialEvents.map((event) => (
+              <div key={event.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={event.title}
+                        onChange={(e) => updateSpecialEvent(event.id, 'title', e.target.value)}
+                        placeholder="Event title"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="date"
+                        value={event.date}
+                        onChange={(e) => updateSpecialEvent(event.id, 'date', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={event.time}
+                        onChange={(e) => updateSpecialEvent(event.id, 'time', e.target.value)}
+                        placeholder="Time"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={event.location}
+                        onChange={(e) => updateSpecialEvent(event.id, 'location', e.target.value)}
+                        placeholder="Location"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <textarea
+                      value={event.description}
+                      onChange={(e) => updateSpecialEvent(event.id, 'description', e.target.value)}
+                      placeholder="Event description"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={event.contact || ''}
+                      onChange={(e) => updateSpecialEvent(event.id, 'contact', e.target.value)}
+                      placeholder="Contact person (optional)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeSpecialEvent(event.id)}
+                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
+      {activeTab === 'wardinfo' && (
+        <section className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Ward Leadership
+            <div className="flex flex-col items-end ml-2">
+              <button
+                type="button"
+                onClick={() => saveDefault('wardLeadership', data.wardLeadership)}
+                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                title="Save as default"
+              >
+                Save as default
+              </button>
+              <span className="text-xs text-gray-500 mt-1">Saves title, name, and phone for each row as your template.</span>
+            </div>
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-2 py-1 border-b">Title</th>
+                  <th className="px-2 py-1 border-b">Name</th>
+                  <th className="px-2 py-1 border-b">Phone</th>
+                  <th className="px-2 py-1 border-b"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.wardLeadership.map((entry, idx) => (
+                  <tr key={idx} className="hover:bg-blue-50 transition">
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="text"
+                        value={entry.title}
+                        onChange={e => {
+                          const updated = [...data.wardLeadership];
+                          updated[idx] = { ...updated[idx], title: e.target.value };
+                          updateField('wardLeadership', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="text"
+                        value={entry.name}
+                        onChange={e => {
+                          const updated = [...data.wardLeadership];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          updateField('wardLeadership', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="text"
+                        value={entry.phone || ''}
+                        onChange={e => {
+                          const updated = [...data.wardLeadership];
+                          updated[idx] = { ...updated[idx], phone: e.target.value };
+                          updateField('wardLeadership', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = data.wardLeadership.filter((_, i) => i !== idx);
+                          updateField('wardLeadership', updated);
+                        }}
+                        className="text-red-600 hover:underline"
+                        title="Remove"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              type="button"
+              onClick={() => updateField('wardLeadership', [...data.wardLeadership, { title: '', name: '', phone: '' }])}
+              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded-lg"
+            >
+              Add Leadership Position
+            </button>
           </div>
-        ))}
-      </section>
+
+          <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mt-8 flex items-center justify-between">Missionaries
+            <div className="flex flex-col items-end ml-2">
+              <button
+                type="button"
+                onClick={() => saveDefault('missionaries', data.missionaries)}
+                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                title="Save as default"
+              >
+                Save as default
+              </button>
+              <span className="text-xs text-gray-500 mt-1">Saves name, phone, and email for each missionary as your template.</span>
+            </div>
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-2 py-1 border-b">Name</th>
+                  <th className="px-2 py-1 border-b">Phone</th>
+                  <th className="px-2 py-1 border-b">Email</th>
+                  <th className="px-2 py-1 border-b"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.missionaries.map((entry, idx) => (
+                  <tr key={idx} className="hover:bg-blue-50 transition">
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="text"
+                        value={entry.name}
+                        onChange={e => {
+                          const updated = [...data.missionaries];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          updateField('missionaries', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="text"
+                        value={entry.phone || ''}
+                        onChange={e => {
+                          const updated = [...data.missionaries];
+                          updated[idx] = { ...updated[idx], phone: e.target.value };
+                          updateField('missionaries', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1">
+                      <input
+                        type="email"
+                        value={entry.email || ''}
+                        onChange={e => {
+                          const updated = [...data.missionaries];
+                          updated[idx] = { ...updated[idx], email: e.target.value };
+                          updateField('missionaries', updated);
+                        }}
+                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                      />
+                    </td>
+                    <td className="border-b px-2 py-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = data.missionaries.filter((_, i) => i !== idx);
+                          updateField('missionaries', updated);
+                        }}
+                        className="text-red-600 hover:underline"
+                        title="Remove"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              type="button"
+              onClick={() => updateField('missionaries', [...data.missionaries, { name: '', phone: '', email: '' }])}
+              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded-lg"
+            >
+              Add Missionary
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

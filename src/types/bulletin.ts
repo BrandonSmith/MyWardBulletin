@@ -32,7 +32,6 @@ export interface Prayers {
 }
 
 export interface MusicProgram {
-  prelude: string;
   openingHymn: string;
   openingHymnNumber: string;
   openingHymnTitle: string;
@@ -42,14 +41,12 @@ export interface MusicProgram {
   closingHymn: string;
   closingHymnNumber: string;
   closingHymnTitle: string;
-  specialMusical: string;
-  musicalPerformers: string;
 }
 
 export interface Leadership {
   presiding: string;
   conducting?: string;
-  musicDirector: string;
+  chorister: string;
   organist: string;
 }
 
@@ -57,6 +54,23 @@ export interface Speaker {
   id: string;
   name: string;
   type: 'youth' | 'adult';
+}
+
+export type AgendaItem =
+  | { type: 'speaker'; id: string; name: string; speakerType: 'youth' | 'adult' }
+  | { type: 'musical'; id: string; hymnNumber?: string; hymnTitle?: string; songName?: string; performers?: string }
+  | { type: 'testimony'; id: string };
+
+export interface WardLeadershipEntry {
+  title: string;
+  name: string;
+  phone?: string;
+}
+
+export interface MissionaryEntry {
+  name: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface BulletinData {
@@ -68,8 +82,10 @@ export interface BulletinData {
   announcements: Announcement[];
   meetings: Meeting[];
   specialEvents: SpecialEvent[];
-  speakers: Speaker[];
+  agenda: AgendaItem[];
   prayers: Prayers;
   musicProgram: MusicProgram;
   leadership: Leadership;
+  wardLeadership: WardLeadershipEntry[];
+  missionaries: MissionaryEntry[];
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BulletinData } from '../types/bulletin';
 import { getHymnUrl, getHymnTitle } from '../data/hymns';
 
@@ -7,6 +7,8 @@ interface BulletinPreviewProps {
 }
 
 export default function BulletinPreview({ data }: BulletinPreviewProps) {
+  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
+
   const formatDate = (dateString: string) => {
     // Fix timezone issue by creating date in local timezone
     const [year, month, day] = dateString.split('-').map(Number);
@@ -28,34 +30,335 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
     </div>
   );
 
-  const youthSpeakers = data.speakers.filter(s => s.type === 'youth');
-  const adultSpeakers = data.speakers.filter(s => s.type === 'adult');
-
   return (
     <div className="bulletin bg-white shadow-lg rounded-lg overflow-hidden max-w-2xl mx-auto font-serif">
-      {/* Header */}
-      <div className="bg-gray-100 border-b-2 border-gray-300 text-center relative overflow-hidden">
-        <div className="relative z-10 p-6">
-          {/* Ward Name */}
-          {data.wardName && (
-            <h1 className="text-xl font-bold text-gray-900 mb-1">
-              {data.wardName}
-            </h1>
-          )}
-          
-          {/* Meeting Type */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Sacrament Meeting
-          </h2>
-          
-          {/* Date */}
-          <p className="text-lg text-gray-700 italic">
-            {data.date ? formatDate(data.date) : 'Date'}
-          </p>
-        </div>
+      {/* Tab Navigation (hidden in print) */}
+      <div className="flex border-b print:hidden">
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'program' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('program')}
+        >
+          Program
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'announcements' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('announcements')}
+        >
+          Announcements
+        </button>
+        <button
+          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'wardinfo' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('wardinfo')}
+        >
+          Ward Info
+        </button>
       </div>
+      {/* Main Content */}
+      {activeTab === 'program' && (
+        <div className="p-6 space-y-4 text-sm leading-relaxed">
+          {/* Header */}
+          <div className="bg-gray-100 border-b-2 border-gray-300 text-center relative overflow-hidden">
+            <div className="relative z-10 p-6">
+              {/* Ward Name */}
+              {data.wardName && (
+                <h1 className="text-xl font-bold text-gray-900 mb-1">
+                  {data.wardName}
+                </h1>
+              )}
+              
+              {/* Meeting Type */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Sacrament Meeting
+              </h2>
+              
+              {/* Date */}
+              <p className="text-lg text-gray-700 italic">
+                {data.date ? formatDate(data.date) : 'Date'}
+              </p>
+            </div>
+          </div>
 
-      <div className="p-6 space-y-4 text-sm leading-relaxed">
+          {/* Leadership */}
+          <div className="space-y-1">
+            <DottedLine rightAlign={data.leadership.presiding}>
+              <span>Presiding</span>
+            </DottedLine>
+            {data.leadership.conducting && (
+              <DottedLine rightAlign={data.leadership.conducting}>
+                <span>Conducting</span>
+              </DottedLine>
+            )}
+            <DottedLine rightAlign={data.leadership.chorister}>
+              <span>Chorister</span>
+            </DottedLine>
+            <DottedLine rightAlign={data.leadership.organist}>
+              <span>Organist</span>
+            </DottedLine>
+          </div>
+
+          {/* Theme */}
+          {data.theme && (
+            <div className="text-center py-2">
+              <p className="italic text-gray-700">{data.theme}</p>
+            </div>
+          )}
+
+          {/* Opening Hymn */}
+          {(data.musicProgram.openingHymnNumber || data.musicProgram.openingHymnTitle) && (
+            <div className="space-y-1">
+              <DottedLine rightAlign={data.musicProgram.openingHymnNumber}>
+                <span>Opening Hymn</span>
+              </DottedLine>
+              {(data.musicProgram.openingHymnNumber || data.musicProgram.openingHymnTitle) && (
+                <div className="text-center py-1">
+                  <p className="italic">
+                    <a
+                      href={getHymnUrl(Number(data.musicProgram.openingHymnNumber))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 underline hover:text-blue-900"
+                    >
+                      {data.musicProgram.openingHymnTitle || getHymnTitle(Number(data.musicProgram.openingHymnNumber))}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Opening Prayer */}
+          {data.prayers.opening && (
+            <DottedLine rightAlign={data.prayers.opening}>
+              <span>Invocation</span>
+            </DottedLine>
+          )}
+
+          {/* Sacrament Hymn */}
+          {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
+            <div className="space-y-1">
+              <DottedLine rightAlign={data.musicProgram.sacramentHymnNumber}>
+                <span>Sacrament Hymn</span>
+              </DottedLine>
+              {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
+                <div className="text-center py-1">
+                  <p className="italic">
+                    <a
+                      href={getHymnUrl(Number(data.musicProgram.sacramentHymnNumber))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 underline hover:text-blue-900"
+                    >
+                      {data.musicProgram.sacramentHymnTitle || getHymnTitle(Number(data.musicProgram.sacramentHymnNumber))}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Administration of the Sacrament */}
+          <div className="text-center py-3">
+            <h2 className="text-lg font-bold">Administration of the Sacrament</h2>
+          </div>
+
+          {data.agenda.map((item) => (
+            item.type === 'speaker' ? (
+              <DottedLine key={item.id} rightAlign={item.name}>
+                <span>{item.speakerType === 'youth' ? 'Youth Speaker' : 'Speaker'}</span>
+              </DottedLine>
+            ) : item.type === 'musical' ? (
+              <div key={item.id} className="space-y-1">
+                <DottedLine rightAlign={item.hymnNumber || item.songName}>
+                  <span>Musical Number</span>
+                </DottedLine>
+                {(item.hymnNumber || item.hymnTitle) && (
+                  <div className="text-center py-1">
+                    <p className="italic">
+                      {item.hymnNumber ? (
+                        <a href={getHymnUrl(Number(item.hymnNumber))} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900">
+                          {item.hymnTitle || getHymnTitle(Number(item.hymnNumber))}
+                        </a>
+                      ) : item.songName}
+                    </p>
+                  </div>
+                )}
+                {item.performers && (
+                  <div className="text-center py-1">
+                    <p className="text-xs">{item.performers}</p>
+                  </div>
+                )}
+              </div>
+            ) : item.type === 'testimony' ? (
+              <div key={item.id} className="text-center py-3">
+                <h2 className="text-lg font-bold">Bearing of Testimonies</h2>
+              </div>
+            ) : null
+          ))}
+
+          {/* Closing Hymn */}
+          {(data.musicProgram.closingHymnNumber || data.musicProgram.closingHymnTitle) && (
+            <div className="space-y-1">
+              <DottedLine rightAlign={data.musicProgram.closingHymnNumber}>
+                <span>Closing Hymn</span>
+              </DottedLine>
+              {(data.musicProgram.closingHymnNumber || data.musicProgram.closingHymnTitle) && (
+                <div className="text-center py-1">
+                  <p className="italic">
+                    <a
+                      href={getHymnUrl(Number(data.musicProgram.closingHymnNumber))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 underline hover:text-blue-900"
+                    >
+                      {data.musicProgram.closingHymnTitle || getHymnTitle(Number(data.musicProgram.closingHymnNumber))}
+                    </a>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Closing Prayer */}
+          {data.prayers.closing && (
+            <DottedLine rightAlign={data.prayers.closing}>
+              <span>Benediction</span>
+            </DottedLine>
+          )}
+        </div>
+      )}
+      {activeTab === 'announcements' && (
+        <div className="p-6 space-y-4 text-sm leading-relaxed">
+          {/* Announcements */}
+          {data.announcements.length > 0 ? (
+            <div className="pt-4">
+              <h3 className="text-base font-bold mb-3 text-center">Announcements</h3>
+              <div className="space-y-3">
+                {data.announcements.map((announcement) => (
+                  <div key={announcement.id} className="text-xs">
+                    <h4 className="font-semibold">{announcement.title}</h4>
+                    <p className="text-gray-700">{announcement.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-400">No announcements</div>
+          )}
+
+          {/* Meetings This Week */}
+          {data.meetings.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-300">
+              <h3 className="text-base font-bold mb-3 text-center">Meetings This Week</h3>
+              <div className="space-y-3">
+                {data.meetings.map((meeting) => (
+                  <div key={meeting.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                    <div>
+                      <h4 className="font-semibold">{meeting.title}</h4>
+                      <p className="text-gray-700">{meeting.description}</p>
+                    </div>
+                    <div className="flex flex-col sm:items-end mt-2 sm:mt-0">
+                      <span className="text-gray-600">{meeting.location}</span>
+                      <span className="text-gray-600">{meeting.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Special Events */}
+          {data.specialEvents.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-300">
+              <h3 className="text-base font-bold mb-3 text-center">Special Events</h3>
+              <div className="space-y-3">
+                {data.specialEvents.map((event) => (
+                  <div key={event.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                    <div>
+                      <h4 className="font-semibold">{event.title}</h4>
+                      <p className="text-gray-700">{event.description}</p>
+                    </div>
+                    <div className="flex flex-col sm:items-end mt-2 sm:mt-0">
+                      <span className="text-gray-600">{new Date(event.date).toLocaleDateString()} - {event.time}</span>
+                      <span className="text-gray-600">{event.location}</span>
+                      {event.contact && <span className="text-gray-600">Contact: {event.contact}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {activeTab === 'wardinfo' && (
+        <div className="p-6 space-y-4 text-sm leading-relaxed">
+          <h3 className="text-base font-bold mb-3 text-center">Ward Leadership</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-xs">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-2 py-1 border">Title</th>
+                  <th className="px-2 py-1 border">Name</th>
+                  <th className="px-2 py-1 border">Phone</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.wardLeadership.map((entry, idx) => (
+                  <tr key={idx}>
+                    <td className="border px-2 py-1">{entry.title}</td>
+                    <td className="border px-2 py-1">{entry.name}</td>
+                    <td className="border px-2 py-1">{entry.phone}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <h3 className="text-base font-bold mb-3 text-center mt-8">Missionaries</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border text-xs">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-2 py-1 border">Name</th>
+                  <th className="px-2 py-1 border">Phone</th>
+                  <th className="px-2 py-1 border">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.missionaries.map((entry, idx) => (
+                  <tr key={idx}>
+                    <td className="border px-2 py-1">{entry.name}</td>
+                    <td className="border px-2 py-1">{entry.phone}</td>
+                    <td className="border px-2 py-1">{entry.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {/* Print: Always show both sections, hide tabs */}
+      <div className="hidden print:block p-6 space-y-4 text-sm leading-relaxed">
+        {/* Header */}
+        <div className="bg-gray-100 border-b-2 border-gray-300 text-center relative overflow-hidden">
+          <div className="relative z-10 p-6">
+            {/* Ward Name */}
+            {data.wardName && (
+              <h1 className="text-xl font-bold text-gray-900 mb-1">
+                {data.wardName}
+              </h1>
+            )}
+            
+            {/* Meeting Type */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Sacrament Meeting
+            </h2>
+            
+            {/* Date */}
+            <p className="text-lg text-gray-700 italic">
+              {data.date ? formatDate(data.date) : 'Date'}
+            </p>
+          </div>
+        </div>
+
         {/* Leadership */}
         <div className="space-y-1">
           <DottedLine rightAlign={data.leadership.presiding}>
@@ -66,17 +369,12 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
               <span>Conducting</span>
             </DottedLine>
           )}
-          <DottedLine rightAlign={data.leadership.musicDirector}>
-            <span>Music Director</span>
+          <DottedLine rightAlign={data.leadership.chorister}>
+            <span>Chorister</span>
           </DottedLine>
           <DottedLine rightAlign={data.leadership.organist}>
             <span>Organist</span>
           </DottedLine>
-          {data.musicProgram.prelude && (
-            <DottedLine rightAlign={data.musicProgram.prelude}>
-              <span>Prelude</span>
-            </DottedLine>
-          )}
         </div>
 
         {/* Theme */}
@@ -112,7 +410,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
         {/* Opening Prayer */}
         {data.prayers.opening && (
           <DottedLine rightAlign={data.prayers.opening}>
-            <span>Opening Prayer</span>
+            <span>Invocation</span>
           </DottedLine>
         )}
 
@@ -139,37 +437,43 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
           </div>
         )}
 
-        {/* The Sacrament */}
+        {/* Administration of the Sacrament */}
         <div className="text-center py-3">
-          <h2 className="text-lg font-bold">The Sacrament</h2>
+          <h2 className="text-lg font-bold">Administration of the Sacrament</h2>
         </div>
 
-        {/* Youth Speakers */}
-        {youthSpeakers.map((speaker) => (
-          <DottedLine key={speaker.id} rightAlign={speaker.name}>
-            <span>Youth Speaker</span>
-          </DottedLine>
-        ))}
-
-        {/* Musical Number */}
-        {data.musicProgram.specialMusical && (
-          <div className="space-y-1">
-            <DottedLine rightAlign={data.musicProgram.specialMusical}>
-              <span>Musical Number</span>
+        {data.agenda.map((item) => (
+          item.type === 'speaker' ? (
+            <DottedLine key={item.id} rightAlign={item.name}>
+              <span>{item.speakerType === 'youth' ? 'Youth Speaker' : 'Speaker'}</span>
             </DottedLine>
-            {data.musicProgram.musicalPerformers && (
-              <div className="text-center py-1">
-                <p className="text-xs">{data.musicProgram.musicalPerformers}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Adult Speakers */}
-        {adultSpeakers.map((speaker) => (
-          <DottedLine key={speaker.id} rightAlign={speaker.name}>
-            <span>Speaker</span>
-          </DottedLine>
+          ) : item.type === 'musical' ? (
+            <div key={item.id} className="space-y-1">
+              <DottedLine rightAlign={item.hymnNumber || item.songName}>
+                <span>Musical Number</span>
+              </DottedLine>
+              {(item.hymnNumber || item.hymnTitle) && (
+                <div className="text-center py-1">
+                  <p className="italic">
+                    {item.hymnNumber ? (
+                      <a href={getHymnUrl(Number(item.hymnNumber))} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900">
+                        {item.hymnTitle || getHymnTitle(Number(item.hymnNumber))}
+                      </a>
+                    ) : item.songName}
+                  </p>
+                </div>
+              )}
+              {item.performers && (
+                <div className="text-center py-1">
+                  <p className="text-xs">{item.performers}</p>
+                </div>
+              )}
+            </div>
+          ) : item.type === 'testimony' ? (
+            <div key={item.id} className="text-center py-3">
+              <h2 className="text-lg font-bold">Bearing of Testimonies</h2>
+            </div>
+          ) : null
         ))}
 
         {/* Closing Hymn */}
@@ -198,7 +502,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
         {/* Closing Prayer */}
         {data.prayers.closing && (
           <DottedLine rightAlign={data.prayers.closing}>
-            <span>Closing Prayer</span>
+            <span>Benediction</span>
           </DottedLine>
         )}
 
@@ -219,13 +523,19 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
 
         {/* Meetings */}
         {data.meetings.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-6 pt-4 border-t border-gray-300">
             <h3 className="text-base font-bold mb-3 text-center">Meetings This Week</h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {data.meetings.map((meeting) => (
-                <div key={meeting.id} className="text-xs flex justify-between">
-                  <span>{meeting.title} - {meeting.location}</span>
-                  <span>{meeting.time}</span>
+                <div key={meeting.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                  <div>
+                    <h4 className="font-semibold">{meeting.title}</h4>
+                    <p className="text-gray-700">{meeting.description}</p>
+                  </div>
+                  <div className="flex flex-col sm:items-end mt-2 sm:mt-0">
+                    <span className="text-gray-600">{meeting.location}</span>
+                    <span className="text-gray-600">{meeting.time}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -234,18 +544,20 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
 
         {/* Special Events */}
         {data.specialEvents.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-6 pt-4 border-t border-gray-300">
             <h3 className="text-base font-bold mb-3 text-center">Special Events</h3>
             <div className="space-y-3">
               {data.specialEvents.map((event) => (
-                <div key={event.id} className="text-xs">
-                  <div className="flex justify-between font-semibold">
-                    <span>{event.title}</span>
-                    <span>{new Date(event.date).toLocaleDateString()} - {event.time}</span>
+                <div key={event.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                  <div>
+                    <h4 className="font-semibold">{event.title}</h4>
+                    <p className="text-gray-700">{event.description}</p>
                   </div>
-                  <p className="text-gray-700">{event.description}</p>
-                  <p className="text-gray-600">Location: {event.location}</p>
-                  {event.contact && <p className="text-gray-600">Contact: {event.contact}</p>}
+                  <div className="flex flex-col sm:items-end mt-2 sm:mt-0">
+                    <span className="text-gray-600">{new Date(event.date).toLocaleDateString()} - {event.time}</span>
+                    <span className="text-gray-600">{event.location}</span>
+                    {event.contact && <span className="text-gray-600">Contact: {event.contact}</span>}
+                  </div>
                 </div>
               ))}
             </div>

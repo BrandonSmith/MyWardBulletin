@@ -197,18 +197,18 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     <div className="space-y-8 font-sans">
       {/* Tab Navigation */}
       <nav className="flex justify-center mb-4" aria-label="Main tabs">
-        <ul className="flex gap-2">
+        <ul className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full max-w-xs sm:max-w-none mx-auto">
           {['program', 'announcements', 'wardinfo'].map(tab => (
-            <li key={tab} role="presentation">
+            <li key={tab} role="presentation" className="w-full sm:w-auto">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab}
                 aria-controls={`tab-panel-${tab}`}
-                className={`px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
                   ${activeTab === tab
-                    ? 'bg-white text-primary shadow-card'
-                    : 'bg-muted text-gray-600 hover:bg-background hover:text-primary'}
+                    ? 'bg-white text-gray-900 shadow-card'
+                    : 'bg-muted text-gray-600 hover:bg-background hover:text-gray-900'}
                 `}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
               >

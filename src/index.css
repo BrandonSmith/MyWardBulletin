@@ -7,11 +7,11 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  @apply text-primary font-bold;
+  @apply text-gray-900 font-bold;
 }
 
 a {
-  @apply text-secondary hover:text-primary transition-colors underline;
+  @apply text-blue-700 hover:text-blue-900 transition-colors underline;
 }
 
 .card {
@@ -27,19 +27,19 @@ button, .btn {
 }
 
 button.primary, .btn-primary {
-  @apply bg-primary text-white hover:bg-primary-dark;
+  @apply bg-blue-600 text-white hover:bg-blue-700;
 }
 
 button.secondary, .btn-secondary {
-  @apply bg-secondary text-white hover:bg-secondary-dark;
+  @apply bg-gray-200 text-gray-900 hover:bg-gray-300;
 }
 
 button.accent, .btn-accent {
-  @apply bg-accent text-white hover:bg-accent-dark;
+  @apply bg-blue-600 text-white hover:bg-blue-700;
 }
 
 input, textarea, select {
-  @apply rounded-lg border border-muted bg-background-light focus:ring-2 focus:ring-primary focus:border-primary outline-none transition;
+  @apply rounded-lg border border-muted bg-background-light focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition;
 }
 
 ::-webkit-scrollbar {
@@ -47,10 +47,10 @@ input, textarea, select {
   background: #e5e7eb;
 }
 ::-webkit-scrollbar-thumb {
-  background: #a78bfa;
+  background: #6b7280; /* gray-500 */
   border-radius: 8px;
 }
 :focus {
   outline: none;
-  box-shadow: 0 0 0 2px #7c3aed33;
+  box-shadow: 0 0 0 2px #2563eb33; /* blue-600 with opacity */
 }

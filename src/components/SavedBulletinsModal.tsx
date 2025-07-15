@@ -72,8 +72,9 @@ export default function SavedBulletinsModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Sticky Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
           <h3 className="text-2xl font-bold text-gray-900">My Saved Bulletins</h3>
           <button
             onClick={onClose}
@@ -82,8 +83,8 @@ export default function SavedBulletinsModal({
             <X className="w-6 h-6" />
           </button>
         </div>
-
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+        {/* Scrollable Content */}
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -175,8 +176,8 @@ export default function SavedBulletinsModal({
             </div>
           )}
         </div>
-
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
+        {/* Sticky Footer */}
+        <div className="border-t border-gray-200 p-4 bg-gray-50 sticky bottom-0 z-10">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-600">
               {bulletins.length} bulletin{bulletins.length !== 1 ? 's' : ''} saved

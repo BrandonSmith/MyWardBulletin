@@ -4,9 +4,10 @@ import { getHymnUrl, getHymnTitle } from '../data/hymns';
 
 interface BulletinPreviewProps {
   data: BulletinData;
+  hideTabs?: boolean;
 }
 
-export default function BulletinPreview({ data }: BulletinPreviewProps) {
+export default function BulletinPreview({ data, hideTabs = false }: BulletinPreviewProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
 
   const formatDate = (dateString: string) => {
@@ -32,29 +33,31 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
 
   return (
     <div className="bulletin bg-white shadow-lg rounded-lg overflow-hidden max-w-2xl mx-auto font-sans">
-      {/* Tab Navigation (hidden in print) */}
-      <nav className="flex justify-center print:hidden mb-2" aria-label="Main tabs">
-        <ul className="flex gap-2">
-          {['program', 'announcements', 'wardinfo'].map(tab => (
-            <li key={tab} role="presentation">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                aria-controls={`tab-panel-${tab}`}
-                className={`px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
-                  ${activeTab === tab
-                    ? 'bg-white text-gray-900 shadow-card'
-                    : 'bg-muted text-gray-600 hover:bg-background hover:text-gray-900'}
-                `}
-                onClick={() => setActiveTab(tab as typeof activeTab)}
-              >
-                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Tab Navigation (hidden in print and if hideTabs) */}
+      {!hideTabs && (
+        <nav className="flex justify-center print:hidden mb-2 mt-2" aria-label="Main tabs">
+          <ul className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
+            {['program', 'announcements', 'wardinfo'].map(tab => (
+              <li key={tab} role="presentation" className="w-full sm:w-auto">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  aria-controls={`tab-panel-${tab}`}
+                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
+                    ${activeTab === tab
+                      ? 'bg-white text-gray-900 shadow-card'
+                      : 'bg-muted text-gray-600 hover:bg-background hover:text-gray-900'}
+                  `}
+                  onClick={() => setActiveTab(tab as typeof activeTab)}
+                >
+                  {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
       {/* Main Content */}
       {activeTab === 'program' && (
         <div className="p-6 space-y-4 text-sm leading-relaxed">

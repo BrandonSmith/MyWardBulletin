@@ -37,7 +37,8 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
       {!hideTabs && (
         <nav className="flex justify-center print:hidden mb-2 mt-2" aria-label="Main tabs">
           <ul className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
-            {['program', 'announcements', 'wardinfo'].map(tab => (
+            {/* Only show Program and Announcements tabs for now */}
+            {['program', 'announcements'].map(tab => (
               <li key={tab} role="presentation" className="w-full sm:w-auto">
                 <button
                   type="button"
@@ -51,7 +52,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                   `}
                   onClick={() => setActiveTab(tab as typeof activeTab)}
                 >
-                  {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+                  {tab === 'program' ? 'Program' : 'Announcements'}
                 </button>
               </li>
             ))}
@@ -294,7 +295,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           )}
         </div>
       )}
-      {activeTab === 'wardinfo' && (
+      {/* {activeTab === 'wardinfo' && (
         <div className="p-6 space-y-4 text-sm leading-relaxed">
           <h3 className="text-base font-bold mb-3 text-center">Ward Leadership</h3>
           <div className="overflow-x-auto">
@@ -339,7 +340,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             </table>
           </div>
         </div>
-      )}
+      )} */}
       {/* Print: Always show both sections, hide tabs */}
       <div className="hidden print:block p-6 space-y-4 text-sm leading-relaxed">
         {/* Header */}

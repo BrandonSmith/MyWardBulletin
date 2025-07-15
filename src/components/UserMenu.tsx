@@ -9,6 +9,7 @@ interface UserMenuProps {
   onViewSavedBulletins: () => void;
   hasUnsavedChanges?: boolean;
   onOpenProfile?: () => void;
+  onOpenWardSettings?: () => void;
 }
 
 export default function UserMenu({ 
@@ -17,7 +18,8 @@ export default function UserMenu({
   onSaveBulletin, 
   onViewSavedBulletins,
   hasUnsavedChanges,
-  onOpenProfile
+  onOpenProfile,
+  onOpenWardSettings
 }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -92,6 +94,18 @@ export default function UserMenu({
                 >
                   <Settings className="w-4 h-4" />
                   <span className="text-sm">Profile Settings</span>
+                </button>
+              )}
+              {onOpenWardSettings && (
+                <button
+                  onClick={() => {
+                    onOpenWardSettings();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="text-sm">Ward Settings</span>
                 </button>
               )}
             </div>

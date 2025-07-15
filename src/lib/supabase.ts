@@ -224,16 +224,15 @@ export const userService = {
 
   async getUserProfile(userId: string) {
     if (!supabase) throw new Error('Supabase not configured');
-
     const { data, error } = await supabase
       .from('users')
-      .select('email, profile_slug, role, active_bulletin_id, default_ward_name, default_presiding, default_music_director, default_organist')
+      .select('email, profile_slug, role, active_bulletin_id, default_ward_name, default_presiding, default_music_director, default_organist, default_conducting, default_chorister')
       .eq('id', userId);
     if (error) throw error;
     return data;
   },
 
-  async updateUserDefault(userId: string, field: 'default_ward_name' | 'default_presiding' | 'default_music_director' | 'default_organist', value: string) {
+  async updateUserDefault(userId: string, field: 'default_ward_name' | 'default_presiding' | 'default_music_director' | 'default_organist' | 'default_conducting' | 'default_chorister', value: string) {
     if (!supabase) throw new Error('Supabase not configured');
     const { error } = await supabase
       .from('users')
@@ -309,7 +308,9 @@ export const bulletinService = {
       agenda: bulletinData.agenda || [], // NEW
       prayers: bulletinData.prayers || {},
       music_program: bulletinData.musicProgram || {},
-      leadership: bulletinData.leadership || {}
+      leadership: bulletinData.leadership || {},
+      wardLeadership: bulletinData.wardLeadership || [],
+      missionaries: bulletinData.missionaries || [],
     };
 
     console.log('Prepared bulletin record:', bulletinRecord);
@@ -327,7 +328,9 @@ export const bulletinService = {
         tokenService.saveToken(userId, `bulletin-${slug}-agenda`, JSON.stringify(bulletinData.agenda || [])), // NEW
         tokenService.saveToken(userId, `bulletin-${slug}-prayers`, JSON.stringify(bulletinData.prayers || {})),
         tokenService.saveToken(userId, `bulletin-${slug}-music`, JSON.stringify(bulletinData.musicProgram || {})),
-        tokenService.saveToken(userId, `bulletin-${slug}-leadership`, JSON.stringify(bulletinData.leadership || {}))
+        tokenService.saveToken(userId, `bulletin-${slug}-leadership`, JSON.stringify(bulletinData.leadership || {})),
+        tokenService.saveToken(userId, `bulletin-${slug}-wardLeadership`, JSON.stringify(bulletinData.wardLeadership || [])),
+        tokenService.saveToken(userId, `bulletin-${slug}-missionaries`, JSON.stringify(bulletinData.missionaries || [])),
       ]);
       console.log('Successfully saved all tokens');
     } catch (tokenError: any) {
@@ -464,7 +467,7 @@ export const bulletinService = {
       const bulletinsWithData = await Promise.all(
         data.map(async (bulletin) => {
           try {
-            const [wardName, theme, bishopric, announcements, meetings, events, speakers, prayers, music, leadership] = await Promise.all([
+            const [wardName, theme, bishopric, announcements, meetings, events, speakers, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-ward_name`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-theme`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-bishopric`),
@@ -474,7 +477,9 @@ export const bulletinService = {
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-speakers`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-prayers`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-music`),
-              tokenService.getToken(userId, `bulletin-${bulletin.slug}-leadership`)
+              tokenService.getToken(userId, `bulletin-${bulletin.slug}-leadership`),
+              tokenService.getToken(userId, `bulletin-${bulletin.slug}-wardLeadership`),
+              tokenService.getToken(userId, `bulletin-${bulletin.slug}-missionaries`),
             ]);
 
             return {
@@ -492,6 +497,8 @@ export const bulletinService = {
               prayers: prayers ? JSON.parse(prayers) : {},
               music_program: music ? JSON.parse(music) : {},
               leadership: leadership ? JSON.parse(leadership) : {},
+              wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
+              missionaries: missionaries ? JSON.parse(missionaries) : [],
               created_at: bulletin.created_at,
               updated_at: bulletin.created_at
             };
@@ -512,6 +519,8 @@ export const bulletinService = {
               prayers: {},
               music_program: {},
               leadership: {},
+              wardLeadership: [],
+              missionaries: [],
               created_at: bulletin.created_at,
               updated_at: bulletin.created_at
             };
@@ -552,7 +561,7 @@ export const bulletinService = {
     const userId = data.created_by;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, bishopric, announcements, meetings, events, speakers, prayers, music, leadership] = await Promise.all([
+    const [wardName, theme, image, bishopric, announcements, meetings, events, speakers, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-image`),
@@ -563,12 +572,15 @@ export const bulletinService = {
       tokenService.getToken(userId, `bulletin-${data.slug}-speakers`),
       tokenService.getToken(userId, `bulletin-${data.slug}-prayers`),
       tokenService.getToken(userId, `bulletin-${data.slug}-music`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-leadership`)
+      tokenService.getToken(userId, `bulletin-${data.slug}-leadership`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-wardLeadership`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-missionaries`),
     ]);
 
     return {
       id: data.id,
       user_id: data.created_by,
+      profile_slug: data.profile_slug,
       ward_name: wardName || '',
       date: data.meeting_date,
       meeting_type: data.meeting_type,
@@ -581,6 +593,8 @@ export const bulletinService = {
       prayers: prayers ? JSON.parse(prayers) : {},
       music_program: music ? JSON.parse(music) : {},
       leadership: leadership ? JSON.parse(leadership) : {},
+      wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
+      missionaries: missionaries ? JSON.parse(missionaries) : [],
       created_at: data.created_at,
       updated_at: data.created_at
     };
@@ -635,7 +649,7 @@ export const bulletinService = {
     const userId = userData.id;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, bishopric, announcements, meetings, events, speakers, prayers, music, leadership] = await Promise.all([
+    const [wardName, theme, image, bishopric, announcements, meetings, events, speakers, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-image`),
@@ -646,7 +660,9 @@ export const bulletinService = {
       tokenService.getToken(userId, `bulletin-${data.slug}-speakers`),
       tokenService.getToken(userId, `bulletin-${data.slug}-prayers`),
       tokenService.getToken(userId, `bulletin-${data.slug}-music`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-leadership`)
+      tokenService.getToken(userId, `bulletin-${data.slug}-leadership`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-wardLeadership`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-missionaries`),
     ]);
 
     return {
@@ -665,6 +681,8 @@ export const bulletinService = {
       prayers: prayers ? JSON.parse(prayers) : {},
       music_program: music ? JSON.parse(music) : {},
       leadership: leadership ? JSON.parse(leadership) : {},
+      wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
+      missionaries: missionaries ? JSON.parse(missionaries) : [],
       created_at: data.created_at,
       updated_at: data.created_at
     };

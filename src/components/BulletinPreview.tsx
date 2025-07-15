@@ -31,28 +31,30 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
   );
 
   return (
-    <div className="bulletin bg-white shadow-lg rounded-lg overflow-hidden max-w-2xl mx-auto font-serif">
+    <div className="bulletin bg-white shadow-lg rounded-lg overflow-hidden max-w-2xl mx-auto font-sans">
       {/* Tab Navigation (hidden in print) */}
-      <div className="flex border-b print:hidden">
-        <button
-          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'program' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('program')}
-        >
-          Program
-        </button>
-        <button
-          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'announcements' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('announcements')}
-        >
-          Announcements
-        </button>
-        <button
-          className={`flex-1 py-2 text-center font-semibold ${activeTab === 'wardinfo' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('wardinfo')}
-        >
-          Ward Info
-        </button>
-      </div>
+      <nav className="flex justify-center print:hidden mb-2" aria-label="Main tabs">
+        <ul className="flex gap-2">
+          {['program', 'announcements', 'wardinfo'].map(tab => (
+            <li key={tab} role="presentation">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`tab-panel-${tab}`}
+                className={`px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
+                  ${activeTab === tab
+                    ? 'bg-white text-gray-900 shadow-card'
+                    : 'bg-muted text-gray-600 hover:bg-background hover:text-gray-900'}
+                `}
+                onClick={() => setActiveTab(tab as typeof activeTab)}
+              >
+                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
       {/* Main Content */}
       {activeTab === 'program' && (
         <div className="p-6 space-y-4 text-sm leading-relaxed">
@@ -158,7 +160,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
 
           {/* Administration of the Sacrament */}
           <div className="text-center py-3">
-            <h2 className="text-lg font-bold">Administration of the Sacrament</h2>
+            <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
           </div>
 
           {data.agenda.map((item) => (
@@ -190,7 +192,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
               </div>
             ) : item.type === 'testimony' ? (
               <div key={item.id} className="text-center py-3">
-                <h2 className="text-lg font-bold">Bearing of Testimonies</h2>
+                <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
               </div>
             ) : null
           ))}
@@ -439,7 +441,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
 
         {/* Administration of the Sacrament */}
         <div className="text-center py-3">
-          <h2 className="text-lg font-bold">Administration of the Sacrament</h2>
+          <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
         </div>
 
         {data.agenda.map((item) => (
@@ -471,7 +473,7 @@ export default function BulletinPreview({ data }: BulletinPreviewProps) {
             </div>
           ) : item.type === 'testimony' ? (
             <div key={item.id} className="text-center py-3">
-              <h2 className="text-lg font-bold">Bearing of Testimonies</h2>
+              <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
             </div>
           ) : null
         ))}

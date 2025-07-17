@@ -15,6 +15,7 @@ import { BulletinData } from './types/bulletin';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useQuery } from '@tanstack/react-query';
+import Logo from './components/Logo';
 
 function App() {
   const [currentView, setCurrentView] = useState<'editor' | 'public'>('editor');
@@ -31,6 +32,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showDraftSavedMessage, setShowDraftSavedMessage] = useState(false);
 
   // Move DEFAULT_KEYS and getDefault above useState
   const DEFAULT_KEYS: Record<
@@ -111,8 +113,12 @@ function App() {
   const [showQRCode, setShowQRCode] = useState(false);
   const bulletinRef = useRef<HTMLDivElement>(null);
 
+  // Add a helper for draft key
+  const DRAFT_KEY = 'draft_bulletin';
+
   const handleBulletinDataChange = (newData: BulletinData) => {
     setBulletinData(newData);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
     setHasUnsavedChanges(true);
   };
 
@@ -225,6 +231,17 @@ function App() {
       return () => subscription.unsubscribe();
     }
   }, []);
+
+  // On app load, if user is signed in and a draft exists, offer to save it
+  React.useEffect(() => {
+    if (user) {
+      const draft = localStorage.getItem(DRAFT_KEY);
+      if (draft) {
+        // Optionally prompt the user to save the draft
+        // For now, auto-save as above
+      }
+    }
+  }, [user]);
 
   const handleBackToEditor = () => {
     setCurrentView('editor');
@@ -517,9 +534,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
+              <Logo size={40} />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">ZionBoard</h1>
                 <p className="text-sm text-gray-600">Ward Bulletin Creator</p>
@@ -812,6 +827,14 @@ function App() {
             // Optionally refresh user data or show success message
           }}
         />
+
+        {/* Draft Saved Message */}
+        {showDraftSavedMessage && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded shadow z-50">
+            Your in-progress bulletin was saved to your account!
+            <button onClick={() => setShowDraftSavedMessage(false)} className="ml-2 text-green-900 underline">Dismiss</button>
+          </div>
+        )}
       </main>
 
       {/* Footer */}

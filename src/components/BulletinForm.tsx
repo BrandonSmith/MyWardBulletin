@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getHymnTitle, isValidHymnNumber } from '../data/hymns';
 import { toast } from 'react-toastify';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface BulletinFormProps {
   data: BulletinData;
@@ -193,26 +195,47 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     }));
   };
 
+  // Add audience options at the top of the file
+  const audienceOptions = [
+    { value: 'ward', label: 'Ward' },
+    { value: 'relief_society', label: 'Relief Society' },
+    { value: 'elders_quorum', label: 'Elders Quorum' },
+    { value: 'young_women', label: 'Young Women' },
+    { value: 'young_men', label: 'Young Men' },
+    { value: 'youth', label: 'Youth' },
+    { value: 'primary', label: 'Primary' },
+    { value: 'stake', label: 'Stake' },
+  ];
+
+  // Add the moveAnnouncement function near the other move functions:
+  const moveAnnouncement = (idx: number, direction: -1 | 1) => {
+    const newAnnouncements = [...data.announcements];
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= newAnnouncements.length) return;
+    [newAnnouncements[idx], newAnnouncements[targetIdx]] = [newAnnouncements[targetIdx], newAnnouncements[idx]];
+    updateField('announcements', newAnnouncements);
+  };
+
   return (
     <div className="space-y-8 font-sans">
       {/* Tab Navigation */}
       <nav className="flex justify-center mb-4" aria-label="Main tabs">
-        <ul className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full max-w-xs sm:max-w-none mx-auto">
-          {['program', 'announcements', 'wardinfo'].map(tab => (
+        <ul className="flex flex-col gap-2 sm:flex-row sm:gap-2 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
+          {['program', 'announcements'].map(tab => (
             <li key={tab} role="presentation" className="w-full sm:w-auto">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab}
                 aria-controls={`tab-panel-${tab}`}
-                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-150 shadow-sm focus:outline-none
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-full font-semibold focus:outline-none border transition-all duration-150
                   ${activeTab === tab
-                    ? 'bg-white text-gray-900 shadow-card'
-                    : 'bg-muted text-gray-600 hover:bg-background hover:text-gray-900'}
+                    ? 'bg-white text-gray-900 font-bold border-gray-400 shadow-md z-10'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200 hover:text-gray-700'}
                 `}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
               >
-                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+                {tab === 'program' ? 'Program' : 'Announcements'}
               </button>
             </li>
           ))}
@@ -537,50 +560,50 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
         <>
           {/* Announcements Section */}
           <section className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Announcements</h3>
-              <button
-                onClick={addAnnouncement}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Announcement
-              </button>
-            </div>
-            {data.announcements.map((announcement) => (
-              <div key={announcement.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={announcement.title}
-                        onChange={(e) => updateAnnouncement(announcement.id, 'title', e.target.value)}
-                        placeholder="Announcement title"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <select
-                        value={announcement.category}
-                        onChange={(e) => updateAnnouncement(announcement.id, 'category', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="general">General</option>
-                        <option value="baptism">Baptism</option>
-                        <option value="birthday">Birthday</option>
-                        <option value="calling">New Calling</option>
-                        <option value="activity">Activity</option>
-                        <option value="service">Service Opportunity</option>
-                      </select>
-                    </div>
-                    <textarea
-                      value={announcement.content}
-                      onChange={(e) => updateAnnouncement(announcement.id, 'content', e.target.value)}
-                      placeholder="Announcement content..."
-                      rows={2}
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Announcements</h3>
+            {data.announcements.map((announcement, idx) => (
+              <div key={announcement.id} className="bg-gray-50 p-4 rounded-lg space-y-3 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                <div className="flex-1 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      value={announcement.title}
+                      onChange={(e) => updateAnnouncement(announcement.id, 'title', e.target.value)}
+                      placeholder="Announcement title"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                    <select
+                      value={announcement.audience || 'ward'}
+                      onChange={e => updateAnnouncement(announcement.id, 'audience', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {audienceOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <ReactQuill
+                    value={announcement.content}
+                    onChange={value => updateAnnouncement(announcement.id, 'content', value)}
+                    placeholder="Announcement content..."
+                    className="quill-no-border"
+                    theme="snow"
+                    modules={{
+                      toolbar: [
+                        ['bold', 'italic', 'underline', { 'color': [] }, 'link'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['clean']
+                      ]
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col items-end space-y-2 sm:space-y-0 sm:ml-4 sm:flex-row sm:items-center sm:space-x-2">
+                  <div className="flex flex-row items-center space-x-1">
+                    <button onClick={() => moveAnnouncement(idx, -1)} disabled={idx === 0} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↑</button>
+                    <button onClick={() => moveAnnouncement(idx, 1)} disabled={idx === data.announcements.length - 1} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↓</button>
                   </div>
                   <button
+                    type="button"
                     onClick={() => removeAnnouncement(announcement.id)}
                     className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                   >
@@ -589,141 +612,17 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 </div>
               </div>
             ))}
-          </section>
-
-          {/* Meetings Section */}
-          <section className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Meetings This Week</h3>
-              <button
-                onClick={addMeeting}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Meeting
-              </button>
-            </div>
-            {data.meetings.map((meeting) => (
-              <div key={meeting.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <input
-                        type="text"
-                        value={meeting.title}
-                        onChange={(e) => updateMeeting(meeting.id, 'title', e.target.value)}
-                        placeholder="Meeting title"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        value={meeting.time}
-                        onChange={(e) => updateMeeting(meeting.id, 'time', e.target.value)}
-                        placeholder="Time (e.g., 7:00 PM)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        value={meeting.location}
-                        onChange={(e) => updateMeeting(meeting.id, 'location', e.target.value)}
-                        placeholder="Location"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <textarea
-                      value={meeting.description || ''}
-                      onChange={(e) => updateMeeting(meeting.id, 'description', e.target.value)}
-                      placeholder="Meeting description (optional)"
-                      rows={1}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <button
-                    onClick={() => removeMeeting(meeting.id)}
-                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </section>
-
-          {/* Special Events Section */}
-          <section className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Special Events</h3>
-              <button
-                onClick={addSpecialEvent}
-                className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Event
-              </button>
-            </div>
-            {data.specialEvents.map((event) => (
-              <div key={event.id} className="bg-gray-50 p-4 rounded-lg space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={event.title}
-                        onChange={(e) => updateSpecialEvent(event.id, 'title', e.target.value)}
-                        placeholder="Event title"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="date"
-                        value={event.date}
-                        onChange={(e) => updateSpecialEvent(event.id, 'date', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={event.time}
-                        onChange={(e) => updateSpecialEvent(event.id, 'time', e.target.value)}
-                        placeholder="Time"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <input
-                        type="text"
-                        value={event.location}
-                        onChange={(e) => updateSpecialEvent(event.id, 'location', e.target.value)}
-                        placeholder="Location"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <textarea
-                      value={event.description}
-                      onChange={(e) => updateSpecialEvent(event.id, 'description', e.target.value)}
-                      placeholder="Event description"
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="text"
-                      value={event.contact || ''}
-                      onChange={(e) => updateSpecialEvent(event.id, 'contact', e.target.value)}
-                      placeholder="Contact person (optional)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <button
-                    onClick={() => removeSpecialEvent(event.id)}
-                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+            <button
+              onClick={addAnnouncement}
+              className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm mt-2"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Announcement
+            </button>
           </section>
         </>
       )}
-      {activeTab === 'wardinfo' && (
+      {/* {activeTab === 'wardinfo' && (
         <section className="space-y-4">
           <h3 className="text-lg font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Ward Leadership
             <div className="flex flex-col items-end ml-2">
@@ -901,7 +800,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             </button>
           </div>
         </section>
-      )}
+      )} */}
     </div>
   );
 }

@@ -4,6 +4,7 @@ export interface Announcement {
   content: string;
   category: 'general' | 'baptism' | 'birthday' | 'calling' | 'activity' | 'service';
   date?: string;
+  audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake';
 }
 
 export interface Meeting {

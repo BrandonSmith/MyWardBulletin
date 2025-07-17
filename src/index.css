@@ -54,3 +54,43 @@ input, textarea, select {
   outline: none;
   box-shadow: 0 0 0 2px #2563eb33; /* blue-600 with opacity */
 }
+
+.quill-no-border .ql-container {
+  border: 1px solid #d1d5db !important; /* Tailwind gray-300 */
+  border-top: none !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  border-radius: 0 0 0.5rem 0.5rem !important;
+  transition: border-color 0.2s;
+}
+.quill-no-border .ql-toolbar {
+  border: 1px solid #d1d5db !important;
+  border-bottom: none !important;
+  background: #f9fafb !important; /* Tailwind gray-50 */
+  box-shadow: none !important;
+  border-radius: 0.5rem 0.5rem 0 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.quill-no-border .ql-container.ql-snow:focus-within {
+  border-color: #2563eb !important; /* Tailwind blue-600 */
+  outline: none !important;
+  box-shadow: 0 0 0 2px #2563eb33;
+  border-radius: 0 0 0.5rem 0.5rem !important;
+}
+
+.announcement-content ul {
+  list-style-type: disc;
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+.announcement-content ol {
+  list-style-type: decimal;
+  margin-left: 1.5em;
+  margin-bottom: 0.5em;
+}
+.announcement-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  word-break: break-all;
+}

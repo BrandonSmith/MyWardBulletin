@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { BulletinData } from '../types/bulletin';
 import { userService } from '../lib/supabase';
 import BulletinSelector from './BulletinSelector';
+import { toast } from 'react-toastify';
 
 interface QRCodeGeneratorProps {
   user: any;
@@ -24,7 +25,7 @@ export default function QRCodeGenerator({
   const [isEditing, setIsEditing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [copySuccess, setCopySuccess] = useState('');
+
 
   useEffect(() => {
     loadUserProfile();
@@ -149,11 +150,9 @@ export default function QRCodeGenerator({
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      setCopySuccess('Copied!');
-      setTimeout(() => setCopySuccess(''), 1500);
+      toast.success('URL copied to clipboard!');
     } catch (err) {
-      setCopySuccess('Failed to copy');
-      setTimeout(() => setCopySuccess(''), 1500);
+      toast.error('Failed to copy URL to clipboard');
     }
   };
 
@@ -243,7 +242,7 @@ export default function QRCodeGenerator({
           Copy URL
         </button>
       </div>
-      {copySuccess && <div className="text-green-600 text-sm mt-1">{copySuccess}</div>}
+
       
       <div className="text-xs text-gray-500 space-y-1">
         <p>• Print this QR code and place it on physical bulletins</p>

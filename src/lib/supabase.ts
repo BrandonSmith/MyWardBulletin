@@ -253,44 +253,47 @@ export const userService = {
   }
 };
 
+// Timeout wrapper function to prevent hanging operations
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+};
+
 // Bulletin service functions
 export const bulletinService = {
   async saveBulletin(bulletinData: any, userId: string, bulletinId?: string) {
     if (!supabase) throw new Error('Supabase not configured');
 
-    console.log('Starting saveBulletin with:', { userId, bulletinId, bulletinData });
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    console.log('[DEBUG] saveBulletin: session check', { session: sessionData?.session, error: sessionError });
+    if (sessionError || !sessionData?.session) {
+      console.error('[DEBUG] saveBulletin: No valid Supabase session, aborting save');
+      throw new Error('No valid Supabase session. Please sign in again.');
+    }
 
     let slug: string;
     
     if (bulletinId) {
-      // For existing bulletins, fetch the current slug to preserve it
       try {
-        console.log('Fetching existing bulletin slug for ID:', bulletinId);
         const { data: existingBulletin, error } = await supabase
           .from('bulletins')
           .select('slug')
           .eq('id', bulletinId)
           .eq('created_by', userId)
           .single();
-        
-        if (error) {
-          console.error('Error fetching existing bulletin:', error);
-          throw error;
-        }
+        if (error) throw error;
         slug = existingBulletin.slug;
-        console.log('Found existing slug:', slug);
       } catch (error) {
-        // If we can't fetch the existing bulletin, generate a new slug
-        console.warn('Could not fetch existing bulletin slug, generating new one:', error);
         slug = generateUniqueBulletinSlug(userId, bulletinData.date);
       }
     } else {
-      // For new bulletins, generate a unique slug
       slug = generateUniqueBulletinSlug(userId, bulletinData.date);
-      console.log('Generated new slug:', slug);
     }
 
-    // Prepare bulletin data for local storage fallback
     const bulletinRecord = {
       id: bulletinId || `bulletin-${Date.now()}`,
       slug,
@@ -298,52 +301,59 @@ export const bulletinService = {
       meeting_type: bulletinData.meetingType,
       created_by: userId,
       created_at: new Date().toISOString(),
-      // Include all bulletin data
       ward_name: bulletinData.wardName,
       theme: bulletinData.theme || '',
       bishopric_message: bulletinData.bishopricMessage || '',
       announcements: bulletinData.announcements || [],
       meetings: bulletinData.meetings || [],
       special_events: bulletinData.specialEvents || [],
-      agenda: bulletinData.agenda || [], // NEW
+      agenda: bulletinData.agenda || [],
       prayers: bulletinData.prayers || {},
       music_program: bulletinData.musicProgram || {},
       leadership: bulletinData.leadership || {},
       wardLeadership: bulletinData.wardLeadership || [],
       missionaries: bulletinData.missionaries || [],
     };
+    console.log('[DEBUG] saveBulletin: prepared bulletin record', bulletinRecord);
 
-    console.log('Prepared bulletin record:', bulletinRecord);
-
-    // Try to store bulletin data as tokens, but catch any RLS errors
+    // Save tokens (batch upsert)
     try {
-      console.log('Saving tokens for bulletin...');
-      await Promise.all([
-        tokenService.saveToken(userId, `bulletin-${slug}-ward_name`, bulletinData.wardName || ''),
-        tokenService.saveToken(userId, `bulletin-${slug}-theme`, bulletinData.theme || ''),
-        tokenService.saveToken(userId, `bulletin-${slug}-bishopric`, bulletinData.bishopricMessage || ''),
-        tokenService.saveToken(userId, `bulletin-${slug}-announcements`, JSON.stringify(bulletinData.announcements || [])),
-        tokenService.saveToken(userId, `bulletin-${slug}-meetings`, JSON.stringify(bulletinData.meetings || [])),
-        tokenService.saveToken(userId, `bulletin-${slug}-events`, JSON.stringify(bulletinData.specialEvents || [])),
-        tokenService.saveToken(userId, `bulletin-${slug}-agenda`, JSON.stringify(bulletinData.agenda || [])), // NEW
-        tokenService.saveToken(userId, `bulletin-${slug}-prayers`, JSON.stringify(bulletinData.prayers || {})),
-        tokenService.saveToken(userId, `bulletin-${slug}-music`, JSON.stringify(bulletinData.musicProgram || {})),
-        tokenService.saveToken(userId, `bulletin-${slug}-leadership`, JSON.stringify(bulletinData.leadership || {})),
-        tokenService.saveToken(userId, `bulletin-${slug}-wardLeadership`, JSON.stringify(bulletinData.wardLeadership || [])),
-        tokenService.saveToken(userId, `bulletin-${slug}-missionaries`, JSON.stringify(bulletinData.missionaries || [])),
-      ]);
-      console.log('Successfully saved all tokens');
-    } catch (tokenError: any) {
-      console.error('Error saving tokens:', tokenError);
-      if (tokenError.message.includes('infinite recursion')) {
-        // Skip token storage if RLS recursion occurs
-        console.warn('Skipping token storage due to RLS recursion');
-      } else {
-        console.warn('Token storage failed, continuing with bulletin save:', tokenError.message);
-        // Don't throw here - continue with bulletin save even if tokens fail
+      console.log('[DEBUG] saveBulletin: saving tokens (batch upsert)');
+      const tokens = [
+        { key: `bulletin-${slug}-ward_name`, value: bulletinData.wardName || '', created_by: userId },
+        { key: `bulletin-${slug}-theme`, value: bulletinData.theme || '', created_by: userId },
+        { key: `bulletin-${slug}-bishopric`, value: bulletinData.bishopricMessage || '', created_by: userId },
+        { key: `bulletin-${slug}-announcements`, value: JSON.stringify(bulletinData.announcements || []), created_by: userId },
+        { key: `bulletin-${slug}-meetings`, value: JSON.stringify(bulletinData.meetings || []), created_by: userId },
+        { key: `bulletin-${slug}-events`, value: JSON.stringify(bulletinData.specialEvents || []), created_by: userId },
+        { key: `bulletin-${slug}-agenda`, value: JSON.stringify(bulletinData.agenda || []), created_by: userId },
+        { key: `bulletin-${slug}-prayers`, value: JSON.stringify(bulletinData.prayers || {}), created_by: userId },
+        { key: `bulletin-${slug}-music`, value: JSON.stringify(bulletinData.musicProgram || {}), created_by: userId },
+        { key: `bulletin-${slug}-leadership`, value: JSON.stringify(bulletinData.leadership || {}), created_by: userId },
+        { key: `bulletin-${slug}-wardLeadership`, value: JSON.stringify(bulletinData.wardLeadership || []), created_by: userId },
+        { key: `bulletin-${slug}-missionaries`, value: JSON.stringify(bulletinData.missionaries || []), created_by: userId },
+      ];
+      console.log('[DEBUG] saveBulletin: tokens array', tokens);
+      let data, error;
+      try {
+        const upsertPromise = supabase
+          .from('tokens')
+          .upsert(tokens, { onConflict: 'key,created_by' });
+        const upsertResult = await upsertPromise;
+        ({ data, error } = await withTimeout(Promise.resolve(upsertResult), 10000));
+        console.log('[DEBUG] saveBulletin: tokens upsert result', { data, error });
+      } catch (timeoutError) {
+        console.error('[DEBUG] saveBulletin: token batch upsert timed out or failed', timeoutError);
+        throw timeoutError;
       }
+      if (error) {
+        console.error('[DEBUG] saveBulletin: token upsert error', error);
+        throw error;
+      }
+      console.log('[DEBUG] saveBulletin: successfully batch upserted all tokens', data);
+    } catch (tokenError) {
+      console.error('[DEBUG] saveBulletin: error saving tokens (batch upsert)', tokenError);
     }
-
 
     const dbBulletinRecord = {
       slug,
@@ -351,67 +361,49 @@ export const bulletinService = {
       meeting_type: bulletinData.meetingType,
       created_by: userId
     };
-
-    console.log('Saving bulletin to database:', dbBulletinRecord);
+    console.log('[DEBUG] saveBulletin: saving bulletin to database', dbBulletinRecord);
 
     try {
       if (bulletinId) {
-        // Update existing bulletin
-        console.log('Updating existing bulletin with ID:', bulletinId);
-        const { data, error } = await supabase
-          .from('bulletins')
-          .update(dbBulletinRecord)
-          .eq('id', bulletinId)
-          .eq('created_by', userId)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('Database update error:', error);
-          if (error.message.includes('infinite recursion')) {
-            // Store in local storage if database fails
-            console.log('Falling back to local storage due to recursion');
-            this.saveToLocalStorage(bulletinRecord);
-            return bulletinRecord;
-          }
-          throw error;
+        let data, error;
+        try {
+          const updatePromise = supabase
+            .from('bulletins')
+            .update(dbBulletinRecord)
+            .eq('id', bulletinId)
+            .eq('created_by', userId)
+            .select()
+            .single();
+          const updateResult = await updatePromise;
+          ({ data, error } = await withTimeout(Promise.resolve(updateResult), 10000));
+          console.log('[DEBUG] saveBulletin: bulletin update result', { data, error });
+        } catch (timeoutError) {
+          console.error('[DEBUG] saveBulletin: bulletin update timed out or failed', timeoutError);
+          throw timeoutError;
         }
-        console.log('Successfully updated bulletin in database:', data);
-        // Also save to local storage as backup
+        if (error) throw error;
         this.saveToLocalStorage({ ...bulletinRecord, id: data.id });
         return data;
       } else {
-        // Create new bulletin
-        console.log('Creating new bulletin');
-        const { data, error } = await supabase
-          .from('bulletins')
-          .insert(dbBulletinRecord)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('Database insert error:', error);
-          if (error.message.includes('infinite recursion')) {
-            // Store in local storage if database fails
-            console.log('Falling back to local storage due to recursion');
-            this.saveToLocalStorage(bulletinRecord);
-            return bulletinRecord;
-          }
-          throw error;
+        let data, error;
+        try {
+          const insertPromise = supabase
+            .from('bulletins')
+            .insert(dbBulletinRecord)
+            .select()
+            .single();
+          const insertResult = await insertPromise;
+          ({ data, error } = await withTimeout(Promise.resolve(insertResult), 10000));
+          console.log('[DEBUG] saveBulletin: bulletin insert result', { data, error });
+        } catch (timeoutError) {
+          console.error('[DEBUG] saveBulletin: bulletin insert timed out or failed', timeoutError);
+          throw timeoutError;
         }
-        console.log('Successfully created bulletin in database:', data);
-        // Also save to local storage as backup
+        if (error) throw error;
         this.saveToLocalStorage({ ...bulletinRecord, id: data.id });
         return data;
       }
-    } catch (bulletinError: any) {
-      console.error('Bulletin save error:', bulletinError);
-      if (bulletinError.message.includes('infinite recursion')) {
-        // Store in local storage if database fails
-        console.log('Falling back to local storage due to recursion');
-        this.saveToLocalStorage(bulletinRecord);
-        return bulletinRecord;
-      }
+    } catch (bulletinError) {
       throw bulletinError;
     }
   },

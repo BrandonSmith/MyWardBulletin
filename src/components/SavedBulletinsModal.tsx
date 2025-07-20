@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, FileText, Calendar, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 
 interface SavedBulletinsModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function SavedBulletinsModal({
       queryClient.invalidateQueries({ queryKey: ['user-bulletins', user.id] });
       onDeleteBulletin(bulletinId);
     } catch (error: any) {
-      alert('Failed to delete bulletin: ' + error.message);
+      toast.error('Failed to delete bulletin: ' + error.message);
     } finally {
       setDeletingId(null);
     }

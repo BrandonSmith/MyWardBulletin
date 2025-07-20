@@ -109,7 +109,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
                   ) : item.type === 'musical' ? (
                     <ProgramTableRow
                       key={idx}
-                      label="Musical Number"
+                      label={data.musicalLabel || 'Musical Number'}
                       value={item.hymnNumber || item.songName}
                       extra={item.hymnTitle}
                     />

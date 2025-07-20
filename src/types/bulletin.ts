@@ -89,4 +89,5 @@ export interface BulletinData {
   leadership: Leadership;
   wardLeadership: WardLeadershipEntry[];
   missionaries: MissionaryEntry[];
+  musicalLabel?: string; // 'Musical Number' or 'Intermediate Hymn'
 }

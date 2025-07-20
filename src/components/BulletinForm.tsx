@@ -638,6 +638,17 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
           {/* Agenda (After Sacrament) */}
           <section className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Agenda (After Sacrament)</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="text-sm font-medium text-gray-700">Label for musical item:</label>
+              <select
+                value={data.musicalLabel || 'Musical Number'}
+                onChange={e => updateField('musicalLabel', e.target.value)}
+                className="px-2 py-1 border rounded"
+              >
+                <option value="Musical Number">Musical Number</option>
+                <option value="Intermediate Hymn">Intermediate Hymn</option>
+              </select>
+            </div>
             <div className="space-y-3">
             {data.agenda.map((item, idx) => (
               <div key={item.id} className="bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2 items-center">

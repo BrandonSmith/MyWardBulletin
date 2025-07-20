@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Download, QrCode, User, LogIn, Menu, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,11 +12,23 @@ import SavedBulletinsModal from './components/SavedBulletinsModal';
 import ProfileModal from './components/ProfileModal';
 import PublicBulletinView from './components/PublicBulletinView';
 import { BulletinData } from './types/bulletin';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useQuery } from '@tanstack/react-query';
 import Logo from './components/Logo';
 import BulletinPrintLayout from './components/BulletinPrintLayout';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
+
+
+function decodeJwtExp(token: string) {
+  try {
+    const decoded = jwtDecode<JwtPayload & { exp?: number }>(token);
+    return decoded.exp ? decoded.exp * 1000 : null;
+  } catch (e) {
+    console.error('[DEBUG] Failed to decode JWT:', e);
+    return null;
+  }
+}
 
 function App() {
   const [currentView, setCurrentView] = useState<'editor' | 'public'>('editor');
@@ -33,7 +45,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showDraftSavedMessage, setShowDraftSavedMessage] = useState(false);
+
 
   // Move DEFAULT_KEYS and getDefault above useState
   const DEFAULT_KEYS: Record<
@@ -49,14 +61,20 @@ function App() {
     missionaries: 'default_missionaries',
   };
   function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
-    const val = localStorage.getItem(DEFAULT_KEYS[key]);
-    if (val) {
-      if (key === 'wardLeadership' || key === 'missionaries') {
-        try { return JSON.parse(val) as T; } catch { return fallback; }
+    try {
+      const val = localStorage.getItem(DEFAULT_KEYS[key]);
+      if (val) {
+        if (key === 'wardLeadership' || key === 'missionaries') {
+          try { return JSON.parse(val) as T; } catch { return fallback; }
+        }
+        return val as T;
       }
-      return val as T;
+      return fallback;
+    } catch (e) {
+      // Only clear localStorage if there's an actual error, not proactively
+      console.error('localStorage error:', e);
+      return fallback;
     }
-    return fallback;
   }
 
   // Use a function to initialize bulletinData from localStorage defaults
@@ -191,7 +209,7 @@ function App() {
   }
 
   // Check for existing session on mount
-  React.useEffect(() => {
+  useEffect(() => {
     const initializeApp = async () => {
       if (isSupabaseConfigured() && supabase) {
         try {
@@ -228,6 +246,52 @@ function App() {
       }
     };
     initializeApp();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!supabase) {
+        console.error('[DEBUG] Supabase is null!');
+        return;
+      }
+      const { data, error } = await supabase.auth.getSession();
+      console.log('[DEBUG] On app load: Supabase session:', data?.session);
+      console.log('[DEBUG] On app load: Supabase user:', data?.session?.user);
+      if (error) {
+        console.error('[DEBUG] On app load: Supabase session error:', error);
+      }
+      // Log all localStorage keys and values
+      console.log('[DEBUG] On app load: localStorage dump:');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          console.log(`  [localStorage] ${key}:`, localStorage.getItem(key));
+        }
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let intervalId: NodeJS.Timeout;
+    async function checkJwtExpiration() {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (!accessToken) return;
+      const exp = decodeJwtExp(accessToken);
+      if (!exp) return;
+      const now = Date.now();
+      const msLeft = exp - now;
+      console.log('[DEBUG] JWT expiration check:', { exp: new Date(exp).toISOString(), msLeft });
+      if (msLeft < 2 * 60 * 1000) { // less than 2 minutes left
+        toast.warning('Session expired or about to expire. Please sign in again.');
+        await supabase.auth.signOut();
+        window.location.reload();
+      }
+    }
+    checkJwtExpiration();
+    intervalId = setInterval(checkJwtExpiration, 30000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Enhanced auth state change handler
@@ -279,7 +343,7 @@ function App() {
 
   const handleSaveBulletin = async () => {
     if (!isSupabaseConfigured()) {
-      alert('Please connect to Supabase first to save bulletins.');
+      toast.error('Please connect to Supabase first to save bulletins.');
       return;
     }
     if (!user) {
@@ -289,17 +353,48 @@ function App() {
       return;
     }
     setLoading(true);
+    console.log('[DEBUG] Save attempt started');
+    const SAVE_TIMEOUT_MS = 10000;
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    let didTimeout = false;
     try {
-      const savedBulletin = await retryOperation(() => bulletinService.saveBulletin(
-        bulletinData,
-        user.id,
-        currentBulletinId || undefined
-      ));
+      const savePromise = (async () => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log('[DEBUG] On save: Supabase session:', sessionData?.session);
+        if (sessionError) {
+          console.error('[DEBUG] On save: Supabase session error:', sessionError);
+        }
+        const savedBulletin = await retryOperation(() => bulletinService.saveBulletin(
+          bulletinData,
+          user.id,
+          currentBulletinId || undefined
+        ));
+        return savedBulletin;
+      })();
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          didTimeout = true;
+          reject(new Error('Save operation timed out after 10 seconds.'));
+        }, SAVE_TIMEOUT_MS);
+      });
+      const savedBulletin = await Promise.race([savePromise, timeoutPromise]);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (didTimeout) return; // Already handled by catch
       setCurrentBulletinId(savedBulletin.id);
       setHasUnsavedChanges(false);
-      alert(currentBulletinId ? 'Bulletin updated successfully!' : 'Bulletin saved successfully!');
+      toast.success(currentBulletinId ? 'Bulletin updated successfully!' : 'Bulletin saved successfully!', {
+        toastId: 'bulletin-save-success'
+      });
+      console.log('[DEBUG] Save attempt finished successfully');
     } catch (error) {
-      console.error('Error saving bulletin:', error);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (didTimeout) {
+        console.error('[DEBUG] Save attempt timed out');
+        toast.error('Saving took too long. Please check your connection or try again.');
+      } else {
+        console.error('[DEBUG] On save: error:', error);
+        toast.error('Error saving bulletin: ' + (error as Error).message);
+      }
       // Try to save to localStorage as fallback
       try {
         bulletinService.saveToLocalStorage({
@@ -308,13 +403,14 @@ function App() {
           created_by: user.id,
           created_at: new Date().toISOString()
         });
-        alert('Bulletin saved locally due to connection issues. It will sync when connection is restored.');
+        toast.warning('Bulletin saved locally due to connection issues. It will sync when connection is restored.');
       } catch (localError) {
         console.error('Local save also failed:', localError);
-        alert('Error saving bulletin: ' + (error as Error).message);
+        toast.error('Error saving bulletin: ' + (error as Error).message);
       }
     } finally {
       setLoading(false);
+      console.log('[DEBUG] Save attempt ended');
     }
   };
 
@@ -416,14 +512,20 @@ function App() {
       missionaries: 'default_missionaries',
     };
     function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
-      const val = localStorage.getItem(DEFAULT_KEYS[key]);
-      if (val) {
-        if (key === 'wardLeadership' || key === 'missionaries') {
-          try { return JSON.parse(val) as T; } catch { return fallback; }
+      try {
+        const val = localStorage.getItem(DEFAULT_KEYS[key]);
+        if (val) {
+          if (key === 'wardLeadership' || key === 'missionaries') {
+            try { return JSON.parse(val) as T; } catch { return fallback; }
+          }
+          return val as T;
         }
-        return val as T;
+        return fallback;
+      } catch (e) {
+        // Only clear localStorage if there's an actual error, not proactively
+        console.error('localStorage error:', e);
+        return fallback;
       }
-      return fallback;
     }
 
     setBulletinData({
@@ -488,7 +590,7 @@ function App() {
       setActiveBulletinId(bulletinId);
     } catch (error) {
       console.error('Error updating active bulletin:', error);
-      alert('Error updating active bulletin: ' + (error as Error).message);
+      toast.error('Error updating active bulletin: ' + (error as Error).message);
     }
   };
 
@@ -533,7 +635,7 @@ function App() {
         pdf.save(filename);
       } catch (error) {
         console.error('Error generating PDF:', error);
-        alert('There was an error generating the PDF. Please try again.');
+        toast.error('There was an error generating the PDF. Please try again.');
       }
     }
   };
@@ -547,7 +649,7 @@ function App() {
         window.location.reload();
       } catch (error) {
         console.error('Failed to clear local data:', error);
-        alert('Failed to clear local data. Please try refreshing the page.');
+        toast.error('Failed to clear local data. Please try refreshing the page.');
       }
     }
   };
@@ -874,13 +976,7 @@ function App() {
           }}
         />
 
-        {/* Draft Saved Message */}
-        {showDraftSavedMessage && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 px-4 py-2 rounded shadow z-50">
-            Your in-progress bulletin was saved to your account!
-            <button onClick={() => setShowDraftSavedMessage(false)} className="ml-2 text-green-900 underline">Dismiss</button>
-          </div>
-        )}
+
 
         {/* Hidden print layout for PDF export */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
@@ -904,6 +1000,20 @@ function App() {
           </div>
         </div>
       </footer>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
 }

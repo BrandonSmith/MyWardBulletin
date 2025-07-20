@@ -137,6 +137,20 @@ function App() {
   // Add a helper for draft key
   const DRAFT_KEY = 'draft_bulletin';
 
+  // Restore any saved draft on initial load
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as BulletinData;
+        setBulletinData(parsed);
+        setHasUnsavedChanges(true);
+      } catch (e) {
+        console.error('Failed to parse saved draft:', e);
+      }
+    }
+  }, []);
+
   const convertDbBulletinToData = (bulletin: any): BulletinData => ({
     wardName: bulletin.ward_name,
     date: bulletin.date,

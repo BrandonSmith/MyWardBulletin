@@ -141,17 +141,25 @@ export const tokenService = {
 
     console.log('Saving token:', { userId, key, valueLength: value.length });
 
-    const { data, error } = await supabase
-      .from('tokens')
-      .upsert({
-        key,
-        value,
-        created_by: userId
-      }, {
-        onConflict: 'key,created_by'
-      })
-      .select()
-      .single();
+    let data, error;
+    try {
+      ({ data, error } = await withTimeout(
+        supabase
+          .from('tokens')
+          .upsert({
+            key,
+            value,
+            created_by: userId
+          }, {
+            onConflict: 'key,created_by'
+          })
+          .select()
+          .single()
+      ));
+    } catch (timeoutError) {
+      console.error('Token save timed out:', timeoutError);
+      throw timeoutError;
+    }
     
     if (error) {
       console.error('Token save error:', error);
@@ -164,15 +172,25 @@ export const tokenService = {
   async getToken(userId: string, key: string): Promise<string | null> {
     if (!supabase) throw new Error('Supabase not configured');
 
-    const { data, error } = await supabase
-      .from('tokens')
-      .select('value')
-      .eq('key', key)
-      .eq('created_by', userId)
-      .single();
-    
-    if (error) return null;
-    return data?.value || null;
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('tokens')
+          .select('value')
+          .eq('key', key)
+          .eq('created_by', userId)
+          .single()
+      );
+
+      if (error) return null;
+      return data?.value || null;
+    } catch (err: any) {
+      if (err && err.message && err.message.includes('timed out')) {
+        throw err;
+      }
+      console.error('Token fetch error:', err);
+      return null;
+    }
   }
 };
 
@@ -498,27 +516,30 @@ export const bulletinService = {
               updated_at: bulletin.created_at
             };
           } catch (tokenError: any) {
-            // If token retrieval fails, return bulletin with minimal data
-            return {
-              id: bulletin.id,
-              user_id: bulletin.created_by,
-              ward_name: '',
-              date: bulletin.meeting_date,
-              meeting_type: bulletin.meeting_type,
-              theme: '',
-              bishopric_message: '',
-              announcements: [],
-              meetings: [],
-              special_events: [],
-              agenda: [],
-              prayers: {},
-              music_program: {},
-              leadership: {},
-              wardLeadership: [],
-              missionaries: [],
-              created_at: bulletin.created_at,
-              updated_at: bulletin.created_at
-            };
+            if (tokenError?.message && tokenError.message.includes('timed out')) {
+              // If token retrieval times out, return bulletin with minimal data
+              return {
+                id: bulletin.id,
+                user_id: bulletin.created_by,
+                ward_name: '',
+                date: bulletin.meeting_date,
+                meeting_type: bulletin.meeting_type,
+                theme: '',
+                bishopric_message: '',
+                announcements: [],
+                meetings: [],
+                special_events: [],
+                agenda: [],
+                prayers: {},
+                music_program: {},
+                leadership: {},
+                wardLeadership: [],
+                missionaries: [],
+                created_at: bulletin.created_at,
+                updated_at: bulletin.created_at
+              };
+            }
+            throw tokenError;
           }
         })
       );

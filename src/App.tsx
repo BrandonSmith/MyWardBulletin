@@ -151,6 +151,42 @@ function App() {
     }
   }, []);
 
+  // When returning to the page (e.g. after switching apps) re-check the session
+  // and restore any draft from localStorage. This avoids having to manually
+  // refresh the page on mobile browsers like Safari.
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible') {
+        if (isSupabaseConfigured() && supabase) {
+          try {
+            // Refresh session to ensure we can save without reloading
+            await supabase.auth.refreshSession();
+            const session = await robustService.validateSession();
+            setUser(session?.user ?? null);
+          } catch (err) {
+            console.error('Session refresh failed:', err);
+          }
+        }
+        const savedDraft = localStorage.getItem(DRAFT_KEY);
+        if (savedDraft) {
+          try {
+            const parsed = JSON.parse(savedDraft) as BulletinData;
+            setBulletinData(parsed);
+            setHasUnsavedChanges(true);
+          } catch (err) {
+            console.error('Failed to restore draft:', err);
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, []);
+
   const convertDbBulletinToData = (bulletin: any): BulletinData => ({
     wardName: bulletin.ward_name,
     date: bulletin.date,

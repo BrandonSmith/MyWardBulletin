@@ -137,6 +137,56 @@ function App() {
   // Add a helper for draft key
   const DRAFT_KEY = 'draft_bulletin';
 
+  const convertDbBulletinToData = (bulletin: any): BulletinData => ({
+    wardName: bulletin.ward_name,
+    date: bulletin.date,
+    meetingType: bulletin.meeting_type,
+    theme: bulletin.theme || '',
+    bishopricMessage: bulletin.bishopric_message || '',
+    announcements: bulletin.announcements || [],
+    meetings: bulletin.meetings || [],
+    specialEvents: bulletin.special_events || [],
+    agenda: bulletin.agenda || [],
+    prayers: bulletin.prayers || {
+      opening: '',
+      closing: '',
+      invocation: '',
+      benediction: ''
+    },
+    musicProgram: bulletin.music_program || {
+      openingHymn: '',
+      openingHymnNumber: '',
+      openingHymnTitle: '',
+      sacramentHymn: '',
+      sacramentHymnNumber: '',
+      sacramentHymnTitle: '',
+      closingHymn: '',
+      closingHymnNumber: '',
+      closingHymnTitle: ''
+    },
+    leadership: bulletin.leadership || {
+      presiding: '',
+      chorister: '',
+      organist: ''
+    },
+    wardLeadership: bulletin.wardLeadership || [
+      { title: 'Bishop', name: '', phone: '' },
+      { title: '1st Counselor', name: '', phone: '' },
+      { title: '2nd Counselor', name: '', phone: '' },
+      { title: 'Executive Secretary', name: '', phone: '' },
+      { title: 'Ward Clerk', name: '', phone: '' },
+      { title: 'Elders Quorum President', name: '', phone: '' },
+      { title: 'Relief Society President', name: '', phone: '' },
+      { title: "Young Women's President", name: '', phone: '' },
+      { title: 'Primary President', name: '', phone: '' },
+      { title: 'Sunday School President', name: '', phone: '' },
+      { title: 'Ward Mission Leader', name: '', phone: '' },
+      { title: 'Building Representative', name: '', phone: '' },
+      { title: 'Temple & Family History', name: '', phone: '' }
+    ],
+    missionaries: bulletin.missionaries || []
+  });
+
   const handleBulletinDataChange = (newData: BulletinData) => {
     setBulletinData(newData);
     localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
@@ -332,6 +382,33 @@ function App() {
       }
     }
   }, [user]);
+
+  // Load active or latest bulletin on startup
+  useEffect(() => {
+    const fetchInitialBulletin = async () => {
+      if (!user || !isSupabaseConfigured()) return;
+      if (currentBulletinId || hasUnsavedChanges) return;
+      let bulletinId = activeBulletinId;
+      try {
+        if (!bulletinId) {
+          const bulletins = await bulletinService.getUserBulletins(user.id);
+          if (bulletins && bulletins.length > 0) {
+            bulletinId = bulletins[0].id;
+          }
+        }
+        if (bulletinId) {
+          const bulletin = await bulletinService.getBulletinById(bulletinId);
+          const data = convertDbBulletinToData(bulletin);
+          setBulletinData(data);
+          setCurrentBulletinId(bulletin.id);
+          setHasUnsavedChanges(false);
+        }
+      } catch (err) {
+        console.error('Failed to load initial bulletin:', err);
+      }
+    };
+    fetchInitialBulletin();
+  }, [user, activeBulletinId]);
 
   const handleBackToEditor = () => {
     setCurrentView('editor');

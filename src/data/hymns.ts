@@ -415,3 +415,31 @@ export const getHymnUrl = (number: number): string => {
 export const isValidHymnNumber = (number: number): boolean => {
   return number in LDS_HYMNS;
 };
+
+export const searchHymnByTitle = (searchTerm: string): Array<{number: number, title: string}> => {
+  if (!searchTerm.trim()) return [];
+  
+  const term = searchTerm.toLowerCase().trim();
+  const results: Array<{number: number, title: string}> = [];
+  
+  // Search through all hymns
+  Object.entries(LDS_HYMNS).forEach(([number, title]) => {
+    if (title.toLowerCase().includes(term)) {
+      results.push({
+        number: parseInt(number),
+        title: title
+      });
+    }
+  });
+  
+  // Sort by relevance (exact matches first, then by number)
+  return results.sort((a, b) => {
+    const aExact = a.title.toLowerCase().startsWith(term);
+    const bExact = b.title.toLowerCase().startsWith(term);
+    
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
+    
+    return a.number - b.number;
+  }).slice(0, 10); // Limit to 10 results
+};

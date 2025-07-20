@@ -2,9 +2,9 @@ export interface Announcement {
   id: string;
   title: string;
   content: string;
-  category: 'general' | 'baptism' | 'birthday' | 'calling' | 'activity' | 'service';
+  category: 'general' | 'baptism' | 'birthday' | 'calling' | 'activity' | 'service' | 'other';
   date?: string;
-  audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake';
+  audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake' | 'other';
 }
 
 export interface Meeting {

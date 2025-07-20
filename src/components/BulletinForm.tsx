@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
-import { getHymnTitle, isValidHymnNumber } from '../data/hymns';
+import { getHymnTitle, isValidHymnNumber, searchHymnByTitle } from '../data/hymns';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -13,6 +13,8 @@ interface BulletinFormProps {
 
 export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
+  const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: number, title: string}>>([]);
+  const [activeHymnSearch, setActiveHymnSearch] = useState<string | null>(null);
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -60,6 +62,42 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     }
     
     updateField('musicProgram', hymnData);
+  };
+
+  const handleHymnTitleSearch = (field: string, searchTerm: string) => {
+    if (searchTerm.length < 2) {
+      setHymnSearchResults([]);
+      setActiveHymnSearch(null);
+      return;
+    }
+    
+    const results = searchHymnByTitle(searchTerm);
+    setHymnSearchResults(results);
+    setActiveHymnSearch(field);
+  };
+
+  const selectHymnFromSearch = (field: string, hymnNumber: number, hymnTitle: string) => {
+    const hymnData = { ...data.musicProgram };
+    
+    if (field === 'openingHymnNumber') {
+      hymnData.openingHymnNumber = hymnNumber.toString();
+      hymnData.openingHymnTitle = hymnTitle;
+    } else if (field === 'sacramentHymnNumber') {
+      hymnData.sacramentHymnNumber = hymnNumber.toString();
+      hymnData.sacramentHymnTitle = hymnTitle;
+    } else if (field === 'closingHymnNumber') {
+      hymnData.closingHymnNumber = hymnNumber.toString();
+      hymnData.closingHymnTitle = hymnTitle;
+    }
+    
+    updateField('musicProgram', hymnData);
+    setHymnSearchResults([]);
+    setActiveHymnSearch(null);
+  };
+
+  const closeHymnSearch = () => {
+    setHymnSearchResults([]);
+    setActiveHymnSearch(null);
   };
 
   const addMeeting = () => {
@@ -159,6 +197,23 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     // eslint-disable-next-line
   }, []);
 
+  // Handle clicking outside hymn search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (activeHymnSearch && hymnSearchResults.length > 0) {
+        const target = event.target as Element;
+        if (!target.closest('.hymn-search-container')) {
+          closeHymnSearch();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeHymnSearch, hymnSearchResults]);
+
   // Save default handlers (to localStorage)
   const saveDefault = (key: keyof typeof DEFAULT_KEYS, value: any) => {
     if (key === 'wardLeadership' || key === 'missionaries') {
@@ -205,6 +260,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     { value: 'youth', label: 'Youth' },
     { value: 'primary', label: 'Primary' },
     { value: 'stake', label: 'Stake' },
+    { value: 'other', label: 'Other' }
   ];
 
   // Add the moveAnnouncement function near the other move functions:
@@ -403,20 +459,41 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
                 )}
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Title</label>
                 <input
                   type="text"
                   value={data.musicProgram.openingHymnTitle}
-                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, openingHymnTitle: e.target.value })}
-                  placeholder="e.g., Come, Rejoice"
+                  onChange={(e) => {
+                    updateField('musicProgram', { ...data.musicProgram, openingHymnTitle: e.target.value });
+                    handleHymnTitleSearch('openingHymnNumber', e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (data.musicProgram.openingHymnTitle && data.musicProgram.openingHymnTitle.length >= 2) {
+                      handleHymnTitleSearch('openingHymnNumber', data.musicProgram.openingHymnTitle);
+                    }
+                  }}
+                  placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
-                  readOnly={!!data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))}
                 />
+                {activeHymnSearch === 'openingHymnNumber' && hymnSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {hymnSearchResults.map((hymn) => (
+                      <button
+                        key={hymn.number}
+                        type="button"
+                        onClick={() => selectHymnFromSearch('openingHymnNumber', hymn.number, hymn.title)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                      >
+                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -437,20 +514,41 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
                 )}
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Title</label>
                 <input
                   type="text"
                   value={data.musicProgram.sacramentHymnTitle}
-                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, sacramentHymnTitle: e.target.value })}
-                  placeholder="e.g., We'll Sing All Hail to Jesus' Name"
+                  onChange={(e) => {
+                    updateField('musicProgram', { ...data.musicProgram, sacramentHymnTitle: e.target.value });
+                    handleHymnTitleSearch('sacramentHymnNumber', e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (data.musicProgram.sacramentHymnTitle && data.musicProgram.sacramentHymnTitle.length >= 2) {
+                      handleHymnTitleSearch('sacramentHymnNumber', data.musicProgram.sacramentHymnTitle);
+                    }
+                  }}
+                  placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
-                  readOnly={!!data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))}
                 />
+                {activeHymnSearch === 'sacramentHymnNumber' && hymnSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {hymnSearchResults.map((hymn) => (
+                      <button
+                        key={hymn.number}
+                        type="button"
+                        onClick={() => selectHymnFromSearch('sacramentHymnNumber', hymn.number, hymn.title)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                      >
+                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -471,20 +569,41 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
                 )}
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Title</label>
                 <input
                   type="text"
                   value={data.musicProgram.closingHymnTitle}
-                  onChange={(e) => updateField('musicProgram', { ...data.musicProgram, closingHymnTitle: e.target.value })}
-                  placeholder="e.g., The Lord Is My Light"
+                  onChange={(e) => {
+                    updateField('musicProgram', { ...data.musicProgram, closingHymnTitle: e.target.value });
+                    handleHymnTitleSearch('closingHymnNumber', e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (data.musicProgram.closingHymnTitle && data.musicProgram.closingHymnTitle.length >= 2) {
+                      handleHymnTitleSearch('closingHymnNumber', data.musicProgram.closingHymnTitle);
+                    }
+                  }}
+                  placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
-                  readOnly={!!data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))}
                 />
+                {activeHymnSearch === 'closingHymnNumber' && hymnSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {hymnSearchResults.map((hymn) => (
+                      <button
+                        key={hymn.number}
+                        type="button"
+                        onClick={() => selectHymnFromSearch('closingHymnNumber', hymn.number, hymn.title)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                      >
+                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>

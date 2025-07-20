@@ -5,6 +5,16 @@ import { userService } from '../lib/supabase';
 import BulletinSelector from './BulletinSelector';
 import { toast } from 'react-toastify';
 
+function formatProfileSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 interface QRCodeGeneratorProps {
   user: any;
   currentActiveBulletinId?: string | null;
@@ -94,26 +104,22 @@ export default function QRCodeGenerator({
   };
 
   const handleSaveProfileSlug = async () => {
-    if (!profileSlug.trim()) {
+    const sanitized = formatProfileSlug(profileSlug);
+    if (!sanitized) {
       setError('Profile slug cannot be empty');
       return;
     }
-
-    // Validate profile slug format
-    if (!/^[a-zA-Z0-9_-]+$/.test(profileSlug)) {
-      setError('Profile slug can only contain letters, numbers, hyphens, and underscores');
-      return;
-    }
+    setProfileSlug(sanitized);
 
     setLoading(true);
     setError('');
 
     try {
-      await userService.updateProfileSlug(user.id, profileSlug);
-      setProfileSlug(profileSlug); // Set local state immediately
+      await userService.updateProfileSlug(user.id, sanitized);
+      setProfileSlug(sanitized); // Set local state immediately
       setIsEditing(false);
       if (onProfileSlugUpdate) {
-        onProfileSlugUpdate(profileSlug);
+        onProfileSlugUpdate(sanitized);
       }
       await loadUserProfile(); // Still fetch from backend to ensure sync
     } catch (error: any) {
@@ -176,10 +182,14 @@ export default function QRCodeGenerator({
                 <input
                   type="text"
                   value={profileSlug}
-                  onChange={(e) => setProfileSlug(e.target.value)}
+                  onChange={(e) => setProfileSlug(formatProfileSlug(e.target.value))}
                   placeholder="e.g., sunset-hills-ward"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
+                <p className="text-xs text-gray-500">
+                  Allowed: letters, numbers, hyphens and underscores. Spaces will
+                  be replaced with hyphens.
+                </p>
                 <div className="flex space-x-2">
                   <button
                     onClick={handleSaveProfileSlug}

@@ -220,21 +220,28 @@ export const userService = {
   async updateProfileSlug(userId: string, profileSlug: string) {
     if (!supabase) throw new Error('Supabase not configured');
 
+    const sanitized = profileSlug
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9_-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
 
     // Validate profile slug format (alphanumeric, hyphens, underscores only)
-    if (!/^[a-zA-Z0-9_-]+$/.test(profileSlug)) {
+    if (!/^[a-z0-9_-]+$/.test(sanitized)) {
       throw new Error('Profile slug can only contain letters, numbers, hyphens, and underscores');
     }
 
     // Check if the profile slug is available
-    const isAvailable = await this.checkProfileSlugAvailability(profileSlug, userId);
+    const isAvailable = await this.checkProfileSlugAvailability(sanitized, userId);
     if (!isAvailable) {
       throw new Error('This profile slug is already taken. Please choose another.');
     }
 
     const { error } = await supabase
       .from('users')
-      .update({ profile_slug: profileSlug })
+      .update({ profile_slug: sanitized })
       .eq('id', userId);
     
     if (error) throw error;

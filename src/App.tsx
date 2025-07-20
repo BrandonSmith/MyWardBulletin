@@ -152,8 +152,9 @@ function App() {
   }, []);
 
   // When returning to the page (e.g. after switching apps) re-check the session
-  // and restore any draft from localStorage. This avoids having to manually
-  // refresh the page on mobile browsers like Safari.
+  // and restore any draft from localStorage. This effect listens for focus,
+  // visibilitychange, and pageshow so the draft is restored without needing
+  // a manual refresh on mobile browsers like Safari.
   useEffect(() => {
     const handleVisibility = async () => {
       if (document.visibilityState === 'visible') {
@@ -181,9 +182,11 @@ function App() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleVisibility);
+    window.addEventListener('pageshow', handleVisibility);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleVisibility);
+      window.removeEventListener('pageshow', handleVisibility);
     };
   }, []);
 

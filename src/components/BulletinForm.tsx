@@ -682,7 +682,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             </div>
             <div className="flex gap-2 mt-2">
               <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'speaker', name: '', speakerType: 'adult' }])} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Add Speaker</button>
-              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'musical', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }])} className="px-3 py-1 bg-green-600 text-white rounded-lg">Add Musical Number</button>
+              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'musical', label: data.musicalLabel || 'Musical Number', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }])} className="px-3 py-1 bg-green-600 text-white rounded-lg">{`Add ${data.musicalLabel || 'Musical Number'}`}</button>
               <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'testimony' }])} className="px-3 py-1 bg-yellow-500 text-white rounded-lg">Bearing of Testimonies</button>
             </div>
           </section>

@@ -17,6 +17,7 @@ const audienceLabels = {
   youth: 'Youth',
   primary: 'Primary',
   stake: 'Stake',
+  other: 'Other',
 };
 const audienceOrder = [
   'ward',
@@ -27,6 +28,7 @@ const audienceOrder = [
   'youth',
   'primary',
   'stake',
+  'other',
 ];
 
 export default function BulletinPreview({ data, hideTabs = false }: BulletinPreviewProps) {

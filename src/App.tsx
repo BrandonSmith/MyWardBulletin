@@ -948,12 +948,16 @@ function App() {
         )}
 
         {/* Auth Modal */}
-        <AuthModal 
+        <AuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
-          onAuthSuccess={() => {
+          onAuthSuccess={async () => {
             setShowAuthModal(false);
-            // Optionally auto-save the current bulletin after successful auth
+            const draft = await robustService.restoreDraftAfterAuth();
+            if (draft) {
+              setBulletinData(draft);
+              await handleSaveBulletin();
+            }
           }}
         />
 

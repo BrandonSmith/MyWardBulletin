@@ -198,7 +198,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             ) : item.type === 'musical' ? (
               <div key={item.id} className="space-y-1">
                 <DottedLine rightAlign={item.hymnNumber || item.songName}>
-                  <span>Musical Number</span>
+                  <span>{item.label || 'Musical Number'}</span>
                 </DottedLine>
                 {(item.hymnNumber || item.hymnTitle) && (
                   <div className="text-center py-1">

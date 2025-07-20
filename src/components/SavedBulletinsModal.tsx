@@ -24,7 +24,7 @@ export default function SavedBulletinsModal({
 
   const { data: bulletins = [], isLoading: loading, error } = useQuery({
     queryKey: ['user-bulletins', user?.id],
-    queryFn: () => bulletinService.getUserBulletins(user.id),
+    queryFn: async () => bulletinService.getUserBulletins(user.id),
     enabled: isOpen && !!user
   });
 

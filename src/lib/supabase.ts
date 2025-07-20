@@ -461,11 +461,14 @@ export const bulletinService = {
     const localBulletins = this.getFromLocalStorage().filter(b => b.created_by === userId);
     console.log('Local bulletins for user:', userId, localBulletins);
     try {
-      const { data, error } = await supabase
-        .from('bulletins')
-        .select('*')
-        .eq('created_by', userId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase
+          .from('bulletins')
+          .select('*')
+          .eq('created_by', userId)
+          .order('created_at', { ascending: false }),
+        10000
+      );
       
       if (error) {
         if (error.message.includes('infinite recursion')) {
@@ -550,6 +553,10 @@ export const bulletinService = {
       
       return [...bulletinsWithData, ...uniqueLocalBulletins];
     } catch (error: any) {
+      if (error.message === 'Operation timed out') {
+        console.warn('getUserBulletins timed out, returning local bulletins');
+        return localBulletins;
+      }
       console.error('Error fetching bulletins from database:', error);
       console.log('Returning local bulletins only due to database error');
       return localBulletins;

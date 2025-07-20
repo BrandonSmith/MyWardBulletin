@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Save } from 'lucide-react';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { isSupabaseConfigured, supabase, userService } from '../lib/supabase';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -13,34 +13,49 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Remove: wardSettings state, useEffect fetching, handleChange, handleSave logic for wardSettings, and the form fields for ward settings.
+  // Restore the modal to its previous state with only the account email and info text.
 
-  useEffect(() => {
-    if (isOpen && isSupabaseConfigured()) {
-      // Profile modal is open - could load user data here if needed
-    }
-  }, [isOpen, user]);
+  // useEffect(() => {
+  //   if (isOpen && isSupabaseConfigured() && user) {
+  //     setLoading(true);
+  //     userService.getWardSettings(user.id)
+  //       .then((data) => {
+  //         if (data) setWardSettings({
+  //           ward_name: data.ward_name || '',
+  //           default_presiding: data.default_presiding || '',
+  //           default_conducting: data.default_conducting || '',
+  //           default_chorister: data.default_chorister || '',
+  //           default_organist: data.default_organist || ''
+  //         });
+  //       })
+  //       .catch(() => {})
+  //       .finally(() => setLoading(false));
+  //   }
+  // }, [isOpen, user]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setLoading(true);
-    setError('');
-    setSuccess('');
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setWardSettings({ ...wardSettings, [e.target.name]: e.target.value });
+  // };
 
-    try {
-      setSuccess('Profile updated successfully!');
-      onProfileUpdate();
-      
-      // Close modal after a short delay
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (error: any) {
-      setError('Failed to update profile: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleSave = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError('');
+  //   setSuccess('');
+  //   try {
+  //     await userService.updateWardSettings(user.id, wardSettings);
+  //     setSuccess('Ward settings updated successfully!');
+  //     onProfileUpdate();
+  //     setTimeout(() => {
+  //       onClose();
+  //     }, 1500);
+  //   } catch (error: any) {
+  //     setError('Failed to update ward settings: ' + error.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   if (!isOpen) return null;
 
@@ -79,6 +94,9 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
           </div>
         )}
 
+        {/* Remove: wardSettings state, useEffect fetching, handleChange, handleSave logic for wardSettings, and the form fields for ward settings. */}
+        {/* Restore the modal to its previous state with only the account email and info text. */}
+
         <div className="text-center py-8">
           <p className="text-gray-600 mb-4">Profile settings will be available here soon.</p>
           <p className="text-sm text-gray-500">For now, you can manage your custom link in the QR Code section.</p>
@@ -88,6 +106,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
           <button
             onClick={onClose}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            disabled={loading}
           >
             Close
           </button>

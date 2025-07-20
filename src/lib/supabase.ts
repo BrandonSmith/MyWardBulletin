@@ -226,7 +226,7 @@ export const userService = {
     if (!supabase) throw new Error('Supabase not configured');
     const { data, error } = await supabase
       .from('users')
-      .select('email, profile_slug, role, active_bulletin_id, default_ward_name, default_presiding, default_music_director, default_organist, default_conducting, default_chorister')
+      .select('email, profile_slug, role, active_bulletin_id') // Only select existing columns
       .eq('id', userId);
     if (error) throw error;
     return data;
@@ -739,6 +739,138 @@ export const bulletinService = {
         return;
       }
       throw error;
+    }
+  }
+};
+
+// Robust service for connection/session health and draft protection
+export const robustService = {
+  async testAndRecoverConnection(): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1)
+        .single();
+      if (error) {
+        console.warn('Connection test failed:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Connection test error:', error);
+      return false;
+    }
+  },
+  async validateSession(): Promise<any> {
+    if (!supabase) return null;
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        console.warn('No valid session found');
+        return null;
+      }
+      const { error: testError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', session.user.id)
+        .limit(1)
+        .single();
+      if (testError) {
+        console.warn('Session validation failed, signing out');
+        await supabase.auth.signOut();
+        return null;
+      }
+      return session;
+    } catch (error) {
+      console.error('Session validation error:', error);
+      return null;
+    }
+  },
+  async saveDraftBeforeAuth(bulletinData: any): Promise<boolean> {
+    try {
+      localStorage.setItem('pending_bulletin_draft', JSON.stringify({ data: bulletinData, timestamp: Date.now() }));
+      return true;
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      return false;
+    }
+  },
+  async restoreDraftAfterAuth(): Promise<any> {
+    try {
+      const draft = localStorage.getItem('pending_bulletin_draft');
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        localStorage.removeItem('pending_bulletin_draft');
+        return parsed.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to restore draft:', error);
+      return null;
+    }
+  }
+};
+
+// Retry mechanism for failed operations
+export const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number = 3, delay: number = 1000): Promise<T> => {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      console.warn(`Operation failed (attempt ${attempt}/${maxRetries}):`, error);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, delay * attempt));
+      }
+    }
+  }
+  throw lastError;
+};
+
+// Enhanced localStorage management
+export const localStorageService = {
+  saveToLocalStorage: (key: string, data: any): boolean => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      return true;
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+      return false;
+    }
+  },
+  getFromLocalStorage: (key: string): any => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Failed to read from localStorage:', error);
+      return null;
+    }
+  },
+  removeFromLocalStorage: (key: string): boolean => {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (error) {
+      console.error('Failed to remove from localStorage:', error);
+      return false;
+    }
+  },
+  clearAllBulletinData: (): boolean => {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('zionboard_') || key.startsWith('draft_') || key.startsWith('bulletin_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to clear bulletin data:', error);
+      return false;
     }
   }
 };

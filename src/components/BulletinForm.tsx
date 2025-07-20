@@ -246,7 +246,9 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
         <>
           {/* Basic Information */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2 flex items-center justify-between">
+              Basic Information
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

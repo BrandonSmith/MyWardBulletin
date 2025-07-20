@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Plus, Download, QrCode, User, LogIn, Menu, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { supabase, isSupabaseConfigured, userService, bulletinService } from './lib/supabase';
+import { supabase, isSupabaseConfigured, userService, bulletinService, robustService, retryOperation, localStorageService } from './lib/supabase';
 import BulletinForm from './components/BulletinForm';
 import BulletinPreview from './components/BulletinPreview';
 import QRCodeGenerator from './components/QRCodeGenerator';
@@ -16,6 +16,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useQuery } from '@tanstack/react-query';
 import Logo from './components/Logo';
+import BulletinPrintLayout from './components/BulletinPrintLayout';
 
 function App() {
   const [currentView, setCurrentView] = useState<'editor' | 'public'>('editor');
@@ -112,6 +113,8 @@ function App() {
 
   const [showQRCode, setShowQRCode] = useState(false);
   const bulletinRef = useRef<HTMLDivElement>(null);
+  const printPage1Ref = useRef<HTMLDivElement>(null);
+  const printPage2Ref = useRef<HTMLDivElement>(null);
 
   // Add a helper for draft key
   const DRAFT_KEY = 'draft_bulletin';
@@ -161,7 +164,7 @@ function App() {
           announcements: publicBulletin.announcements || [],
           meetings: publicBulletin.meetings || [],
           specialEvents: publicBulletin.special_events || [],
-          agenda: publicBulletin.agenda || publicBulletin.speakers || [],
+          agenda: (publicBulletin as any)?.agenda ? (publicBulletin as any).agenda : ((publicBulletin as any)?.speakers || []),
           prayers: publicBulletin.prayers || { opening: '', closing: '', invocation: '', benediction: '' },
           musicProgram: publicBulletin.music_program || {
             openingHymn: '',
@@ -189,47 +192,70 @@ function App() {
 
   // Check for existing session on mount
   React.useEffect(() => {
-    if (isSupabaseConfigured() && supabase) {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        
-        // If user is logged in, fetch their active bulletin ID
-        if (session?.user) {
-          try {
-            const profile = await userService.getUserProfile(session.user.id);
-            if (profile && profile.length > 0) {
-              setActiveBulletinId(profile[0].active_bulletin_id || null);
-            }
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
+    const initializeApp = async () => {
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          // Test connection first
+          const isConnected = await robustService.testAndRecoverConnection();
+          if (!isConnected) {
+            console.warn('Supabase connection failed, using local storage only');
+            return;
           }
-        } else {
-          setActiveBulletinId(null);
-        }
-      });
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        setUser(session?.user ?? null);
-        
-        // If user is logged in, fetch their active bulletin ID
-        if (session?.user) {
-          try {
-            const profile = await userService.getUserProfile(session.user.id);
-            if (profile && profile.length > 0) {
-              setActiveBulletinId(profile[0].active_bulletin_id || null);
+          // Validate session
+          const session = await robustService.validateSession();
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            try {
+              const profile = await retryOperation(() => userService.getUserProfile(session.user.id));
+              if (profile && profile.length > 0) {
+                setActiveBulletinId(profile[0].active_bulletin_id || null);
+              }
+              // Restore any pending draft
+              const restoredDraft = await robustService.restoreDraftAfterAuth();
+              if (restoredDraft) {
+                setBulletinData(restoredDraft);
+                setHasUnsavedChanges(true);
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
             }
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
+          } else {
+            setActiveBulletinId(null);
           }
-        } else {
-          setActiveBulletinId(null);
+        } catch (error) {
+          console.error('App initialization error:', error);
         }
-      });
+      }
+    };
+    initializeApp();
+  }, []);
 
-      return () => subscription.unsubscribe();
-    }
+  // Enhanced auth state change handler
+  React.useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        try {
+          const profile = await retryOperation(() => userService.getUserProfile(session.user.id));
+          if (profile && profile.length > 0) {
+            setActiveBulletinId(profile[0].active_bulletin_id || null);
+          }
+          // Restore draft after sign in
+          const restoredDraft = await robustService.restoreDraftAfterAuth();
+          if (restoredDraft) {
+            setBulletinData(restoredDraft);
+            setHasUnsavedChanges(true);
+          }
+        } catch (error) {
+          console.error('Error after sign in:', error);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setActiveBulletinId(null);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // On app load, if user is signed in and a draft exists, offer to save it
@@ -256,37 +282,37 @@ function App() {
       alert('Please connect to Supabase first to save bulletins.');
       return;
     }
-    
     if (!user) {
+      // Save draft before showing auth modal
+      await robustService.saveDraftBeforeAuth(bulletinData);
       setShowAuthModal(true);
       return;
     }
-
-    console.log('Starting bulletin save process...');
-    console.log('Current bulletin data:', bulletinData);
-    console.log('Current bulletin ID:', currentBulletinId);
-    console.log('User ID:', user.id);
-
     setLoading(true);
     try {
-      const savedBulletin = await bulletinService.saveBulletin(
-        bulletinData, 
-        user.id, 
+      const savedBulletin = await retryOperation(() => bulletinService.saveBulletin(
+        bulletinData,
+        user.id,
         currentBulletinId || undefined
-      );
-      
-      console.log('Bulletin saved successfully:', savedBulletin);
+      ));
       setCurrentBulletinId(savedBulletin.id);
       setHasUnsavedChanges(false);
-      
-      // Show success message
       alert(currentBulletinId ? 'Bulletin updated successfully!' : 'Bulletin saved successfully!');
-      
     } catch (error) {
       console.error('Error saving bulletin:', error);
-      const errorMessage = (error as Error).message;
-      console.error('Full error details:', error);
-      alert('Error saving bulletin: ' + errorMessage);
+      // Try to save to localStorage as fallback
+      try {
+        bulletinService.saveToLocalStorage({
+          id: currentBulletinId || `local_${Date.now()}`,
+          ...bulletinData,
+          created_by: user.id,
+          created_at: new Date().toISOString()
+        });
+        alert('Bulletin saved locally due to connection issues. It will sync when connection is restored.');
+      } catch (localError) {
+        console.error('Local save also failed:', localError);
+        alert('Error saving bulletin: ' + (error as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -467,49 +493,61 @@ function App() {
   };
 
   const handleExportPDF = async () => {
-    if (bulletinRef.current) {
+    if (printPage1Ref.current && printPage2Ref.current) {
       try {
-        // Create a clone of the bulletin for PDF generation
-        const element = bulletinRef.current;
-        
-        // Generate canvas from the bulletin element
-        const canvas = await html2canvas(element, {
+        // Render page 1
+        const canvas1 = await html2canvas(printPage1Ref.current, {
           scale: 2,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          width: element.scrollWidth,
-          height: element.scrollHeight
+          width: printPage1Ref.current.scrollWidth,
+          height: printPage1Ref.current.scrollHeight
         });
-        
-        // Create PDF
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
+        // Render page 2
+        const canvas2 = await html2canvas(printPage2Ref.current, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: printPage2Ref.current.scrollWidth,
+          height: printPage2Ref.current.scrollHeight
         });
-        
-        // Calculate dimensions to fit the page
+        const imgData1 = canvas1.toDataURL('image/png');
+        const imgData2 = canvas2.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 10; // Small margin from top
-        
-        pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-        
-        // Generate filename
+        // Page 1
+        const ratio1 = Math.min(pdfWidth / canvas1.width, pdfHeight / canvas1.height);
+        const imgX1 = (pdfWidth - canvas1.width * ratio1) / 2;
+        const imgY1 = 10;
+        pdf.addImage(imgData1, 'PNG', imgX1, imgY1, canvas1.width * ratio1, canvas1.height * ratio1);
+        // Page 2
+        pdf.addPage('a4', 'landscape');
+        const ratio2 = Math.min(pdfWidth / canvas2.width, pdfHeight / canvas2.height);
+        const imgX2 = (pdfWidth - canvas2.width * ratio2) / 2;
+        const imgY2 = 10;
+        pdf.addImage(imgData2, 'PNG', imgX2, imgY2, canvas2.width * ratio2, canvas2.height * ratio2);
         const filename = `${bulletinData.wardName || 'Ward'}-Bulletin-${bulletinData.date || 'today'}.pdf`;
-        
-        // Save the PDF
         pdf.save(filename);
-        
       } catch (error) {
         console.error('Error generating PDF:', error);
         alert('There was an error generating the PDF. Please try again.');
+      }
+    }
+  };
+
+  // Add a Clear Local Data button for troubleshooting
+  const handleClearLocalData = () => {
+    if (confirm('This will clear all local data and drafts. Continue?')) {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+      } catch (error) {
+        console.error('Failed to clear local data:', error);
+        alert('Failed to clear local data. Please try refreshing the page.');
       }
     }
   };
@@ -732,6 +770,13 @@ function App() {
                 <h2 className="text-2xl font-semibold text-gray-900">
                 Bulletin Preview
                 </h2>
+                <button
+                  onClick={handleExportPDF}
+                  className="flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm ml-2"
+                  title="Export as PDF"
+                >
+                  <Download className="w-4 h-4 mr-1" /> Export PDF
+                </button>
                 {currentBulletinId && (
                   <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-2">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
@@ -788,6 +833,7 @@ function App() {
                   onProfileSlugUpdate={() => {
                     // Optionally refresh or show success message
                   }}
+                  isOpen={showQRCode}
                 />
               ) : (
                 <div className="text-center py-8">
@@ -835,6 +881,14 @@ function App() {
             <button onClick={() => setShowDraftSavedMessage(false)} className="ml-2 text-green-900 underline">Dismiss</button>
           </div>
         )}
+
+        {/* Hidden print layout for PDF export */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <BulletinPrintLayout
+            data={bulletinData}
+            refs={{ page1: printPage1Ref, page2: printPage2Ref }}
+          />
+        </div>
       </main>
 
       {/* Footer */}

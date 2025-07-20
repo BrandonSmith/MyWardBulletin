@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { BulletinData } from '../types/bulletin';
 import { userService } from '../lib/supabase';
@@ -9,19 +9,22 @@ interface QRCodeGeneratorProps {
   currentActiveBulletinId?: string | null;
   onActiveBulletinSelect?: (bulletinId: string | null) => void;
   onProfileSlugUpdate?: (slug: string) => void;
+  isOpen?: boolean;
 }
 
 export default function QRCodeGenerator({ 
   user, 
   currentActiveBulletinId, 
   onActiveBulletinSelect, 
-  onProfileSlugUpdate 
+  onProfileSlugUpdate,
+  isOpen
 }: QRCodeGeneratorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [profileSlug, setProfileSlug] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
     loadUserProfile();
@@ -31,11 +34,18 @@ export default function QRCodeGenerator({
     generateQRCode();
   }, [profileSlug]);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      loadUserProfile();
+    }
+  }, [isOpen]);
+
   const loadUserProfile = async () => {
     if (!user) return;
     
     try {
       const profile = await userService.getUserProfile(user.id);
+      console.log('Fetched profile from Supabase:', profile);
       if (profile && profile.length > 0) {
         setProfileSlug(profile[0].profile_slug || '');
       }
@@ -94,18 +104,17 @@ export default function QRCodeGenerator({
       return;
     }
 
-
     setLoading(true);
     setError('');
 
     try {
       await userService.updateProfileSlug(user.id, profileSlug);
-      // Re-fetch the profile to ensure we have the latest data from the database
-      await loadUserProfile();
+      setProfileSlug(profileSlug); // Set local state immediately
       setIsEditing(false);
       if (onProfileSlugUpdate) {
         onProfileSlugUpdate(profileSlug);
       }
+      await loadUserProfile(); // Still fetch from backend to ensure sync
     } catch (error: any) {
       setError(error.message || 'Failed to update profile slug');
     } finally {
@@ -126,6 +135,26 @@ export default function QRCodeGenerator({
     link.download = `${profileSlug || 'zionboard'}-qr.png`;
     link.href = canvas.toDataURL();
     link.click();
+  };
+
+  const getPermanentUrl = () => {
+    const baseUrl = window.location.hostname === 'localhost' 
+      ? 'https://zionboard.com' 
+      : window.location.origin;
+    return profileSlug ? `${baseUrl}/u/${profileSlug}` : '';
+  };
+
+  const handleCopyUrl = async () => {
+    const url = getPermanentUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopySuccess('Copied!');
+      setTimeout(() => setCopySuccess(''), 1500);
+    } catch (err) {
+      setCopySuccess('Failed to copy');
+      setTimeout(() => setCopySuccess(''), 1500);
+    }
   };
 
   return (
@@ -198,13 +227,23 @@ export default function QRCodeGenerator({
         </div>
       </div>
       
-      <button
-        onClick={downloadQRCode}
-        disabled={!profileSlug}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Download QR Code
-      </button>
+      <div className="flex flex-col sm:flex-row sm:justify-center sm:space-x-3 items-center mt-4">
+        <button
+          onClick={downloadQRCode}
+          disabled={!profileSlug}
+          className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-2 sm:mb-0"
+        >
+          Download QR Code
+        </button>
+        <button
+          onClick={handleCopyUrl}
+          disabled={!profileSlug}
+          className="w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Copy URL
+        </button>
+      </div>
+      {copySuccess && <div className="text-green-600 text-sm mt-1">{copySuccess}</div>}
       
       <div className="text-xs text-gray-500 space-y-1">
         <p>• Print this QR code and place it on physical bulletins</p>

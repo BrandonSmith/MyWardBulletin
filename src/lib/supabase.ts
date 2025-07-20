@@ -336,11 +336,12 @@ export const bulletinService = {
       console.log('[DEBUG] saveBulletin: tokens array', tokens);
       let data, error;
       try {
-        const upsertPromise = supabase
-          .from('tokens')
-          .upsert(tokens, { onConflict: 'key,created_by' });
-        const upsertResult = await upsertPromise;
-        ({ data, error } = await withTimeout(Promise.resolve(upsertResult), 10000));
+        ({ data, error } = await withTimeout(
+          supabase
+            .from('tokens')
+            .upsert(tokens, { onConflict: 'key,created_by' }),
+          10000
+        ));
         console.log('[DEBUG] saveBulletin: tokens upsert result', { data, error });
       } catch (timeoutError) {
         console.error('[DEBUG] saveBulletin: token batch upsert timed out or failed', timeoutError);
@@ -367,15 +368,16 @@ export const bulletinService = {
       if (bulletinId) {
         let data, error;
         try {
-          const updatePromise = supabase
-            .from('bulletins')
-            .update(dbBulletinRecord)
-            .eq('id', bulletinId)
-            .eq('created_by', userId)
-            .select()
-            .single();
-          const updateResult = await updatePromise;
-          ({ data, error } = await withTimeout(Promise.resolve(updateResult), 10000));
+          ({ data, error } = await withTimeout(
+            supabase
+              .from('bulletins')
+              .update(dbBulletinRecord)
+              .eq('id', bulletinId)
+              .eq('created_by', userId)
+              .select()
+              .single(),
+            10000
+          ));
           console.log('[DEBUG] saveBulletin: bulletin update result', { data, error });
         } catch (timeoutError) {
           console.error('[DEBUG] saveBulletin: bulletin update timed out or failed', timeoutError);
@@ -387,13 +389,14 @@ export const bulletinService = {
       } else {
         let data, error;
         try {
-          const insertPromise = supabase
-            .from('bulletins')
-            .insert(dbBulletinRecord)
-            .select()
-            .single();
-          const insertResult = await insertPromise;
-          ({ data, error } = await withTimeout(Promise.resolve(insertResult), 10000));
+          ({ data, error } = await withTimeout(
+            supabase
+              .from('bulletins')
+              .insert(dbBulletinRecord)
+              .select()
+              .single(),
+            10000
+          ));
           console.log('[DEBUG] saveBulletin: bulletin insert result', { data, error });
         } catch (timeoutError) {
           console.error('[DEBUG] saveBulletin: bulletin insert timed out or failed', timeoutError);

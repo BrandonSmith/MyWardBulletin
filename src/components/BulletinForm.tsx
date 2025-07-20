@@ -666,6 +666,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   </>
                 ) : (
                   <>
+                    <select
+                      value={item.label || data.musicalLabel || 'Musical Number'}
+                      onChange={e => updateAgendaItem(item.id, { label: e.target.value })}
+                      className="px-2 py-1 border rounded-lg min-w-[150px]"
+                    >
+                      <option value="Musical Number">Musical Number</option>
+                      <option value="Intermediate Hymn">Intermediate Hymn</option>
+                    </select>
                     <input type="text" value={item.hymnNumber || ''} onChange={e => updateAgendaItem(item.id, { hymnNumber: e.target.value })} placeholder="Hymn # (optional)" className="min-w-[80px] max-w-[100px] px-3 py-2 border border-gray-300 rounded-lg" />
                     <input type="text" value={item.hymnTitle || ''} onChange={e => updateAgendaItem(item.id, { hymnTitle: e.target.value })} placeholder="Hymn Title (auto)" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" readOnly={!!item.hymnNumber} />
                     <input type="text" value={item.songName || ''} onChange={e => updateAgendaItem(item.id, { songName: e.target.value })} placeholder="Song Name (if not hymn)" className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg" />

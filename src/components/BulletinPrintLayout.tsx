@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { sanitizeHtml } from "../lib/sanitizeHtml";
 
 // Accept refs for each page for PDF export
 function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React.RefObject<HTMLDivElement>, page2?: React.RefObject<HTMLDivElement> } }) {
@@ -60,7 +61,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
             {data.announcements?.map((a: any, idx: number) => (
               <li key={idx}>
                 <div className="font-semibold">{a.title}</div>
-                <div className="text-sm" dangerouslySetInnerHTML={{ __html: a.content }} />
+                <div className="text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.content) }} />
               </li>
             ))}
           </ul>

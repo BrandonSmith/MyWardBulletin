@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { BulletinData } from '../types/bulletin';
+import { BulletinData } from "../types/bulletin";
+
+import { sanitizeHtml } from '../lib/sanitizeHtml';
 import { getHymnUrl, getHymnTitle } from '../data/hymns';
 
 interface BulletinPreviewProps {
@@ -266,7 +268,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                   <div className="flex items-center mb-1">
                     <h4 className="text-base font-semibold mr-2 text-gray-900">{announcement.title}</h4>
                   </div>
-                  <div className="announcement-content text-gray-900" dangerouslySetInnerHTML={{ __html: announcement.content }} />
+                  <div className="announcement-content text-gray-900" dangerouslySetInnerHTML={{ __html: sanitizeHtml(announcement.content) }} />
                 </div>
               ))}
             </div>
@@ -504,7 +506,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                   <h4 className="font-semibold mr-2 text-gray-900">{announcement.title}</h4>
                   {/* Removed category badge */}
                 </div>
-                <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: announcement.content }} />
+                <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: sanitizeHtml(announcement.content) }} />
               </div>
             ))}
           </div>

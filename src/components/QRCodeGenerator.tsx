@@ -70,8 +70,8 @@ export default function QRCodeGenerator({
     if (!canvas) return;
 
     // Generate QR code URL with proper domain
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'https://zionboard.com' 
+    const baseUrl = window.location.hostname === 'localhost'
+      ? 'https://mywardbulletin.com'
       : window.location.origin;
     
     const qrData = profileSlug 
@@ -139,14 +139,14 @@ export default function QRCodeGenerator({
     if (!canvas) return;
 
     const link = document.createElement('a');
-    link.download = `${profileSlug || 'zionboard'}-qr.png`;
+    link.download = `${profileSlug || 'mywardbulletin'}-qr.png`;
     link.href = canvas.toDataURL();
     link.click();
   };
 
   const getPermanentUrl = () => {
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'https://zionboard.com' 
+    const baseUrl = window.location.hostname === 'localhost'
+      ? 'https://mywardbulletin.com'
       : window.location.origin;
     return profileSlug ? `${baseUrl}/u/${profileSlug}` : '';
   };

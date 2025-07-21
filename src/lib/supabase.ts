@@ -444,7 +444,7 @@ export const bulletinService = {
       const updatedBulletins = existingBulletins.filter(b => b.id !== bulletin.id);
       updatedBulletins.push(bulletin);
       console.log('Updated bulletins array:', updatedBulletins);
-      localStorage.setItem('zionboard_bulletins', JSON.stringify(updatedBulletins));
+      localStorage.setItem('mywardbulletin_bulletins', JSON.stringify(updatedBulletins));
       console.log('Successfully saved to localStorage');
     } catch (error) {
       console.warn('Failed to save to local storage:', error);
@@ -453,7 +453,7 @@ export const bulletinService = {
 
   getFromLocalStorage(): any[] {
     try {
-      const stored = localStorage.getItem('zionboard_bulletins');
+      const stored = localStorage.getItem('mywardbulletin_bulletins');
       console.log('Raw local storage data:', stored);
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
@@ -723,7 +723,7 @@ export const bulletinService = {
     try {
       const existingBulletins = this.getFromLocalStorage();
       const updatedBulletins = existingBulletins.filter(b => b.id !== bulletinId);
-      localStorage.setItem('zionboard_bulletins', JSON.stringify(updatedBulletins));
+      localStorage.setItem('mywardbulletin_bulletins', JSON.stringify(updatedBulletins));
     } catch (error) {
       console.warn('Failed to remove from local storage:', error);
     }
@@ -893,7 +893,7 @@ export const localStorageService = {
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
-        if (key.startsWith('zionboard_') || key.startsWith('draft_') || key.startsWith('bulletin_')) {
+        if (key.startsWith('mywardbulletin_') || key.startsWith('draft_') || key.startsWith('bulletin_')) {
           localStorage.removeItem(key);
         }
       });

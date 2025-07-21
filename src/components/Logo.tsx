@@ -9,7 +9,7 @@ export default function Logo({ size = 48 }) {
       viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="ZionBoard logo"
+      aria-label="MyWardBulletin logo"
     >
       {/* Open book/bulletin */}
       <rect x="6" y="16" width="36" height="24" rx="6" fill="#F7C948" stroke="#1E3A8A" strokeWidth="2" />

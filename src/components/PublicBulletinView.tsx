@@ -39,7 +39,7 @@ export default function PublicBulletinView({
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Home className="w-4 h-4 mr-2" />
-              Go to ZionBoard
+              Go to MyWardBulletin
             </button>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function PublicBulletinView({
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Home className="w-4 h-4 mr-2" />
-              Go to ZionBoard
+              Go to MyWardBulletin
             </button>
           </div>
         </div>
@@ -76,7 +76,7 @@ export default function PublicBulletinView({
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm">
-            Created with <span className="font-semibold">ZionBoard.com</span> - Free Ward Bulletin Creator
+            Created with <span className="font-semibold">MyWardBulletin.com</span> - Free Ward Bulletin Creator
           </p>
           <button
             onClick={onBackToEditor}

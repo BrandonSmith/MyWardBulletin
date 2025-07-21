@@ -43,7 +43,11 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           <div className="text-base mb-2">The Church of Jesus Christ of Latter-day Saints</div>
           <div className="text-base mb-4">{data.meetingType === 'sacrament' ? 'Sacrament Meeting' : data.meetingType}</div>
           <div className="mb-4">
-            <img src="/logo.svg" alt="Ward" className="mx-auto h-32 w-auto object-contain" />
+            <img
+              src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f4f0.svg"
+              alt="newspaper"
+              style={{ width: '6rem', height: '6rem', display: 'inline-block', verticalAlign: 'middle' }}
+            />
           </div>
           {data.theme && <div className="italic text-gray-700 mt-2">"{data.theme}"</div>}
         </div>

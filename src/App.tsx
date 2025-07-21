@@ -815,18 +815,14 @@ function App() {
       <header className="bg-white shadow-lg border-b-4 border-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <a href="/" className="flex items-center space-x-3 group focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-shadow no-underline" style={{ textDecoration: 'none' }}>
               <Logo size={40} />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">MyWardBulletin</h1>
                 <p className="text-sm text-gray-600">Ward Bulletin Creator</p>
               </div>
-              <nav className="hidden md:flex ml-6 space-x-4">
-                <a href="/about" className="text-gray-600 hover:text-gray-900">About</a>
-                <a href="/how-to-use" className="text-gray-600 hover:text-gray-900">How To Use</a>
-                <a href="/contact" className="text-gray-600 hover:text-gray-900">Contact</a>
-              </nav>
-            </div>
+            </a>
+            {/* Desktop/Menu/Sign In button remains outside the clickable logo area */}
             
             {/* Desktop Menu */}
             <div className="hidden lg:flex items-center space-x-3">
@@ -882,12 +878,11 @@ function App() {
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  disabled={!isSupabaseConfigured()}
                   className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  title={!isSupabaseConfigured() ? 'Connect to Supabase first' : 'Sign In'}
+                  title="Sign In"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
-                  {isSupabaseConfigured() ? 'Sign In' : 'Sign In (Setup Required)'}
+                  Sign In
                 </button>
               )}
             </div>
@@ -1148,6 +1143,11 @@ function App() {
             <p className="text-sm text-gray-500 mt-2">
               All data is processed locally in your browser for privacy and security
             </p>
+            <nav className="mt-4 space-x-4">
+              <a href="/about" className="text-gray-600 hover:text-gray-900">About</a>
+              <a href="/how-to-use" className="text-gray-600 hover:text-gray-900">How To Use</a>
+              <a href="/contact" className="text-gray-600 hover:text-gray-900">Contact</a>
+            </nav>
           </div>
         </div>
       </footer>

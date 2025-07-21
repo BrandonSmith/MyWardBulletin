@@ -6,30 +6,40 @@
     <title>About ZionBoard</title>
     <meta name="description" content="Learn about the ZionBoard project and how it helps you create free digital ward bulletins." />
     <link rel="canonical" href="https://zionboard.com/about" />
-    <style>
-      body {font-family: Arial, sans-serif; margin: 0; padding: 2rem; line-height: 1.6; color: #1a202c;}
-      header, footer {text-align: center; margin-bottom: 2rem;}
-      nav a {margin: 0 1rem; color: #3b82f6; text-decoration: none;}
-    </style>
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <header>
-      <h1>About ZionBoard</h1>
-      <nav>
-        <a href="/">Home</a>
-        <a href="/features">Features</a>
-        <a href="/why-free">Why It&#39;s Free</a>
-        <a href="/ward-bulletins">Ward Bulletins</a>
-      </nav>
-    </header>
-    <main>
-      <p>ZionBoard began as a simple way to share digital ward bulletins. I wanted an easy tool to create, print, and share bulletins without complicated software. Everything runs in your browser, so your information stays private and secure.</p>
-      <p>The platform is completely independent from ward or stake systems. You don&#39;t need access to any membership data to get started&mdash;just create a bulletin and share it with your ward. Your QR code is permanent and will always point to the latest version of your bulletin, even if you move to a new ward.</p>
-      <p>We offer a growing set of features: reusable bulletin templates, PDF export, and public links for easy sharing. More functionality is coming, and I&#39;m happy to add what you need.</p>
-      <p>If you have suggestions or want additional features, send me an email at <a href="mailto:matthew@zionboard.com">matthew@zionboard.com</a>. I would love to hear how you use ZionBoard.</p>
-    </main>
-    <footer>
-      <p>&copy; 2025 ZionBoard</p>
-    </footer>
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      <header class="bg-white shadow-lg border-b-4 border-blue-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <img src="/zionboard_logo.svg" alt="ZionBoard logo" class="h-10 w-10" />
+            <div>
+              <h1 class="text-3xl font-bold text-gray-900">ZionBoard</h1>
+              <p class="text-sm text-gray-600">Ward Bulletin Creator</p>
+            </div>
+          </div>
+          <nav class="space-x-4">
+            <a href="/" class="text-blue-700 hover:text-blue-900">Home</a>
+            <a href="/features" class="text-blue-700 hover:text-blue-900">Features</a>
+            <a href="/why-free" class="text-blue-700 hover:text-blue-900">Why It's Free</a>
+            <a href="/ward-bulletins" class="text-blue-700 hover:text-blue-900">Ward Bulletins</a>
+          </nav>
+        </div>
+      </header>
+      <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <p>ZionBoard began as a simple way to share digital ward bulletins. I wanted an easy tool to create, print, and share bulletins without complicated software. Everything runs in your browser, so your information stays private and secure.</p>
+        <p>The platform is completely independent from ward or stake systems. You don&#39;t need access to any membership data to get started&mdash;just create a bulletin and share it with your ward. Your QR code is permanent and will always point to the latest version of your bulletin, even if you move to a new ward.</p>
+        <p>We offer a growing set of features: reusable bulletin templates, PDF export, and public links for easy sharing. More functionality is coming, and I&#39;m happy to add what you need.</p>
+        <p>If you have suggestions or want additional features, send me an email at <a href="mailto:matthew@zionboard.com">matthew@zionboard.com</a>. I would love to hear how you use ZionBoard.</p>
+      </main>
+      <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div class="text-center">
+            <p class="text-gray-600">&copy; 2024 ZionBoard</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   </body>
 </html>

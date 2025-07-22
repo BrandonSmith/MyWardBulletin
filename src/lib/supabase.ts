@@ -634,11 +634,18 @@ export const bulletinService = {
     if (!supabase) throw new Error('Supabase not configured');
 
     // First get the user by profile_slug and their active bulletin
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('id, active_bulletin_id')
-      .eq('profile_slug', profileSlug)
-      .single();
+    let userData, userError;
+    try {
+      ({ data: userData, error: userError } = await withTimeout(
+        supabase
+          .from('users')
+          .select('id, active_bulletin_id')
+          .eq('profile_slug', profileSlug)
+          .single()
+      ));
+    } catch (timeoutError) {
+      throw timeoutError;
+    }
     
     if (userError) throw userError;
     
@@ -661,11 +668,18 @@ export const bulletinService = {
     }
     
     // Get the specific bulletin
-    const { data, error } = await supabase
-      .from('bulletins')
-      .select('*')
-      .eq('id', bulletinId)
-      .single();
+    let data, error;
+    try {
+      ({ data, error } = await withTimeout(
+        supabase
+          .from('bulletins')
+          .select('*')
+          .eq('id', bulletinId)
+          .single()
+      ));
+    } catch (timeoutError) {
+      throw timeoutError;
+    }
     
     if (error) {
       // If bulletin not found, return null instead of throwing

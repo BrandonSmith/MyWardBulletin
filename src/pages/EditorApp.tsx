@@ -433,6 +433,20 @@ function EditorApp() {
       setShowAuthModal(true);
       return;
     }
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data.session) {
+        console.error('Session refresh failed:', error);
+        toast.error('Session expired. Please sign in again.');
+        setShowAuthModal(true);
+        return;
+      }
+    } catch (err) {
+      console.error('Session refresh error:', err);
+      toast.error('Session expired. Please sign in again.');
+      setShowAuthModal(true);
+      return;
+    }
     setLoading(true);
     console.log('[DEBUG] Save attempt started');
     const SAVE_TIMEOUT_MS = 10000;

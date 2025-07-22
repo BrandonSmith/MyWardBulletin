@@ -155,6 +155,23 @@ function EditorApp() {
     }
   }, []);
 
+  // If no draft exists, load any active template on initial load
+  useEffect(() => {
+    const hasDraft = !!localStorage.getItem(DRAFT_KEY);
+    if (hasDraft) return;
+    const activeId = templateService.getActiveTemplateId();
+    if (activeId) {
+      const tmpl = templateService.getTemplate(activeId);
+      if (tmpl) {
+        setBulletinData(tmpl.data);
+        setHasUnsavedChanges(false);
+        return;
+      }
+    }
+    setBulletinData(createBlankBulletin());
+    setHasUnsavedChanges(false);
+  }, []);
+
   // When returning to the page (e.g. after switching apps) re-check the session
   // and restore any draft from localStorage. This effect listens for focus,
   // visibilitychange, and pageshow so the draft is restored without needing
@@ -376,19 +393,13 @@ function EditorApp() {
     }
   }, [user]);
 
-  // Load active or latest bulletin on startup
+  // Load active bulletin on startup (do not automatically load latest)
   useEffect(() => {
     const fetchInitialBulletin = async () => {
       if (!user || !isSupabaseConfigured()) return;
       if (currentBulletinId || hasUnsavedChanges) return;
-      let bulletinId = activeBulletinId;
+      const bulletinId = activeBulletinId;
       try {
-        if (!bulletinId) {
-          const bulletins = await bulletinService.getUserBulletins(user.id);
-          if (bulletins && bulletins.length > 0) {
-            bulletinId = bulletins[0].id;
-          }
-        }
         if (bulletinId) {
           const bulletin = await bulletinService.getBulletinById(bulletinId);
           const data = convertDbBulletinToData(bulletin);
@@ -555,8 +566,10 @@ function EditorApp() {
 
   const handleTemplateSelect = (template: Template | null) => {
     if (template) {
+      templateService.setActiveTemplateId(template.id);
       setBulletinData(template.data);
     } else {
+      templateService.setActiveTemplateId(null);
       setBulletinData(createBlankBulletin());
     }
     setCurrentBulletinId(null);

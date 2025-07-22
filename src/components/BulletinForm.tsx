@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getHymnTitle, isValidHymnNumber, searchHymnByTitle } from '../data/hymns';
@@ -161,6 +161,40 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const removeSpecialEvent = (id: string) => {
     updateField('specialEvents', data.specialEvents.filter(event => event.id !== id));
   };
+
+  // Add Section dropdown state and ref
+  const [showAddSection, setShowAddSection] = useState(false);
+  const addSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleAddSection = (type: 'speaker' | 'musical' | 'testimony') => {
+    if (type === 'speaker') {
+      updateField('agenda', [
+        ...data.agenda,
+        { id: Date.now().toString(), type: 'speaker', name: '', speakerType: 'adult' }
+      ]);
+    } else if (type === 'musical') {
+      updateField('agenda', [
+        ...data.agenda,
+        { id: Date.now().toString(), type: 'musical', label: 'Musical Number', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }
+      ]);
+    } else if (type === 'testimony') {
+      updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'testimony' }]);
+    }
+    setShowAddSection(false);
+  };
+
+  useEffect(() => {
+    if (!showAddSection) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (addSectionRef.current && !addSectionRef.current.contains(event.target as Node)) {
+        setShowAddSection(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAddSection]);
 
   // Default value keys
   const DEFAULT_KEYS = {
@@ -744,20 +778,39 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               </div>
             ))}
             </div>
-            <div className="flex gap-2 mt-2">
-              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'speaker', name: '', speakerType: 'adult' }])} className="px-3 py-1 bg-blue-600 text-white rounded-lg">Add Speaker</button>
+            <div className="relative mt-2" ref={addSectionRef}>
               <button
-                onClick={() =>
-                  updateField('agenda', [
-                    ...data.agenda,
-                    { id: Date.now().toString(), type: 'musical', label: 'Musical Number', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }
-                  ])
-                }
-                className="px-3 py-1 bg-green-600 text-white rounded-lg"
+                type="button"
+                onClick={() => setShowAddSection(!showAddSection)}
+                className="px-3 py-1 bg-blue-600 text-white rounded-lg"
               >
-                Add Hymn/Musical Number
+                Add Section
               </button>
-              <button onClick={() => updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'testimony' }])} className="px-3 py-1 bg-yellow-500 text-white rounded-lg">Bearing of Testimonies</button>
+              {showAddSection && (
+                <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg w-56">
+                  <button
+                    type="button"
+                    onClick={() => handleAddSection('speaker')}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Add Speaker
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSection('musical')}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Add Hymn/Musical Number
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddSection('testimony')}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Bearing of Testimonies
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         </>

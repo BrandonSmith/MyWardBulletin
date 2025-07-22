@@ -13,7 +13,7 @@ export default function App() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/how-to-use" element={<HowToUsePage />} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/u/:slug" element={<PublicBulletinPage />} />
+      <Route path="/:slug" element={<PublicBulletinPage />} />
     </Routes>
   );
 }

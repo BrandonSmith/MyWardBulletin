@@ -4,6 +4,8 @@ import { bulletinService } from '../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
+const LAST_USER_ID = 'last_user_id';
+
 interface SavedBulletinsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -12,20 +14,28 @@ interface SavedBulletinsModalProps {
   onDeleteBulletin: (bulletinId: string) => void;
 }
 
-export default function SavedBulletinsModal({ 
-  isOpen, 
-  onClose, 
-  user, 
+export default function SavedBulletinsModal({
+  isOpen,
+  onClose,
+  user,
   onLoadBulletin,
-  onDeleteBulletin 
+  onDeleteBulletin
 }: SavedBulletinsModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(LAST_USER_ID, user.id);
+    }
+  }, [user]);
+
+  const cachedUserId = user?.id || localStorage.getItem(LAST_USER_ID) || '';
+
   const { data: bulletins = [], isLoading: loading, error } = useQuery({
-    queryKey: ['user-bulletins', user?.id],
-    queryFn: async () => bulletinService.getUserBulletins(user.id),
-    enabled: isOpen && !!user
+    queryKey: ['user-bulletins', cachedUserId],
+    queryFn: async () => bulletinService.getUserBulletins(cachedUserId),
+    enabled: isOpen && !!cachedUserId
   });
 
   const handleDelete = async (bulletinId: string) => {

@@ -5,6 +5,8 @@ import { userService } from '../lib/supabase';
 import BulletinSelector from './BulletinSelector';
 import { toast } from 'react-toastify';
 
+const LAST_USER_ID = 'last_user_id';
+
 function formatProfileSlug(value: string): string {
   return value
     .toLowerCase()
@@ -38,12 +40,22 @@ export default function QRCodeGenerator({
 
 
   useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(LAST_USER_ID, user.id);
+    }
     loadUserProfile();
   }, [user]);
 
   useEffect(() => {
     generateQRCode();
   }, [profileSlug]);
+
+  useEffect(() => {
+    const id = user?.id || localStorage.getItem(LAST_USER_ID);
+    if (id) {
+      localStorage.setItem(`profile_slug_${id}`, profileSlug);
+    }
+  }, [profileSlug, user]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -52,16 +64,25 @@ export default function QRCodeGenerator({
   }, [isOpen]);
 
   const loadUserProfile = async () => {
-    if (!user) return;
-    
+    const id = user?.id || localStorage.getItem(LAST_USER_ID);
+    if (!id) return;
+
     try {
-      const profile = await userService.getUserProfile(user.id);
+      const profile = await userService.getUserProfile(id);
       console.log('Fetched profile from Supabase:', profile);
       if (profile && profile.length > 0) {
-        setProfileSlug(profile[0].profile_slug || '');
+        const slug = profile[0].profile_slug || '';
+        setProfileSlug(slug);
+        localStorage.setItem(`profile_slug_${id}`, slug);
+        return;
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
+    }
+
+    const cached = localStorage.getItem(`profile_slug_${id}`);
+    if (cached) {
+      setProfileSlug(cached);
     }
   };
 

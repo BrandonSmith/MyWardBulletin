@@ -5,6 +5,7 @@ export interface Template {
 }
 
 const STORAGE_KEY = 'mywardbulletin_templates';
+const ACTIVE_TEMPLATE_KEY = 'active_template_id';
 
 function loadTemplates(): Template[] {
   try {
@@ -18,6 +19,26 @@ function loadTemplates(): Template[] {
 function saveTemplates(templates: Template[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  } catch {
+    // ignore
+  }
+}
+
+function loadActiveTemplateId(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_TEMPLATE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveActiveTemplateId(id: string | null) {
+  try {
+    if (id) {
+      localStorage.setItem(ACTIVE_TEMPLATE_KEY, id);
+    } else {
+      localStorage.removeItem(ACTIVE_TEMPLATE_KEY);
+    }
   } catch {
     // ignore
   }
@@ -40,10 +61,20 @@ export const templateService = {
   deleteTemplate(id: string) {
     const templates = loadTemplates().filter(t => t.id !== id);
     saveTemplates(templates);
+    const activeId = loadActiveTemplateId();
+    if (activeId === id) {
+      saveActiveTemplateId(null);
+    }
   },
   renameTemplate(id: string, name: string) {
     const templates = loadTemplates().map(t => t.id === id ? { ...t, name } : t);
     saveTemplates(templates);
+  },
+  getActiveTemplateId(): string | null {
+    return loadActiveTemplateId();
+  },
+  setActiveTemplateId(id: string | null) {
+    saveActiveTemplateId(id);
   }
 };
 

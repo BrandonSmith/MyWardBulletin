@@ -16,3 +16,9 @@ This project uses environment variables to configure Supabase credentials. To co
 3. Restart your development server or redeploy the site so the new variables take effect.
 
 The `.env` file is listed in `.gitignore` to keep your credentials private. If you intend to keep the entire project private, ensure your source-control platform (such as GitHub) is configured to make the repository private as well.
+
+## Bulletin Templates
+
+- Use **Save as Template** to store the current bulletin layout locally.
+- Choose **New Bulletin** to open the template picker and start from a saved template or a blank bulletin.
+- Templates are stored in browser local storage under `mywardbulletin_templates`.

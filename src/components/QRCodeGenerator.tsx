@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import QRCode from 'qrcode';
 import { BulletinData } from '../types/bulletin';
 import { userService } from '../lib/supabase';
@@ -26,13 +26,17 @@ interface QRCodeGeneratorProps {
   isOpen?: boolean;
 }
 
-export default function QRCodeGenerator({ 
-  user, 
-  currentActiveBulletinId, 
-  onActiveBulletinSelect, 
+export interface QRCodeGeneratorRef {
+  loadUserProfile: () => Promise<void>;
+}
+
+const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(function QRCodeGenerator({
+  user,
+  currentActiveBulletinId,
+  onActiveBulletinSelect,
   onProfileSlugUpdate,
   isOpen
-}: QRCodeGeneratorProps) {
+}, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [profileSlug, setProfileSlug] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
@@ -87,6 +91,10 @@ export default function QRCodeGenerator({
       setProfileSlug(cached);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    loadUserProfile,
+  }));
 
   const generateQRCode = () => {
     const canvas = canvasRef.current;
@@ -324,3 +332,5 @@ export default function QRCodeGenerator({
     </div>
   );
 }
+
+export default QRCodeGenerator;

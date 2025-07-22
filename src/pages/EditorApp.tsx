@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { supabase, isSupabaseConfigured, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
 import BulletinForm from '../components/BulletinForm';
 import BulletinPreview from '../components/BulletinPreview';
-import QRCodeGenerator from '../components/QRCodeGenerator';
+import QRCodeGenerator, { QRCodeGeneratorRef } from '../components/QRCodeGenerator';
 import AuthModal from '../components/AuthModal';
 import UserMenu from '../components/UserMenu';
 import SavedBulletinsModal from '../components/SavedBulletinsModal';
@@ -134,6 +134,7 @@ function EditorApp() {
   const [bulletinData, setBulletinData] = useState<BulletinData>(() => createBlankBulletin());
 
   const [showQRCode, setShowQRCode] = useState(false);
+  const qrCodeRef = useRef<QRCodeGeneratorRef>(null);
   const bulletinRef = useRef<HTMLDivElement>(null);
   const printPage1Ref = useRef<HTMLDivElement>(null);
   const printPage2Ref = useRef<HTMLDivElement>(null);
@@ -189,6 +190,7 @@ function EditorApp() {
             console.error('Session refresh failed:', err);
           }
         }
+        qrCodeRef.current?.loadUserProfile();
         const savedDraft = localStorage.getItem(DRAFT_KEY);
         if (savedDraft) {
           try {
@@ -954,7 +956,8 @@ function EditorApp() {
                 </button>
               </div>
               {user && isSupabaseConfigured() ? (
-                <QRCodeGenerator 
+                <QRCodeGenerator
+                  ref={qrCodeRef}
                   user={user}
                   currentActiveBulletinId={activeBulletinId}
                   onActiveBulletinSelect={handleActiveBulletinSelect}

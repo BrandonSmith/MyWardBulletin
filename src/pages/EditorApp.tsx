@@ -700,33 +700,7 @@ function EditorApp() {
                 Export PDF
               </button>
               
-              {user && (
-                <button
-                  onClick={handleSaveBulletin}
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
-                  {loading ? 'Saving...' : (currentBulletinId ? 'Update Bulletin' : 'Save Bulletin')}
-                </button>
-              )}
 
-              <button
-                onClick={() => {
-                  const name = prompt('Template name?');
-                  if (name) {
-                    templateService.saveTemplate(name, bulletinData);
-                    toast.success('Template saved');
-                  }
-                }}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Save as Template
-              </button>
               
               <button
                 onClick={() => setShowQRCode(!showQRCode)}
@@ -799,37 +773,7 @@ function EditorApp() {
                   Export PDF
                 </button>
                 
-                {user && (
-                  <button
-                    onClick={() => {
-                      handleSaveBulletin();
-                      setShowMobileMenu(false);
-                    }}
-                    disabled={loading}
-                    className="w-full flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    ) : (
-                      <Plus className="w-4 h-4 mr-2" />
-                    )}
-                    {loading ? 'Saving...' : (currentBulletinId ? 'Update Bulletin' : 'Save Bulletin')}
-                  </button>
-                )}
 
-                <button
-                  onClick={() => {
-                    const name = prompt('Template name?');
-                    if (name) {
-                      templateService.saveTemplate(name, bulletinData);
-                      toast.success('Template saved');
-                    }
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Save as Template
-                </button>
                 
                 <button
                   onClick={() => {
@@ -930,6 +874,34 @@ function EditorApp() {
                   Set This Bulletin as QR Code Bulletin
                 </button>
               )}
+              <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                {user && (
+                  <button
+                    onClick={handleSaveBulletin}
+                    disabled={loading}
+                    className="w-full sm:w-auto inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : (
+                      <Plus className="w-4 h-4 mr-2" />
+                    )}
+                    {loading ? 'Saving...' : (currentBulletinId ? 'Update Bulletin' : 'Save Bulletin')}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const name = prompt('Template name?');
+                    if (name) {
+                      templateService.saveTemplate(name, bulletinData);
+                      toast.success('Template saved');
+                    }
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Save as Template
+                </button>
+              </div>
             </div>
           </div>
         </div>

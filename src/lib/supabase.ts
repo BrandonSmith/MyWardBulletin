@@ -293,6 +293,17 @@ export const bulletinService = {
   async saveBulletin(bulletinData: any, userId: string, bulletinId?: string) {
     if (!supabase) throw new Error('Supabase not configured');
 
+    try {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('[DEBUG] saveBulletin: session refresh error', refreshError);
+        throw refreshError;
+      }
+    } catch (refreshErr) {
+      console.error('[DEBUG] saveBulletin: failed to refresh session', refreshErr);
+      throw refreshErr;
+    }
+
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     console.log('[DEBUG] saveBulletin: session check', { session: sessionData?.session, error: sessionError });
     if (sessionError || !sessionData?.session) {
@@ -365,7 +376,7 @@ export const bulletinService = {
           supabase
             .from('tokens')
             .upsert(tokens, { onConflict: 'key,created_by' }),
-          10000
+          20000
         ));
         console.log('[DEBUG] saveBulletin: tokens upsert result', { data, error });
       } catch (timeoutError) {
@@ -401,7 +412,7 @@ export const bulletinService = {
               .eq('created_by', userId)
               .select()
               .single(),
-            10000
+            20000
           ));
           console.log('[DEBUG] saveBulletin: bulletin update result', { data, error });
         } catch (timeoutError) {
@@ -420,7 +431,7 @@ export const bulletinService = {
               .insert(dbBulletinRecord)
               .select()
               .single(),
-            10000
+            20000
           ));
           console.log('[DEBUG] saveBulletin: bulletin insert result', { data, error });
         } catch (timeoutError) {
@@ -467,6 +478,17 @@ export const bulletinService = {
     // Always try to get bulletins from local storage first
     const localBulletins = this.getFromLocalStorage().filter(b => b.created_by === userId);
     console.log('Local bulletins for user:', userId, localBulletins);
+
+    try {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('[DEBUG] getUserBulletins: session refresh error', refreshError);
+        throw refreshError;
+      }
+    } catch (refreshErr) {
+      console.error('[DEBUG] getUserBulletins: failed to refresh session', refreshErr);
+      throw refreshErr;
+    }
     try {
       const { data, error } = await withTimeout(
         supabase
@@ -474,7 +496,7 @@ export const bulletinService = {
           .select('*')
           .eq('created_by', userId)
           .order('created_at', { ascending: false }),
-        10000
+        20000
       );
       
       if (error) {

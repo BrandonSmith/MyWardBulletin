@@ -331,6 +331,6 @@ const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(fun
       )}
     </div>
   );
-}
+});
 
 export default QRCodeGenerator;

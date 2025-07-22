@@ -4,6 +4,7 @@ import { BulletinData } from '../types/bulletin';
 import { userService } from '../lib/supabase';
 import BulletinSelector from './BulletinSelector';
 import { toast } from 'react-toastify';
+import { FULL_DOMAIN, SHORT_DOMAIN } from '../lib/config';
 
 const LAST_USER_ID = 'last_user_id';
 
@@ -37,6 +38,7 @@ export default function QRCodeGenerator({
   const [isEditing, setIsEditing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [useShortDomain, setUseShortDomain] = React.useState(true);
 
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function QRCodeGenerator({
 
   useEffect(() => {
     generateQRCode();
-  }, [profileSlug]);
+  }, [profileSlug, useShortDomain]);
 
   useEffect(() => {
     const id = user?.id || localStorage.getItem(LAST_USER_ID);
@@ -90,11 +92,9 @@ export default function QRCodeGenerator({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Generate QR code URL with proper domain
-    const baseUrl = window.location.hostname === 'localhost'
-      ? 'https://mwbltn.com'
-      : window.location.origin;
-    
+    const domain = useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN;
+    const baseUrl = `https://${domain}`;
+
     const qrData = profileSlug
       ? `${baseUrl}/${profileSlug}`
       : `${baseUrl}/your-profile-slug`;
@@ -165,15 +165,14 @@ export default function QRCodeGenerator({
     link.click();
   };
 
-  const getPermanentUrl = () => {
-    const baseUrl = window.location.hostname === 'localhost'
-      ? 'https://mwbltn.com'
-      : window.location.origin;
+  const getPermanentUrl = (short = false) => {
+    const domain = short ? SHORT_DOMAIN : FULL_DOMAIN;
+    const baseUrl = `https://${domain}`;
     return profileSlug ? `${baseUrl}/${profileSlug}` : '';
   };
 
-  const handleCopyUrl = async () => {
-    const url = getPermanentUrl();
+  const handleCopyUrl = async (short = false) => {
+    const url = getPermanentUrl(short);
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
@@ -244,15 +243,47 @@ export default function QRCodeGenerator({
               <p className="text-xs text-red-600 mt-1">{error}</p>
             )}
           </div>
+          <div className="flex items-center space-x-2 mt-2">
+            <label className="text-sm">Domain:</label>
+            <select
+              value={useShortDomain ? 'short' : 'full'}
+              onChange={(e) => setUseShortDomain(e.target.value === 'short')}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              <option value="full">{FULL_DOMAIN}</option>
+              <option value="short">{SHORT_DOMAIN}</option>
+            </select>
+          </div>
         </div>
-        
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded">
-          <p className="font-medium mb-1">🔗 Your Permanent QR Code</p>
-          <p className="mb-2">This QR code always shows your latest bulletin</p>
+
+        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded space-y-2">
+          <p className="font-medium">🔗 Your Permanent QR Code</p>
+          <p>This QR code always shows your latest bulletin</p>
           {profileSlug && (
-            <p className="font-mono text-xs break-all bg-white p-1 rounded border">
-              {window.location.origin}/{profileSlug}
-            </p>
+            <>
+              <div className="flex items-center space-x-2">
+                <p className="font-mono text-xs break-all bg-white p-1 rounded border flex-1">
+                  https://{FULL_DOMAIN}/{profileSlug}
+                </p>
+                <button
+                  onClick={() => handleCopyUrl(false)}
+                  className="px-2 py-1 bg-gray-600 text-white rounded text-xs"
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <p className="font-mono text-xs break-all bg-white p-1 rounded border flex-1">
+                  https://{SHORT_DOMAIN}/{profileSlug}
+                </p>
+                <button
+                  onClick={() => handleCopyUrl(true)}
+                  className="px-2 py-1 bg-gray-600 text-white rounded text-xs"
+                >
+                  Copy
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -266,11 +297,11 @@ export default function QRCodeGenerator({
           Download QR Code
         </button>
         <button
-          onClick={handleCopyUrl}
+          onClick={() => handleCopyUrl(useShortDomain)}
           disabled={!profileSlug}
           className="w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Copy URL
+          Copy Selected URL
         </button>
       </div>
 

@@ -694,8 +694,9 @@ function EditorApp() {
         const imgX2 = (pdfWidth - canvas2.width * ratio2) / 2;
         const imgY2 = 10;
         pdf.addImage(imgData2, 'PNG', imgX2, imgY2, canvas2.width * ratio2, canvas2.height * ratio2);
-        const filename = `${bulletinData.wardName || 'Ward'}-Bulletin-${bulletinData.date || 'today'}.pdf`;
-        pdf.save(filename);
+        const pdfBlob = pdf.output('blob');
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        window.open(blobUrl, '_blank');
       } catch (error) {
         console.error('Error generating PDF:', error);
         toast.error('There was an error generating the PDF. Please try again.');

@@ -71,12 +71,12 @@ export default function QRCodeGenerator({
 
     // Generate QR code URL with proper domain
     const baseUrl = window.location.hostname === 'localhost'
-      ? 'https://mywardbulletin.com'
+      ? 'https://mwbltn.com'
       : window.location.origin;
     
-    const qrData = profileSlug 
-      ? `${baseUrl}/u/${profileSlug}`
-      : `${baseUrl}/u/your-profile-slug`;
+    const qrData = profileSlug
+      ? `${baseUrl}/${profileSlug}`
+      : `${baseUrl}/your-profile-slug`;
     
     QRCode.toCanvas(canvas, qrData, {
       width: 200,
@@ -146,9 +146,9 @@ export default function QRCodeGenerator({
 
   const getPermanentUrl = () => {
     const baseUrl = window.location.hostname === 'localhost'
-      ? 'https://mywardbulletin.com'
+      ? 'https://mwbltn.com'
       : window.location.origin;
-    return profileSlug ? `${baseUrl}/u/${profileSlug}` : '';
+    return profileSlug ? `${baseUrl}/${profileSlug}` : '';
   };
 
   const handleCopyUrl = async () => {
@@ -230,7 +230,7 @@ export default function QRCodeGenerator({
           <p className="mb-2">This QR code always shows your latest bulletin</p>
           {profileSlug && (
             <p className="font-mono text-xs break-all bg-white p-1 rounded border">
-              {window.location.origin}/u/{profileSlug}
+              {window.location.origin}/{profileSlug}
             </p>
           )}
         </div>

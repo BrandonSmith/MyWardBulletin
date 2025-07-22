@@ -4,7 +4,7 @@
   1. New Columns
     - `profile_slug` (text, unique, nullable)
       - Custom slug for user's permanent QR code URL
-      - Used to create URLs like /u/sunset-hills-ward
+      - Used to create URLs like /sunset-hills-ward
       - Must be unique across all users
 
   2. Security

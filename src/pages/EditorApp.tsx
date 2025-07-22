@@ -9,9 +9,11 @@ import QRCodeGenerator from '../components/QRCodeGenerator';
 import AuthModal from '../components/AuthModal';
 import UserMenu from '../components/UserMenu';
 import SavedBulletinsModal from '../components/SavedBulletinsModal';
+import TemplatesModal from '../components/TemplatesModal';
 import ProfileModal from '../components/ProfileModal';
 import PublicBulletinView from '../components/PublicBulletinView';
 import { BulletinData } from '../types/bulletin';
+import templateService, { Template } from '../lib/templateService';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Logo from '../components/Logo';
@@ -37,6 +39,7 @@ function EditorApp() {
   const [activeBulletinId, setActiveBulletinId] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSavedBulletins, setShowSavedBulletins] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [currentBulletinId, setCurrentBulletinId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,57 +77,61 @@ function EditorApp() {
     }
   }
 
+  function createBlankBulletin(): BulletinData {
+    return {
+      wardName: getDefault('wardName', ''),
+      date: new Date().toISOString().split('T')[0],
+      meetingType: 'sacrament',
+      theme: '',
+      bishopricMessage: '',
+      announcements: [],
+      meetings: [],
+      specialEvents: [],
+      agenda: [],
+      prayers: {
+        opening: '',
+        closing: '',
+        invocation: '',
+        benediction: ''
+      },
+      musicProgram: {
+        openingHymn: '',
+        openingHymnNumber: '',
+        openingHymnTitle: '',
+        sacramentHymn: '',
+        sacramentHymnNumber: '',
+        sacramentHymnTitle: '',
+        closingHymn: '',
+        closingHymnNumber: '',
+        closingHymnTitle: ''
+      },
+      leadership: {
+        presiding: getDefault('presiding', ''),
+        conducting: getDefault('conducting', ''),
+        chorister: getDefault('chorister', ''),
+        organist: getDefault('organist', '')
+      },
+      wardLeadership: getDefault('wardLeadership', [
+        { title: 'Bishop', name: '', phone: '' },
+        { title: '1st Counselor', name: '', phone: '' },
+        { title: '2nd Counselor', name: '', phone: '' },
+        { title: 'Executive Secretary', name: '', phone: '' },
+        { title: 'Ward Clerk', name: '', phone: '' },
+        { title: 'Elders Quorum President', name: '', phone: '' },
+        { title: 'Relief Society President', name: '', phone: '' },
+        { title: "Young Women's President", name: '', phone: '' },
+        { title: 'Primary President', name: '', phone: '' },
+        { title: 'Sunday School President', name: '', phone: '' },
+        { title: 'Ward Mission Leader', name: '', phone: '' },
+        { title: 'Building Representative', name: '', phone: '' },
+        { title: 'Temple & Family History', name: '', phone: '' }
+      ]),
+      missionaries: getDefault('missionaries', [])
+    };
+  }
+
   // Use a function to initialize bulletinData from localStorage defaults
-  const [bulletinData, setBulletinData] = useState<BulletinData>(() => ({
-    wardName: getDefault('wardName', ''),
-    date: new Date().toISOString().split('T')[0],
-    meetingType: 'sacrament',
-    theme: '',
-    bishopricMessage: '',
-    announcements: [],
-    meetings: [],
-    specialEvents: [],
-    agenda: [],
-    prayers: {
-      opening: '',
-      closing: '',
-      invocation: '',
-      benediction: ''
-    },
-    musicProgram: {
-      openingHymn: '',
-      openingHymnNumber: '',
-      openingHymnTitle: '',
-      sacramentHymn: '',
-      sacramentHymnNumber: '',
-      sacramentHymnTitle: '',
-      closingHymn: '',
-      closingHymnNumber: '',
-      closingHymnTitle: ''
-    },
-    leadership: {
-      presiding: getDefault('presiding', ''),
-      conducting: getDefault('conducting', ''),
-      chorister: getDefault('chorister', ''),
-      organist: getDefault('organist', '')
-    },
-    wardLeadership: getDefault('wardLeadership', [
-      { title: 'Bishop', name: '', phone: '' },
-      { title: '1st Counselor', name: '', phone: '' },
-      { title: '2nd Counselor', name: '', phone: '' },
-      { title: 'Executive Secretary', name: '', phone: '' },
-      { title: 'Ward Clerk', name: '', phone: '' },
-      { title: 'Elders Quorum President', name: '', phone: '' },
-      { title: 'Relief Society President', name: '', phone: '' },
-      { title: "Young Women's President", name: '', phone: '' },
-      { title: 'Primary President', name: '', phone: '' },
-      { title: 'Sunday School President', name: '', phone: '' },
-      { title: 'Ward Mission Leader', name: '', phone: '' },
-      { title: 'Building Representative', name: '', phone: '' },
-      { title: 'Temple & Family History', name: '', phone: '' }
-    ]),
-    missionaries: getDefault('missionaries', [])
-  }));
+  const [bulletinData, setBulletinData] = useState<BulletinData>(() => createBlankBulletin());
 
   const [showQRCode, setShowQRCode] = useState(false);
   const bulletinRef = useRef<HTMLDivElement>(null);
@@ -546,6 +553,17 @@ function EditorApp() {
     setShowSavedBulletins(false);
   };
 
+  const handleTemplateSelect = (template: Template | null) => {
+    if (template) {
+      setBulletinData(template.data);
+    } else {
+      setBulletinData(createBlankBulletin());
+    }
+    setCurrentBulletinId(null);
+    setHasUnsavedChanges(false);
+    setShowTemplates(false);
+  };
+
   const handleDeleteSavedBulletin = (bulletinId: string) => {
     // If we're currently editing the deleted bulletin, clear the current ID
     if (currentBulletinId === bulletinId) {
@@ -560,89 +578,7 @@ function EditorApp() {
         return;
       }
     }
-
-    // Load defaults from localStorage if present
-    const DEFAULT_KEYS: Record<
-      'wardName' | 'presiding' | 'conducting' | 'chorister' | 'organist' | 'wardLeadership' | 'missionaries',
-      string
-    > = {
-      wardName: 'default_wardName',
-      presiding: 'default_presiding',
-      conducting: 'default_conducting',
-      chorister: 'default_chorister',
-      organist: 'default_organist',
-      wardLeadership: 'default_wardLeadership',
-      missionaries: 'default_missionaries',
-    };
-    function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
-      try {
-        const val = localStorage.getItem(DEFAULT_KEYS[key]);
-        if (val) {
-          if (key === 'wardLeadership' || key === 'missionaries') {
-            try { return JSON.parse(val) as T; } catch { return fallback; }
-          }
-          return val as T;
-        }
-        return fallback;
-      } catch (e) {
-        // Only clear localStorage if there's an actual error, not proactively
-        console.error('localStorage error:', e);
-        return fallback;
-      }
-    }
-
-    setBulletinData({
-      wardName: getDefault('wardName', ''),
-      date: new Date().toISOString().split('T')[0],
-      meetingType: 'sacrament',
-      theme: '',
-      bishopricMessage: '',
-      announcements: [],
-      meetings: [],
-      specialEvents: [],
-      agenda: [],
-      prayers: {
-        opening: '',
-        closing: '',
-        invocation: '',
-        benediction: ''
-      },
-      musicProgram: {
-        openingHymn: '',
-        openingHymnNumber: '',
-        openingHymnTitle: '',
-        sacramentHymn: '',
-        sacramentHymnNumber: '',
-        sacramentHymnTitle: '',
-        closingHymn: '',
-        closingHymnNumber: '',
-        closingHymnTitle: ''
-      },
-      leadership: {
-        presiding: getDefault('presiding', ''),
-        conducting: getDefault('conducting', ''),
-        chorister: getDefault('chorister', ''),
-        organist: getDefault('organist', '')
-      },
-      wardLeadership: getDefault('wardLeadership', [
-        { title: 'Bishop', name: '', phone: '' },
-        { title: '1st Counselor', name: '', phone: '' },
-        { title: '2nd Counselor', name: '', phone: '' },
-        { title: 'Executive Secretary', name: '', phone: '' },
-        { title: 'Ward Clerk', name: '', phone: '' },
-        { title: 'Elders Quorum President', name: '', phone: '' },
-        { title: 'Relief Society President', name: '', phone: '' },
-        { title: "Young Women's President", name: '', phone: '' },
-        { title: 'Primary President', name: '', phone: '' },
-        { title: 'Sunday School President', name: '', phone: '' },
-        { title: 'Ward Mission Leader', name: '', phone: '' },
-        { title: 'Building Representative', name: '', phone: '' },
-        { title: 'Temple & Family History', name: '', phone: '' }
-      ]),
-      missionaries: getDefault('missionaries', [])
-    });
-    setCurrentBulletinId(null);
-    setHasUnsavedChanges(false);
+    setShowTemplates(true);
   };
 
   const handleActiveBulletinSelect = async (bulletinId: string | null) => {
@@ -778,6 +714,19 @@ function EditorApp() {
                   {loading ? 'Saving...' : (currentBulletinId ? 'Update Bulletin' : 'Save Bulletin')}
                 </button>
               )}
+
+              <button
+                onClick={() => {
+                  const name = prompt('Template name?');
+                  if (name) {
+                    templateService.saveTemplate(name, bulletinData);
+                    toast.success('Template saved');
+                  }
+                }}
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Save as Template
+              </button>
               
               <button
                 onClick={() => setShowQRCode(!showQRCode)}
@@ -867,6 +816,20 @@ function EditorApp() {
                     {loading ? 'Saving...' : (currentBulletinId ? 'Update Bulletin' : 'Save Bulletin')}
                   </button>
                 )}
+
+                <button
+                  onClick={() => {
+                    const name = prompt('Template name?');
+                    if (name) {
+                      templateService.saveTemplate(name, bulletinData);
+                      toast.success('Template saved');
+                    }
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Save as Template
+                </button>
                 
                 <button
                   onClick={() => {
@@ -1032,6 +995,13 @@ function EditorApp() {
           user={user}
           onLoadBulletin={handleLoadSavedBulletin}
           onDeleteBulletin={handleDeleteSavedBulletin}
+        />
+
+        {/* Templates Modal */}
+        <TemplatesModal
+          isOpen={showTemplates}
+          onClose={() => setShowTemplates(false)}
+          onSelect={handleTemplateSelect}
         />
 
         {/* Profile Modal */}

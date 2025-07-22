@@ -3,21 +3,34 @@ import { Check, Calendar, FileText } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 
+// Key for caching the last authenticated user ID
+const LAST_USER_ID = 'last_user_id';
+
 interface BulletinSelectorProps {
   user: any;
   currentActiveBulletinId?: string;
   onBulletinSelect: (bulletinId: string) => void;
 }
 
-export default function BulletinSelector({ 
-  user, 
-  currentActiveBulletinId, 
-  onBulletinSelect 
+export default function BulletinSelector({
+  user,
+  currentActiveBulletinId,
+  onBulletinSelect
 }: BulletinSelectorProps) {
+  // Cache the last seen user ID so we can fetch local bulletins even if the
+  // session temporarily becomes unavailable
+  useEffect(() => {
+    if (user?.id) {
+      localStorage.setItem(LAST_USER_ID, user.id);
+    }
+  }, [user]);
+
+  const cachedUserId = user?.id || localStorage.getItem(LAST_USER_ID) || '';
+
   const { data: bulletins = [], isLoading: loading, error } = useQuery({
-    queryKey: ['user-bulletins', user?.id],
-    queryFn: () => bulletinService.getUserBulletins(user.id),
-    enabled: !!user
+    queryKey: ['user-bulletins', cachedUserId],
+    queryFn: () => bulletinService.getUserBulletins(cachedUserId),
+    enabled: !!cachedUserId
   });
 
   const formatDate = (dateString: string) => {

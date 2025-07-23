@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas';
 import { supabase, isSupabaseConfigured, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
 import BulletinForm from '../components/BulletinForm';
 import BulletinPreview from '../components/BulletinPreview';
-import QRCodeGenerator, { QRCodeGeneratorRef } from '../components/QRCodeGenerator';
+import QRCodeGenerator from '../components/QRCodeGenerator';
 import AuthModal from '../components/AuthModal';
 import UserMenu from '../components/UserMenu';
 import SavedBulletinsModal from '../components/SavedBulletinsModal';
@@ -19,6 +19,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Logo from '../components/Logo';
 import BulletinPrintLayout from '../components/BulletinPrintLayout';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
+import { useSession } from '../lib/SessionContext';
 
 
 function decodeJwtExp(token: string) {
@@ -35,8 +36,16 @@ function EditorApp() {
   const [currentView, setCurrentView] = useState<'editor' | 'public'>('editor');
   const [publicBulletinData, setPublicBulletinData] = useState<any>(null);
   const [publicError, setPublicError] = useState('');
-  const [user, setUser] = useState<any>(null);
+  const { user, profile } = useSession();
   const [activeBulletinId, setActiveBulletinId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setActiveBulletinId(profile.active_bulletin_id || null);
+    } else {
+      setActiveBulletinId(null);
+    }
+  }, [profile]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSavedBulletins, setShowSavedBulletins] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -134,7 +143,6 @@ function EditorApp() {
   const [bulletinData, setBulletinData] = useState<BulletinData>(() => createBlankBulletin());
 
   const [showQRCode, setShowQRCode] = useState(false);
-  const qrCodeRef = useRef<QRCodeGeneratorRef>(null);
   const bulletinRef = useRef<HTMLDivElement>(null);
   const printPage1Ref = useRef<HTMLDivElement>(null);
   const printPage2Ref = useRef<HTMLDivElement>(null);
@@ -178,19 +186,8 @@ function EditorApp() {
   // visibilitychange, and pageshow so the draft is restored without needing
   // a manual refresh on mobile browsers like Safari.
   useEffect(() => {
-    const handleVisibility = async () => {
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        if (isSupabaseConfigured() && supabase) {
-          try {
-            // Refresh session to ensure we can save without reloading
-            await supabase.auth.refreshSession();
-            const session = await robustService.validateSession();
-            setUser(session?.user ?? null);
-          } catch (err) {
-            console.error('Session refresh failed:', err);
-          }
-        }
-        qrCodeRef.current?.loadUserProfile();
         const savedDraft = localStorage.getItem(DRAFT_KEY);
         if (savedDraft) {
           try {
@@ -270,45 +267,6 @@ function EditorApp() {
   };
 
 
-  // Check for existing session on mount
-  useEffect(() => {
-    const initializeApp = async () => {
-      if (isSupabaseConfigured() && supabase) {
-        try {
-          // Test connection first
-          const isConnected = await robustService.testAndRecoverConnection();
-          if (!isConnected) {
-            console.warn('Supabase connection failed, using local storage only');
-            return;
-          }
-          // Validate session
-          const session = await robustService.validateSession();
-          setUser(session?.user ?? null);
-          if (session?.user) {
-            try {
-              const profile = await retryOperation(() => userService.getUserProfile(session.user.id));
-              if (profile && profile.length > 0) {
-                setActiveBulletinId(profile[0].active_bulletin_id || null);
-              }
-              // Restore any pending draft
-              const restoredDraft = await robustService.restoreDraftAfterAuth();
-              if (restoredDraft) {
-                setBulletinData(restoredDraft);
-                setHasUnsavedChanges(true);
-              }
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
-            }
-          } else {
-            setActiveBulletinId(null);
-          }
-        } catch (error) {
-          console.error('App initialization error:', error);
-        }
-      }
-    };
-    initializeApp();
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -356,33 +314,6 @@ function EditorApp() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Enhanced auth state change handler
-  React.useEffect(() => {
-    if (!isSupabaseConfigured() || !supabase) return;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        try {
-          const profile = await retryOperation(() => userService.getUserProfile(session.user.id));
-          if (profile && profile.length > 0) {
-            setActiveBulletinId(profile[0].active_bulletin_id || null);
-          }
-          // Restore draft after sign in
-          const restoredDraft = await robustService.restoreDraftAfterAuth();
-          if (restoredDraft) {
-            setBulletinData(restoredDraft);
-            setHasUnsavedChanges(true);
-          }
-        } catch (error) {
-          console.error('Error after sign in:', error);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setActiveBulletinId(null);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   // On app load, if user is signed in and a draft exists, offer to save it
   React.useEffect(() => {
@@ -740,15 +671,17 @@ function EditorApp() {
                 My QR Code
               </button>
               
-              {user ? (
-                <UserMenu 
-                  user={user}
-                  onSignOut={() => setUser(null)}
-                  onSaveBulletin={handleSaveBulletin}
-                  onViewSavedBulletins={handleViewSavedBulletins}
-                  hasUnsavedChanges={hasUnsavedChanges}
-                  onOpenProfile={() => setShowProfile(true)}
-                />
+                {user ? (
+                  <UserMenu
+                    user={user}
+                    onSignOut={async () => {
+                      await supabase?.auth.signOut();
+                    }}
+                    onSaveBulletin={handleSaveBulletin}
+                    onViewSavedBulletins={handleViewSavedBulletins}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    onOpenProfile={() => setShowProfile(true)}
+                  />
               ) : (
                 <button
                   onClick={() => setShowAuthModal(true)}
@@ -826,13 +759,13 @@ function EditorApp() {
                     >
                       My Bulletins
                     </button>
-                    <button
-                      onClick={() => {
-                        setUser(null);
-                        setShowMobileMenu(false);
-                      }}
-                      className="w-full flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                    >
+                      <button
+                        onClick={async () => {
+                          await supabase?.auth.signOut();
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
                       Sign Out
                     </button>
                   </div>
@@ -955,17 +888,15 @@ function EditorApp() {
                   ×
                 </button>
               </div>
-              {user && isSupabaseConfigured() ? (
-                <QRCodeGenerator
-                  ref={qrCodeRef}
-                  user={user}
-                  currentActiveBulletinId={activeBulletinId}
-                  onActiveBulletinSelect={handleActiveBulletinSelect}
-                  onProfileSlugUpdate={() => {
-                    // Optionally refresh or show success message
-                  }}
-                  isOpen={showQRCode}
-                />
+                {user && isSupabaseConfigured() ? (
+                  <QRCodeGenerator
+                    currentActiveBulletinId={activeBulletinId}
+                    onActiveBulletinSelect={handleActiveBulletinSelect}
+                    onProfileSlugUpdate={() => {
+                      // Optionally refresh or show success message
+                    }}
+                    isOpen={showQRCode}
+                  />
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-600 mb-4">Sign in to create your permanent QR code</p>
@@ -994,7 +925,6 @@ function EditorApp() {
         <SavedBulletinsModal
           isOpen={showSavedBulletins}
           onClose={() => setShowSavedBulletins(false)}
-          user={user}
           onLoadBulletin={handleLoadSavedBulletin}
           onDeleteBulletin={handleDeleteSavedBulletin}
         />

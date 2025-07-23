@@ -15,10 +15,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  if (!isOpen) return null;
-
   useEffect(() => {
-    if (!isOpen || !isSupabaseConfigured() || !supabase) return;
+    if (!isSupabaseConfigured() || !supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         onAuthSuccess();
@@ -93,7 +91,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      style={{ display: isOpen ? 'flex' : 'none' }}
+    >
       <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-gray-900">

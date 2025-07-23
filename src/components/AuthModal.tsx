@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -16,6 +16,17 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
+
+  useEffect(() => {
+    if (!isOpen || !isSupabaseConfigured() || !supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        onAuthSuccess();
+        onClose();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [isOpen]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

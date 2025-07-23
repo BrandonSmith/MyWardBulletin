@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import { BulletinData } from '../types/bulletin';
 import { userService } from '../lib/supabase';
 import BulletinSelector from './BulletinSelector';
 import { toast } from 'react-toastify';
 import { FULL_DOMAIN, SHORT_DOMAIN } from '../lib/config';
+import { useSession } from '../lib/SessionContext';
 
 const LAST_USER_ID = 'last_user_id';
 
@@ -19,38 +19,40 @@ function formatProfileSlug(value: string): string {
 }
 
 interface QRCodeGeneratorProps {
-  user: any;
   currentActiveBulletinId?: string | null;
   onActiveBulletinSelect?: (bulletinId: string | null) => void;
   onProfileSlugUpdate?: (slug: string) => void;
   isOpen?: boolean;
 }
 
-export interface QRCodeGeneratorRef {
-  loadUserProfile: () => Promise<void>;
-}
-
-const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(function QRCodeGenerator({
-  user,
+const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   currentActiveBulletinId,
   onActiveBulletinSelect,
   onProfileSlugUpdate,
   isOpen
-}, ref) {
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [profileSlug, setProfileSlug] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [useShortDomain, setUseShortDomain] = React.useState(true);
-
+  const { user, profile } = useSession();
 
   useEffect(() => {
     if (user?.id) {
       localStorage.setItem(LAST_USER_ID, user.id);
     }
-    loadUserProfile();
-  }, [user]);
+    if (profile?.profile_slug) {
+      setProfileSlug(profile.profile_slug);
+      localStorage.setItem(`profile_slug_${user?.id || ''}`, profile.profile_slug);
+    } else if (!profile) {
+      const cached = localStorage.getItem(`profile_slug_${user?.id || localStorage.getItem(LAST_USER_ID) || ''}`);
+      if (cached) {
+        setProfileSlug(cached);
+      }
+    }
+  }, [user, profile]);
 
   useEffect(() => {
     generateQRCode();
@@ -62,39 +64,6 @@ const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(fun
       localStorage.setItem(`profile_slug_${id}`, profileSlug);
     }
   }, [profileSlug, user]);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      loadUserProfile();
-    }
-  }, [isOpen]);
-
-  const loadUserProfile = async () => {
-    const id = user?.id || localStorage.getItem(LAST_USER_ID);
-    if (!id) return;
-
-    try {
-      const profile = await userService.getUserProfile(id);
-      console.log('Fetched profile from Supabase:', profile);
-      if (profile && profile.length > 0) {
-        const slug = profile[0].profile_slug || '';
-        setProfileSlug(slug);
-        localStorage.setItem(`profile_slug_${id}`, slug);
-        return;
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-
-    const cached = localStorage.getItem(`profile_slug_${id}`);
-    if (cached) {
-      setProfileSlug(cached);
-    }
-  };
-
-  useImperativeHandle(ref, () => ({
-    loadUserProfile,
-  }));
 
   const generateQRCode = () => {
     const canvas = canvasRef.current;
@@ -150,7 +119,11 @@ const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(fun
       if (onProfileSlugUpdate) {
         onProfileSlugUpdate(sanitized);
       }
-      await loadUserProfile(); // Still fetch from backend to ensure sync
+      // Refresh profile slug from backend
+      const refreshed = await userService.getUserProfile(user.id);
+      if (refreshed && refreshed.length > 0) {
+        setProfileSlug(refreshed[0].profile_slug || '');
+      }
     } catch (error: any) {
       setError(error.message || 'Failed to update profile slug');
     } finally {
@@ -160,7 +133,9 @@ const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(fun
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    loadUserProfile(); // Reset to original value
+    if (profile?.profile_slug) {
+      setProfileSlug(profile.profile_slug);
+    }
   };
 
   const downloadQRCode = () => {
@@ -331,6 +306,6 @@ const QRCodeGenerator = forwardRef<QRCodeGeneratorRef, QRCodeGeneratorProps>(fun
       )}
     </div>
   );
-});
+};
 
 export default QRCodeGenerator;

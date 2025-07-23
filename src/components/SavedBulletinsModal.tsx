@@ -3,13 +3,13 @@ import { X, FileText, Calendar, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { useSession } from '../lib/SessionContext';
 
 const LAST_USER_ID = 'last_user_id';
 
 interface SavedBulletinsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
   onLoadBulletin: (bulletin: any) => void;
   onDeleteBulletin: (bulletinId: string) => void;
 }
@@ -17,12 +17,12 @@ interface SavedBulletinsModalProps {
 export default function SavedBulletinsModal({
   isOpen,
   onClose,
-  user,
   onLoadBulletin,
   onDeleteBulletin
 }: SavedBulletinsModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useSession();
 
   useEffect(() => {
     if (user?.id) {

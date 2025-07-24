@@ -28,4 +28,4 @@ The `.env` file is listed in `.gitignore` to keep your credentials private. If y
 
 - Use **Save as Template** to store the current bulletin layout locally.
 - Choose **New Bulletin** to open the template picker and start from a saved template or a blank bulletin.
-- Templates are stored in browser local storage under `mywardbulletin_templates`.
+- Templates are saved securely for your account and can be accessed from any device where you sign in.

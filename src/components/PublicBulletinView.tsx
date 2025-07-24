@@ -76,7 +76,7 @@ export default function PublicBulletinView({
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm">
-            Created with <span className="font-semibold">MyWardBulletin.com</span> - Free Ward Bulletin Creator
+            No ads, no trackers, and no analytics scripts. Your data is private and secure—nothing sold or tracked. Access your bulletins from any device, anywhere.
           </p>
           <button
             onClick={onBackToEditor}

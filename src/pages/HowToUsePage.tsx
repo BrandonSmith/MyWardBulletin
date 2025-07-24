@@ -38,28 +38,84 @@ export default function HowToUsePage() {
         onAuthSuccess={() => setShowAuthModal(false)}
       />
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-4xl font-bold mb-4 text-blue-800">How To Use MyWardBulletin</h1>
-          <ol className="list-decimal list-inside text-lg text-gray-700 space-y-3 mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto mt-8">
+          <h1 className="text-3xl font-bold mb-4 text-blue-800">How to Use MyWardBulletin</h1>
+          <p className="mb-6 text-lg text-gray-700">
+            Creating and sharing a Sunday program should be simple. Here’s how to do it with MyWardBulletin:
+          </p>
+          <ol className="list-decimal list-inside mb-6 space-y-6 text-gray-700">
             <li>
-              <b>Create a Bulletin:</b> Fill out the form with your ward’s information, announcements, and program details.
+              <b>Start Your Bulletin</b>
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>Go to <b>mywardbulletin.com</b></li>
+                <li>Click “Start a New Bulletin”</li>
+                <li>You’ll see a clean editor where you can add sections like:
+                  <ul className="list-disc ml-6 mt-1">
+                    <li>Date and Ward Name</li>
+                    <li>Presiding and conducting</li>
+                    <li>Opening/closing hymns</li>
+                    <li>Speakers and prayers</li>
+                    <li>Announcements</li>
+                    <li>Custom notes</li>
+                  </ul>
+                </li>
+                <li>The layout is flexible,add or remove anything you need.</li>
+              </ul>
             </li>
             <li>
-              <b>Preview Instantly:</b> See a live preview of your bulletin as you type.
+              <b>Customize As Needed</b>
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>Rearrange agenda items with simple position changes</li>
+                <li>Click into each field to edit text</li>
+                <li>Use the “+ Add Section” button for Speakers, Musical Numbers, or Bearing of Testimonies</li>
+                <li>You can build as much as you want before signing in.</li>
+              </ul>
             </li>
             <li>
-              <b>Save or Update:</b> Save your bulletin to your account for future editing, or update an existing one.
+              <b>Sign In to Save and Share</b>
+              <p className="mt-2">Once your bulletin is ready:</p>
+              <ul className="list-disc ml-6 mt-1 space-y-1">
+                <li>Click “Save or Share”</li>
+                <li>You’ll be prompted to sign in or create a free account</li>
+                <li>After signing in, your bulletin will be saved to your account and you’ll get:</li>
+                <ul className="list-disc ml-6 mt-1">
+                  <li>✅ A custom link to share (great for email, text, or announcements)</li>
+                  <li>✅ An auto-generated QR code (great for chapel doors, screens, or printed copies)</li>
+                </ul>
+                <li>You can return to your saved bulletins anytime from any device.</li>
+              </ul>
             </li>
             <li>
-              <b>Share:</b> Share a public link or QR code with your ward members. No sign-in required to view.
+              <b>Print (If Needed)</b>
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>Click “Export as PDF” to generate a printable version</li>
+                <li>The layout is automatically optimized for folding and Sunday distribution</li>
+                <li>Works on standard printer paper with no formatting required</li>
+              </ul>
             </li>
             <li>
-              <b>Print:</b> Download a print-ready PDF for physical distribution.
+              <b>Reuse and Manage Bulletins</b>
+              <ul className="list-disc ml-6 mt-2 space-y-1">
+                <li>All your saved bulletins appear in your dashboard</li>
+                <li>Duplicate a past bulletin to use as a template for next week</li>
+                <li>Make edits anytime, even Sunday morning before sacrament meeting</li>
+                <li>QR codes and links update in real time, so your ward always sees the latest version</li>
+              </ul>
             </li>
           </ol>
-          <div className="bg-blue-50 rounded-lg p-4 shadow text-blue-700">
-            <b>Tip:</b> All your data is private and processed in your browser. You can use MyWardBulletin on any device!
-          </div>
+          <h2 className="text-2xl font-bold mt-8 mb-4 text-blue-700">Need to Keep It Offline?</h2>
+          <ul className="mb-6 list-disc ml-6 text-gray-700">
+            <li>You can build a full bulletin before signing in</li>
+            <li>If you don’t want to create an account, you can still print directly from your browser<br/>
+              <span className="text-xs text-gray-500">(Note: sharing links and QR codes require sign-in)</span>
+            </li>
+          </ul>
+          <h2 className="text-2xl font-bold mt-8 mb-4 text-blue-700">Tips</h2>
+          <ul className="mb-6 list-disc ml-6 text-gray-700">
+            <li>Use the short share link or QR code on printed signs or slides for easy Sunday access</li>
+            <li>Combine physical and digital: print a few copies, but let most members view it on their phone</li>
+            <li>Last-minute change? Just edit and reprint—or let members use the same link</li>
+          </ul>
         </div>
       </main>
       <footer className="bg-white border-t border-gray-200 mt-16">

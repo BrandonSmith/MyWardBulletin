@@ -975,7 +975,10 @@ function EditorApp() {
         {/* Hidden print layout for PDF export */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
           <BulletinPrintLayout
-            data={bulletinData}
+            data={{
+              ...bulletinData,
+              profileSlug: profile?.profile_slug || 'your-profile-slug'
+            }}
             refs={{ page1: printPage1Ref, page2: printPage2Ref }}
           />
         </div>

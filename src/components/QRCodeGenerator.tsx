@@ -72,17 +72,19 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
     const domain = useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN;
     const baseUrl = `https://${domain}`;
 
+    // Use shorter URL format for better mobile QR code scanning
     const qrData = profileSlug
       ? `${baseUrl}/${profileSlug}`
       : `${baseUrl}/your-profile-slug`;
     
     QRCode.toCanvas(canvas, qrData, {
-      width: 200,
-      margin: 2,
+      width: 300, // Increased size for better mobile scanning
+      margin: 4, // Increased margin for better contrast
       color: {
         dark: '#000000',
         light: '#FFFFFF'
-      }
+      },
+      errorCorrectionLevel: 'H' // Highest error correction for better mobile scanning
     }, (error) => {
       if (error) {
         console.error('QR Code generation error:', error);
@@ -169,8 +171,8 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
     <div className="text-center space-y-4">
       <canvas
         ref={canvasRef}
-        width={200}
-        height={200}
+        width={300}
+        height={300}
         className="border border-gray-300 rounded-lg mx-auto"
       />
       
@@ -293,6 +295,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
         <p>• Print this QR code and place it on physical bulletins</p>
         <p>• Members can scan to access your latest digital bulletin</p>
         <p>• QR code stays the same - just update your bulletins</p>
+        <p>• 💡 <strong>Mobile tip:</strong> Ensure good lighting and hold phone steady when scanning</p>
       </div>
       
       {onActiveBulletinSelect && (

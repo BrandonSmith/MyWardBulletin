@@ -628,7 +628,6 @@ function EditorApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <ToastContainer position="top-center" autoClose={2000} hideProgressBar={true} />
       {/* Header */}
       <header className="bg-white shadow-lg border-b-4 border-blue-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

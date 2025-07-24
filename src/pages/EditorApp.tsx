@@ -804,13 +804,6 @@ function EditorApp() {
                 <h2 className="text-2xl font-semibold text-gray-900">
                 Bulletin Preview
                 </h2>
-                <button
-                  onClick={handleExportPDF}
-                  className="flex items-center px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm ml-2"
-                  title="Export as PDF"
-                >
-                  <Download className="w-4 h-4 mr-1" /> Export PDF
-                </button>
                 {currentBulletinId && (
                   <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-2">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">

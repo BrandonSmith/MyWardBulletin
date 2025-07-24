@@ -991,9 +991,7 @@ function EditorApp() {
             <p className="text-gray-600">
               MyWardBulletin.com - Free Ward Bulletin Creator
             </p>
-            <p className="text-sm text-gray-500 mt-2">
-              All data is processed locally in your browser for privacy and security
-            </p>
+
             <nav className="mt-4 space-x-4">
               <a href="/about" className="text-gray-600 hover:text-gray-900">About</a>
               <a href="/how-to-use" className="text-gray-600 hover:text-gray-900">How To Use</a>

@@ -76,7 +76,7 @@ export default function PublicBulletinView({
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm">
-            No ads, no trackers, and no analytics scripts. Your data is private and secure—nothing sold or tracked. Access your bulletins from any device, anywhere.
+            Built with MyWardBulletin.com
           </p>
           <button
             onClick={onBackToEditor}

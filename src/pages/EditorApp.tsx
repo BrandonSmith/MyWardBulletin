@@ -556,43 +556,52 @@ function EditorApp() {
   const handleExportPDF = async () => {
     if (printPage1Ref.current && printPage2Ref.current) {
       try {
+        // Use a higher scale for crisper print quality
+        const scale = 3;
+        const margin = 5; // mm
+
         // Render page 1
         const canvas1 = await html2canvas(printPage1Ref.current, {
-          scale: 2,
+          scale,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
           width: printPage1Ref.current.scrollWidth,
           height: printPage1Ref.current.scrollHeight
         });
+
         // Render page 2
         const canvas2 = await html2canvas(printPage2Ref.current, {
-          scale: 2,
+          scale,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
           width: printPage2Ref.current.scrollWidth,
           height: printPage2Ref.current.scrollHeight
         });
+
         const imgData1 = canvas1.toDataURL('image/png');
         const imgData2 = canvas2.toDataURL('image/png');
+
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+
         // Page 1
-        const ratio1 = Math.min(pdfWidth / canvas1.width, pdfHeight / canvas1.height);
+        const ratio1 = Math.min((pdfWidth - margin * 2) / canvas1.width, (pdfHeight - margin * 2) / canvas1.height);
         const imgX1 = (pdfWidth - canvas1.width * ratio1) / 2;
-        const imgY1 = 10;
+        const imgY1 = margin;
         pdf.addImage(imgData1, 'PNG', imgX1, imgY1, canvas1.width * ratio1, canvas1.height * ratio1);
+
         // Page 2
         pdf.addPage('a4', 'landscape');
-        const ratio2 = Math.min(pdfWidth / canvas2.width, pdfHeight / canvas2.height);
+        const ratio2 = Math.min((pdfWidth - margin * 2) / canvas2.width, (pdfHeight - margin * 2) / canvas2.height);
         const imgX2 = (pdfWidth - canvas2.width * ratio2) / 2;
-        const imgY2 = 10;
+        const imgY2 = margin;
         pdf.addImage(imgData2, 'PNG', imgX2, imgY2, canvas2.width * ratio2, canvas2.height * ratio2);
-        const pdfBlob = pdf.output('blob');
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        window.open(blobUrl, '_blank');
+
+        pdf.autoPrint();
+        pdf.save('Ward-Bulletin.pdf');
       } catch (error) {
         console.error('Error generating PDF:', error);
         toast.error('There was an error generating the PDF. Please try again.');

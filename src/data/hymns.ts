@@ -399,16 +399,20 @@ export const getHymnTitle = (number: number): string => {
   return LDS_HYMNS[number] || '';
 };
 
-export const getHymnUrl = (number: number): string => {
+export const getHymnSlug = (number: number): string => {
   const title = LDS_HYMNS[number];
   if (!title) return '';
-  // Remove apostrophes, then slugify: lowercase, replace non-alphanum with hyphens, collapse multiple hyphens
   const slug = title
     .toLowerCase()
-    .replace(/'/g, '') // Remove apostrophes
+    .replace(/'/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .replace(/-+/g, '-');
+  return slug;
+};
+
+export const getHymnUrl = (number: number): string => {
+  const slug = getHymnSlug(number);
   return `https://www.churchofjesuschrist.org/media/music/songs/${slug}?crumbs=hymns&lang=eng`;
 };
 

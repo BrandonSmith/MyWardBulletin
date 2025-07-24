@@ -3,6 +3,7 @@ import { BulletinData } from "../types/bulletin";
 
 import { sanitizeHtml } from '../lib/sanitizeHtml';
 import { getHymnUrl, getHymnTitle } from '../data/hymns';
+import OpenHymnLink from './OpenHymnLink';
 
 interface BulletinPreviewProps {
   data: BulletinData;
@@ -143,14 +144,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               {(data.musicProgram.openingHymnNumber || data.musicProgram.openingHymnTitle) && (
                 <div className="text-center py-1">
                   <p className="italic">
-                    <a
-                      href={getHymnUrl(Number(data.musicProgram.openingHymnNumber))}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline hover:text-blue-900"
-                    >
-                      {data.musicProgram.openingHymnTitle || getHymnTitle(Number(data.musicProgram.openingHymnNumber))}
-                    </a>
+                    {data.musicProgram.openingHymnNumber ? (
+                      <OpenHymnLink number={Number(data.musicProgram.openingHymnNumber)}>
+                        {data.musicProgram.openingHymnTitle || getHymnTitle(Number(data.musicProgram.openingHymnNumber))}
+                      </OpenHymnLink>
+                    ) : (
+                      <span>{data.musicProgram.openingHymnTitle}</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -173,14 +173,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
                 <div className="text-center py-1">
                   <p className="italic">
-                    <a
-                      href={getHymnUrl(Number(data.musicProgram.sacramentHymnNumber))}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline hover:text-blue-900"
-                    >
-                      {data.musicProgram.sacramentHymnTitle || getHymnTitle(Number(data.musicProgram.sacramentHymnNumber))}
-                    </a>
+                    {data.musicProgram.sacramentHymnNumber ? (
+                      <OpenHymnLink number={Number(data.musicProgram.sacramentHymnNumber)}>
+                        {data.musicProgram.sacramentHymnTitle || getHymnTitle(Number(data.musicProgram.sacramentHymnNumber))}
+                      </OpenHymnLink>
+                    ) : (
+                      <span>{data.musicProgram.sacramentHymnTitle}</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -206,9 +205,9 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                   <div className="text-center py-1">
                     <p className="italic">
                       {item.hymnNumber ? (
-                        <a href={getHymnUrl(Number(item.hymnNumber))} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900">
+                        <OpenHymnLink number={Number(item.hymnNumber)}>
                           {item.hymnTitle || getHymnTitle(Number(item.hymnNumber))}
-                        </a>
+                        </OpenHymnLink>
                       ) : item.songName}
                     </p>
                   </div>
@@ -235,14 +234,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               {(data.musicProgram.closingHymnNumber || data.musicProgram.closingHymnTitle) && (
                 <div className="text-center py-1">
                   <p className="italic">
-                    <a
-                      href={getHymnUrl(Number(data.musicProgram.closingHymnNumber))}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline hover:text-blue-900"
-                    >
-                      {data.musicProgram.closingHymnTitle || getHymnTitle(Number(data.musicProgram.closingHymnNumber))}
-                    </a>
+                    {data.musicProgram.closingHymnNumber ? (
+                      <OpenHymnLink number={Number(data.musicProgram.closingHymnNumber)}>
+                        {data.musicProgram.closingHymnTitle || getHymnTitle(Number(data.musicProgram.closingHymnNumber))}
+                      </OpenHymnLink>
+                    ) : (
+                      <span>{data.musicProgram.closingHymnTitle}</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -381,14 +379,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             {(data.musicProgram.openingHymnNumber || data.musicProgram.openingHymnTitle) && (
               <div className="text-center py-1">
                 <p className="italic">
-                  <a
-                    href={getHymnUrl(Number(data.musicProgram.openingHymnNumber))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 underline hover:text-blue-900"
-                  >
-                    {data.musicProgram.openingHymnTitle || getHymnTitle(Number(data.musicProgram.openingHymnNumber))}
-                  </a>
+                  {data.musicProgram.openingHymnNumber ? (
+                    <OpenHymnLink number={Number(data.musicProgram.openingHymnNumber)}>
+                      {data.musicProgram.openingHymnTitle || getHymnTitle(Number(data.musicProgram.openingHymnNumber))}
+                    </OpenHymnLink>
+                  ) : (
+                    <span>{data.musicProgram.openingHymnTitle}</span>
+                  )}
                 </p>
               </div>
             )}
@@ -411,14 +408,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
               <div className="text-center py-1">
                 <p className="italic">
-                  <a
-                    href={getHymnUrl(Number(data.musicProgram.sacramentHymnNumber))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 underline hover:text-blue-900"
-                  >
-                    {data.musicProgram.sacramentHymnTitle || getHymnTitle(Number(data.musicProgram.sacramentHymnNumber))}
-                  </a>
+                  {data.musicProgram.sacramentHymnNumber ? (
+                    <OpenHymnLink number={Number(data.musicProgram.sacramentHymnNumber)}>
+                      {data.musicProgram.sacramentHymnTitle || getHymnTitle(Number(data.musicProgram.sacramentHymnNumber))}
+                    </OpenHymnLink>
+                  ) : (
+                    <span>{data.musicProgram.sacramentHymnTitle}</span>
+                  )}
                 </p>
               </div>
             )}
@@ -440,17 +436,17 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               <DottedLine rightAlign={item.hymnNumber || item.songName}>
                 <span>{item.label || 'Musical Number'}</span>
               </DottedLine>
-              {(item.hymnNumber || item.hymnTitle) && (
-                <div className="text-center py-1">
-                  <p className="italic">
-                    {item.hymnNumber ? (
-                      <a href={getHymnUrl(Number(item.hymnNumber))} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900">
-                        {item.hymnTitle || getHymnTitle(Number(item.hymnNumber))}
-                      </a>
-                    ) : item.songName}
-                  </p>
-                </div>
-              )}
+                              {(item.hymnNumber || item.hymnTitle) && (
+                  <div className="text-center py-1">
+                    <p className="italic">
+                      {item.hymnNumber ? (
+                        <OpenHymnLink number={Number(item.hymnNumber)}>
+                          {item.hymnTitle || getHymnTitle(Number(item.hymnNumber))}
+                        </OpenHymnLink>
+                      ) : item.songName}
+                    </p>
+                  </div>
+                )}
               {item.performers && (
                 <div className="text-center py-1">
                   <p className="text-xs">{item.performers}</p>
@@ -473,14 +469,13 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             {(data.musicProgram.closingHymnNumber || data.musicProgram.closingHymnTitle) && (
               <div className="text-center py-1">
                 <p className="italic">
-                  <a
-                    href={getHymnUrl(Number(data.musicProgram.closingHymnNumber))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 underline hover:text-blue-900"
-                  >
-                    {data.musicProgram.closingHymnTitle || getHymnTitle(Number(data.musicProgram.closingHymnNumber))}
-                  </a>
+                  {data.musicProgram.closingHymnNumber ? (
+                    <OpenHymnLink number={Number(data.musicProgram.closingHymnNumber)}>
+                      {data.musicProgram.closingHymnTitle || getHymnTitle(Number(data.musicProgram.closingHymnNumber))}
+                    </OpenHymnLink>
+                  ) : (
+                    <span>{data.musicProgram.closingHymnTitle}</span>
+                  )}
                 </p>
               </div>
             )}

@@ -558,7 +558,8 @@ function EditorApp() {
       try {
         // Use a higher scale for crisper print quality
         const scale = 3;
-        const margin = 5; // mm
+        const marginX = 0; // extra horizontal margin handled by centering
+        const marginY = 10; // mm top/bottom padding
 
         // Render page 1
         const canvas1 = await html2canvas(printPage1Ref.current, {
@@ -588,17 +589,39 @@ function EditorApp() {
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
         // Page 1
-        const ratio1 = Math.min((pdfWidth - margin * 2) / canvas1.width, (pdfHeight - margin * 2) / canvas1.height);
+        const ratio1 = Math.min(
+          1,
+          (pdfWidth - marginX * 2) / canvas1.width,
+          (pdfHeight - marginY * 2) / canvas1.height
+        );
         const imgX1 = (pdfWidth - canvas1.width * ratio1) / 2;
-        const imgY1 = margin;
-        pdf.addImage(imgData1, 'PNG', imgX1, imgY1, canvas1.width * ratio1, canvas1.height * ratio1);
+        const imgY1 = marginY;
+        pdf.addImage(
+          imgData1,
+          'PNG',
+          imgX1,
+          imgY1,
+          canvas1.width * ratio1,
+          canvas1.height * ratio1
+        );
 
         // Page 2
         pdf.addPage('a4', 'landscape');
-        const ratio2 = Math.min((pdfWidth - margin * 2) / canvas2.width, (pdfHeight - margin * 2) / canvas2.height);
+        const ratio2 = Math.min(
+          1,
+          (pdfWidth - marginX * 2) / canvas2.width,
+          (pdfHeight - marginY * 2) / canvas2.height
+        );
         const imgX2 = (pdfWidth - canvas2.width * ratio2) / 2;
-        const imgY2 = margin;
-        pdf.addImage(imgData2, 'PNG', imgX2, imgY2, canvas2.width * ratio2, canvas2.height * ratio2);
+        const imgY2 = marginY;
+        pdf.addImage(
+          imgData2,
+          'PNG',
+          imgX2,
+          imgY2,
+          canvas2.width * ratio2,
+          canvas2.height * ratio2
+        );
 
         pdf.autoPrint();
         pdf.save('Ward-Bulletin.pdf');

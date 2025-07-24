@@ -8,7 +8,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
       {/* Page 1: Outside (landscape) */}
       <div ref={refs?.page1} className="print-page landscape flex w-full h-[8.5in] min-h-[8.5in]" style={{ pageBreakAfter: 'always' }}>
         {/* Back Cover (left) */}
-        <div className="w-1/2 p-8 flex flex-col justify-between border-r border-gray-300">
+        <div className="w-1/2 pl-8 pr-12 py-8 flex flex-col justify-between border-r border-gray-300">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-bold">Ward Leadership</h2>
             {/* Placeholder for edit button */}
@@ -32,7 +32,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           <div className="text-xs text-gray-500 mt-8">For questions, contact the Bishopric or Executive Secretary.</div>
         </div>
         {/* Front Cover (right) */}
-        <div className="w-1/2 p-8 flex flex-col items-center justify-center text-center">
+        <div className="w-1/2 pl-12 pr-8 py-8 flex flex-col items-center justify-center text-center">
           <div className="flex justify-between items-center w-full mb-2">
             <div></div>
             {/* Placeholder for edit button */}
@@ -55,7 +55,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
       {/* Page 2: Inside (landscape) */}
       <div ref={refs?.page2} className="print-page landscape flex w-full h-[8.5in] min-h-[8.5in]">
         {/* Announcements (left) */}
-        <div className="w-1/2 p-8 border-r border-gray-300">
+        <div className="w-1/2 pl-8 pr-12 py-8 border-r border-gray-300">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Announcements & Events</h2>
             {/* Placeholder for edit button */}
@@ -71,7 +71,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           </ul>
         </div>
         {/* Program (right) */}
-        <div className="w-1/2 flex justify-center items-start p-8">
+        <div className="w-1/2 flex justify-center items-start pl-12 pr-8 py-8">
           <div className="w-full">
             <div className="text-center text-3xl font-bold mb-1">{data.wardName || 'Ward Name'}</div>
             <div className="text-center text-2xl font-bold mb-1">{data.meetingType === 'sacrament' ? 'Sacrament Meeting' : 'Program'}</div>

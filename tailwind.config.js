@@ -1,9 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // Purge unused CSS in production
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
   ],
+  // Optionally, add a safelist if you use dynamic class names
+  // safelist: [],
   theme: {
     extend: {
       fontFamily: {

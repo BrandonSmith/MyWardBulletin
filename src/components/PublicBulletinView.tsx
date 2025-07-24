@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { Home } from 'lucide-react';
 import BulletinPreview from './BulletinPreview';
+import { Helmet } from 'react-helmet-async';
 import { BulletinData } from '../types/bulletin';
 
 interface PublicBulletinViewProps {
@@ -10,11 +11,11 @@ interface PublicBulletinViewProps {
   onBackToEditor: () => void;
 }
 
-export default function PublicBulletinView({ 
-  bulletinData, 
-  loading, 
-  error, 
-  onBackToEditor 
+export default function PublicBulletinView({
+  bulletinData,
+  loading,
+  error,
+  onBackToEditor,
 }: PublicBulletinViewProps) {
   if (loading) {
     return (
@@ -67,16 +68,35 @@ export default function PublicBulletinView({
     );
   }
 
+  const { wardName, date, title } = bulletinData;
+  const formattedTitle = title || `Sunday Bulletin${wardName ? ` – ${wardName}` : ''}`;
+  const fullTitle = `${formattedTitle} | MyWardBulletin`;
+  const description = wardName
+    ? `View the digital Sunday program for ${wardName}. Speakers, hymns, announcements, and more.`
+    : 'View this Latter-day Saint sacrament meeting bulletin built with MyWardBulletin.';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Bulletin Content */}
+      <Helmet>
+        <title>{fullTitle}</title>
+        <meta name="description" content={description} />
+        <meta property="og:title" content={fullTitle} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content="https://mywardbulletin.com/og-image.png" />
+        <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={fullTitle} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content="https://mywardbulletin.com/og-image.png" />
+      </Helmet>
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-8">
         <BulletinPreview data={bulletinData} />
-        
-        {/* Footer */}
+
         <div className="text-center mt-8">
           <p className="text-gray-600 text-sm">
-            Built with MyWardBulletin.com
+            Built with <a href="https://mywardbulletin.com" className="underline">MyWardBulletin.com</a>
           </p>
           <button
             onClick={onBackToEditor}

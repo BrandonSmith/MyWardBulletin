@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import Header from '../components/Header';
 import AuthModal from '../components/AuthModal';
 
@@ -11,6 +12,42 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Helmet>
+        <title>About MyWardBulletin | Free LDS Ward Bulletin Creator</title>
+        <meta name="description" content="Learn how MyWardBulletin simplifies the way Latter-day Saint wards create, print, and share sacrament meeting bulletins." />
+        <meta property="og:title" content="About MyWardBulletin" />
+        <meta property="og:description" content="Build and share LDS ward bulletins in minutes. Clean layout. Print-ready. Private by default." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://mywardbulletin.com/about" />
+        <meta property="og:image" content="https://mywardbulletin.com/og-image.png" />
+        <meta property="og:site_name" content="MyWardBulletin" />
+        <meta property="og:image:alt" content="Preview of LDS digital bulletin created using MyWardBulletin" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About MyWardBulletin" />
+        <meta name="twitter:description" content="Create and share LDS ward bulletins in minutes. Free, private, and mobile-friendly." />
+        <meta name="twitter:image" content="https://mywardbulletin.com/og-image.png" />
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "MyWardBulletin",
+            "url": "https://mywardbulletin.com",
+            "applicationCategory": "Religious Tool",
+            "operatingSystem": "All",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "Create, print, and share digital LDS ward bulletins in minutes. Built for simplicity, mobile access, and QR code sharing.",
+            "publisher": {
+              "@type": "Person",
+              "name": "Matthew Fuller"
+            }
+          }
+        `}</script>
+      </Helmet>
+
       <Header
         user={null}
         loading={false}
@@ -43,38 +80,28 @@ export default function AboutPage() {
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto mt-8">
           <h1 className="text-4xl font-bold mb-4 text-blue-800">About MyWardBulletin</h1>
           <p className="mb-4 text-lg text-gray-700">
-            MyWardBulletin is a free, private, and modern tool built specifically for Latter-day Saint wards and branches. It simplifies how Sunday programs and announcements are created, shared, and printed.
+            MyWardBulletin is a free, private, and modern tool designed to make it easier for Latter-day Saint wards to create, print, and share weekly bulletins.
           </p>
           <p className="mb-4 text-gray-700">
-            I originally built this for my wife when she was called as the ward bulletin specialist. The tools out there were either too clunky, too rigid, or over-engineered. She just needed something that was simple, flexible, and worked every week.
+            I built this tool for my wife when she was asked to manage the ward bulletin. The other tools were overcomplicated, not mobile-friendly, or too rigid. She just needed something fast, flexible, and reliable.
           </p>
           <p className="mb-4 text-gray-700">
-            <b>Simple to Use. Built for Sharing.</b>
+            MyWardBulletin lets anyone create a bulletin with no tech background, share it with a link or QR code, and print a clean, foldable version with just a few clicks.
           </p>
-          <p className="mb-4 text-gray-700">
-          You can start building a bulletin instantly. When you're ready to save or share it, just create a free account. That gives you access to:
-          </p>
-          <ul className="mb-4 ml-6 list-disc text-gray-700">
-            <li>A custom link for easy sharing</li>
-            <li>A built-in QR code to print or display</li>
-            <li>Secure cloud storage to manage multiple bulletins</li>
-            <li>Access from any device, anytime</li>
-          </ul>
-          <h2 className="text-2xl font-bold mt-8 mb-4 text-blue-700">What Makes It Different</h2>
+
+          <h2 className="text-2xl font-bold mt-8 mb-4 text-blue-700">Why It’s Different</h2>
           <ul className="mb-6 space-y-3 text-gray-700">
-            <li>✅ <b>Quick and Clean</b><br/>Start editing right away. The layout is designed to be fast and frustration-free.</li>
-            <li>🔗 <b>Instant Sharing</b><br/>Every bulletin gets a unique link and QR code. Share by text, email, printed poster, or slide.</li>
-            <li>🖨️ <b>Print-Optimized</b><br/>Generate foldable, PDF bulletins that look clean and modern. Designed for sacrament meeting tables.</li>
-            <li>🔒 <b>Private by Design</b><br/>No cookies. No trackers. No data sales. You control what’s shared and who sees it.</li>
-            <li>📱 <b>Mobile-Friendly</b><br/>Use it from your phone, tablet, or laptop. No download or app required.</li>
-            <li>💾 <b>Auto-Saving and Cloud Sync</b><br/>Drafts are saved in your browser. If you make an account, you can save, manage, and edit multiple bulletins from anywhere.</li>
-            <li>🚫 <b>Zero Ads. Zero Distractions.</b><br/>No analytics scripts, no popups, no upsells. Just the tool you need, nothing more.</li>
+            <li>✅ <b>Quick and Clean</b><br />Start editing instantly with a layout that focuses on what matters.</li>
+            <li>🔗 <b>Shareable Links and QR Codes</b><br />Sign in to save your bulletin and get a link and QR code to share digitally or print.</li>
+            <li>🖨️ <b>Print-Optimized PDFs</b><br />Export beautiful, folded bulletin layouts ready for sacrament meeting handouts.</li>
+            <li>🔒 <b>Private by Design</b><br />No ads, no tracking, and no hidden scripts. Your data stays with you.</li>
+            <li>📱 <b>Mobile-Friendly</b><br />Use it on any device—no app needed, no downloads required.</li>
+            <li>💾 <b>Auto-Save and Cloud Sync</b><br />Work is saved automatically. Sign in to access your bulletins from anywhere.</li>
+            <li>🚫 <b>Zero Clutter</b><br />No upsells, no distractions—just a focused experience for Sunday prep.</li>
           </ul>
+
           <p className="mb-4 text-gray-700 italic">
-            Not an official Church product—just something built to make Sundays simpler.
-          </p>
-          <p className="mb-4 text-gray-700">
-            If it helps your ward, I’m glad. If you have suggestions, let me know.
+            MyWardBulletin is not affiliated with or endorsed by The Church of Jesus Christ of Latter-day Saints. It’s simply a tool built to make Sunday a little smoother.
           </p>
         </div>
       </main>

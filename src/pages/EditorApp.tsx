@@ -960,7 +960,7 @@ function EditorApp() {
           >
             <div className="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">My Permanent QR Code</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Share</h3>
                 <button
                   onClick={() => setShowQRCode(false)}
                   className="text-gray-400 hover:text-gray-600"

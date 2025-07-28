@@ -24,6 +24,8 @@ VITE_SHORT_DOMAIN=mwbltn.com
 
 The `.env` file is listed in `.gitignore` to keep your credentials private. If you intend to keep the entire project private, ensure your source-control platform (such as GitHub) is configured to make the repository private as well.
 
+
+
 ## Bulletin Templates
 
 - Use **Save as Template** to store the current bulletin layout locally.

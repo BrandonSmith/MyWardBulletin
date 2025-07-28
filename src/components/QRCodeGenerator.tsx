@@ -5,6 +5,7 @@ import BulletinSelector from './BulletinSelector';
 import { toast } from 'react-toastify';
 import { FULL_DOMAIN, SHORT_DOMAIN } from '../lib/config';
 import { useSession } from '../lib/SessionContext';
+import ShareButton from './ShareButton';
 
 const LAST_USER_ID = 'last_user_id';
 
@@ -23,13 +24,23 @@ interface QRCodeGeneratorProps {
   onActiveBulletinSelect?: (bulletinId: string | null) => void;
   onProfileSlugUpdate?: (slug: string) => void;
   isOpen?: boolean;
+  bulletinData?: {
+    wardName: string;
+    date: string;
+    meetingType: string;
+    theme?: string;
+    bishopricMessage?: string;
+    announcements?: string[];
+    specialEvents?: string[];
+  } | null;
 }
 
 const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   currentActiveBulletinId,
   onActiveBulletinSelect,
   onProfileSlugUpdate,
-  isOpen
+  isOpen,
+  bulletinData
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [profileSlug, setProfileSlug] = React.useState('');
@@ -104,6 +115,11 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   };
 
   const handleSaveProfileSlug = async () => {
+    if (!user?.id) {
+      setError('User not authenticated');
+      return;
+    }
+
     const sanitized = formatProfileSlug(profileSlug);
     if (!sanitized) {
       setError('Profile slug cannot be empty');
@@ -168,138 +184,154 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   };
 
   return (
-    <div className="text-center space-y-4">
-      <canvas
-        ref={canvasRef}
-        width={300}
-        height={300}
-        className="border border-gray-300 rounded-lg mx-auto"
-      />
-      
-      <div className="space-y-2">
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your Custom Link
-            </label>
-            {isEditing ? (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={profileSlug}
-                  onChange={(e) => setProfileSlug(formatProfileSlug(e.target.value))}
-                  placeholder="e.g., sunset-hills-ward"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-                <p className="text-xs text-gray-500">
-                  Allowed: letters, numbers, hyphens and underscores. Spaces will
-                  be replaced with hyphens.
-                </p>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleSaveProfileSlug}
-                    disabled={loading}
-                    className="flex-1 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {loading ? 'Saving...' : 'Save'}
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="flex-1 px-3 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <span className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+    <div className="max-w-2xl mx-auto">
+      {/* QR Code Section */}
+      <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 mb-6">
+        <div className="text-center">
+          <canvas
+            ref={canvasRef}
+            width={300}
+            height={300}
+            className="border-2 border-gray-200 rounded-xl mx-auto shadow-sm"
+          />
+        </div>
+      </div>
+
+      {/* Custom Link Section */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Custom Link</h3>
+        
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <input
+                type="text"
+                value={profileSlug}
+                onChange={(e) => setProfileSlug(formatProfileSlug(e.target.value))}
+                placeholder="e.g., sunset-hills-ward"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Allowed: letters, numbers, hyphens and underscores. Spaces will be replaced with hyphens.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSaveProfileSlug}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {loading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <span className="text-sm font-medium text-gray-900">
                   {profileSlug || 'Not set'}
                 </span>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-3 py-2 bg-gray-600 text-white rounded-lg text-xs hover:bg-gray-700"
-                >
-                  Edit
-                </button>
               </div>
-            )}
-            {error && (
-              <p className="text-xs text-red-600 mt-1">{error}</p>
-            )}
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-3 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+              >
+                Edit
+              </button>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Domain:</label>
+              <select
+                value={useShortDomain ? 'short' : 'full'}
+                onChange={(e) => setUseShortDomain(e.target.value === 'short')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              >
+                <option value="full">{FULL_DOMAIN}</option>
+                <option value="short">{SHORT_DOMAIN}</option>
+              </select>
+            </div>
           </div>
-          <div className="flex items-center space-x-2 mt-2">
-            <label className="text-sm">Domain:</label>
-            <select
-              value={useShortDomain ? 'short' : 'full'}
-              onChange={(e) => setUseShortDomain(e.target.value === 'short')}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              <option value="full">{FULL_DOMAIN}</option>
-              <option value="short">{SHORT_DOMAIN}</option>
-            </select>
-          </div>
-        </div>
+        )}
+        
+        {error && (
+          <p className="text-sm text-red-600 mt-2">{error}</p>
+        )}
+      </div>
 
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded space-y-2">
-          <p className="font-medium">🔗 Your Permanent QR Code</p>
-          <p>This QR code always shows your latest bulletin</p>
+      {/* Action Buttons */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={downloadQRCode}
+            disabled={!profileSlug}
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Download QR Code
+          </button>
+          
           {profileSlug && (
-            <>
-              <div className="flex items-center space-x-2">
-                <p className="font-mono text-xs break-all bg-white p-1 rounded border flex-1">
-                  https://{FULL_DOMAIN}/{profileSlug}
-                </p>
-                <button
-                  onClick={() => handleCopyUrl(false)}
-                  className="px-2 py-1 bg-gray-600 text-white rounded text-xs"
-                >
-                  Copy
-                </button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <p className="font-mono text-xs break-all bg-white p-1 rounded border flex-1">
-                  https://{SHORT_DOMAIN}/{profileSlug}
-                </p>
-                <button
-                  onClick={() => handleCopyUrl(true)}
-                  className="px-2 py-1 bg-gray-600 text-white rounded text-xs"
-                >
-                  Copy
-                </button>
-              </div>
-            </>
+            <button
+              onClick={() => {
+                const shareUrl = `https://${useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN}/${profileSlug}`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'Ward Bulletin',
+                    text: 'Check out our ward bulletin!',
+                    url: shareUrl
+                  });
+                } else {
+                  navigator.clipboard.writeText(shareUrl);
+                  toast.success('Share link copied to clipboard!');
+                }
+              }}
+              className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+            >
+              Share
+            </button>
+          )}
+          
+          {profileSlug && (
+            <button
+              onClick={() => {
+                const submissionsUrl = `https://${useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN}/submit/${profileSlug}`;
+                navigator.clipboard.writeText(submissionsUrl);
+                toast.success('Submissions link copied to clipboard!');
+              }}
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+            >
+              Copy Submissions Link
+            </button>
           )}
         </div>
       </div>
-      
-      <div className="flex flex-col sm:flex-row sm:justify-center sm:space-x-3 items-center mt-4">
-        <button
-          onClick={downloadQRCode}
-          disabled={!profileSlug}
-          className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-2 sm:mb-0"
-        >
-          Download QR Code
-        </button>
-        <button
-          onClick={() => handleCopyUrl(useShortDomain)}
-          disabled={!profileSlug}
-          className="w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Copy Selected URL
-        </button>
-      </div>
 
-      
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>• Print this QR code and place it on physical bulletins</p>
-        <p>• Members can scan to access your latest digital bulletin</p>
-        <p>• QR code stays the same - just update your bulletins</p>
-        <p>• 💡 <strong>Mobile tip:</strong> Ensure good lighting and hold phone steady when scanning</p>
+      {/* Tips Section */}
+      <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 mb-6">
+        <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use</h3>
+        <div className="space-y-2 text-sm text-blue-800">
+          <p>• Print this QR code and place it on physical bulletins</p>
+          <p>• Members can scan to access your latest digital bulletin</p>
+          <p>• QR code stays the same - just update your bulletins</p>
+          <p className="flex items-center gap-2 mt-3 pt-3 border-t border-blue-200">
+            <span className="text-yellow-600">💡</span>
+            <span><strong>Mobile tip:</strong> Ensure good lighting and hold phone steady when scanning</span>
+          </p>
+        </div>
       </div>
       
-      {onActiveBulletinSelect && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
+      {/* Bulletin Selector */}
+      {onActiveBulletinSelect && user && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <BulletinSelector
             user={user}
             currentActiveBulletinId={currentActiveBulletinId || undefined}

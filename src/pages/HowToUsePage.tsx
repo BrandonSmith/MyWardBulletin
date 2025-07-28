@@ -116,6 +116,61 @@ export default function HowToUsePage() {
             <li>Combine physical and digital: print a few copies, but let most members view it on their phone</li>
             <li>Last-minute change? Just edit and reprint—or let members use the same link</li>
           </ul>
+
+          <h2 className="text-2xl font-bold mt-8 mb-4 text-blue-700">Announcement Submissions</h2>
+          <p className="mb-4 text-gray-700">
+            MyWardBulletin now includes a collaborative announcement system that allows ward members to submit announcements directly to your bulletin!
+          </p>
+          
+          <div className="bg-blue-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-blue-800">For Ward Members (Submitting Announcements)</h3>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700">
+              <li><b>Get the submissions link</b> - Ask your bulletin editor for the submissions link (usually something like <code className="bg-gray-100 px-1 rounded">mywardbulletin.com/submit/your-ward-name</code>)</li>
+              <li><b>Submit announcements</b> - Use the form to add:
+                <ul className="list-disc ml-6 mt-1">
+                  <li>Your name and email</li>
+                  <li>Announcement title and content</li>
+                  <li>Target audience (Ward, Relief Society, Young Men, etc.)</li>
+                </ul>
+              </li>
+              <li><b>Rich text editing</b> - Use the built-in editor to format your announcement with bold, italics, and different font sizes</li>
+              <li><b>Submit multiple</b> - Add several announcements at once before submitting</li>
+            </ol>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-green-800">For Bulletin Editors (Managing Submissions)</h3>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700">
+              <li><b>Access submissions</b> - Click "Review Submissions" in your toolbar (only appears when there are pending submissions)</li>
+              <li><b>Review and approve</b> - See all submitted announcements organized by target audience</li>
+              <li><b>Bulk actions</b> - Approve all announcements for a specific audience at once</li>
+              <li><b>Auto-consolidation</b> - When you approve multiple announcements for the same audience, they're automatically combined into a single bulletin entry</li>
+              <li><b>Add notes</b> - Provide feedback to submitters when rejecting announcements</li>
+              <li><b>Archive system</b> - Keep track of approved and rejected submissions for reference</li>
+            </ol>
+          </div>
+
+          <div className="bg-purple-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-3 text-purple-800">Setting Up Submissions for Your Ward</h3>
+            <ol className="list-decimal list-inside space-y-2 text-gray-700">
+              <li><b>Create your profile</b> - Sign in and set up your custom profile slug (e.g., "sunset-hills-ward")</li>
+              <li><b>Get your submissions link</b> - In the QR Code modal, click "Copy Submissions Link" to get your unique submissions URL</li>
+              <li><b>Share the link</b> - Send the submissions link to ward members via email, text, or social media</li>
+              <li><b>Monitor submissions</b> - Check the "Review Submissions" button in your toolbar for new submissions</li>
+              <li><b>Approve and publish</b> - Review submissions and approve them to automatically add to your bulletin</li>
+            </ol>
+          </div>
+
+          <div className="bg-yellow-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-3 text-yellow-800">Pro Tips for Submissions</h3>
+            <ul className="list-disc list-inside space-y-2 text-gray-700">
+              <li><b>Consolidation magic</b> - When you approve multiple announcements for the same audience, they're automatically combined with original titles preserved as headers</li>
+              <li><b>Rich formatting</b> - Submitters can use bold, italics, and different font sizes to make their announcements stand out</li>
+
+              <li><b>Mobile-friendly</b> - The submissions form works great on phones and tablets</li>
+              <li><b>Audience targeting</b> - Organize announcements by specific groups (Ward, Relief Society, Young Men, etc.) for better bulletin organization</li>
+            </ul>
+          </div>
         </div>
       </main>
       <footer className="bg-white border-t border-gray-200 mt-16">

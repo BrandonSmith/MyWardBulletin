@@ -324,6 +324,58 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     updateField('announcements', newAnnouncements);
   };
 
+  const consolidateAnnouncements = () => {
+    // Group announcements by audience
+    const grouped = data.announcements.reduce((groups, announcement) => {
+      const audience = announcement.audience || 'ward';
+      if (!groups[audience]) {
+        groups[audience] = [];
+      }
+      groups[audience].push(announcement);
+      return groups;
+    }, {} as Record<string, Announcement[]>);
+
+    // Create consolidated announcements
+    const consolidated: Announcement[] = Object.entries(grouped).map(([audience, announcements]) => {
+      if (announcements.length === 1) {
+        return announcements[0];
+      }
+
+      // Merge multiple announcements for the same audience
+      const titles = announcements.map(a => a.title).filter(t => t.trim());
+      const contents = announcements.map(a => a.content).filter(c => c.trim());
+      
+      // Create content with original titles as headers
+      const contentWithHeaders = announcements
+        .filter(a => a.title.trim() || a.content.trim())
+        .map(a => {
+          const title = a.title.trim();
+          const content = a.content.trim();
+          if (title && content) {
+            return `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>${content}`;
+          } else if (title) {
+            return `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>`;
+          } else if (content) {
+            return content;
+          }
+          return '';
+        })
+        .filter(item => item)
+        .join('<br><br>');
+      
+      return {
+        id: Date.now().toString() + Math.random(),
+        title: '', // Remove main title when consolidating
+        content: contentWithHeaders,
+        category: 'general',
+        audience: audience as any
+      };
+    });
+
+    updateField('announcements', consolidated);
+    toast.success(`Consolidated ${data.announcements.length} announcements into ${consolidated.length} groups`);
+  };
+
   return (
     <div className="space-y-8 font-sans">
       {/* Tab Navigation */}
@@ -819,7 +871,18 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
         <>
           {/* Announcements Section */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Announcements</h3>
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="text-lg font-medium text-gray-900">Announcements</h3>
+              {data.announcements.length > 1 && (
+                <button
+                  onClick={consolidateAnnouncements}
+                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  title="Group multiple announcements by their target audience (Ward, Relief Society, etc.) into single consolidated entries. Original titles will be preserved as headers within the content."
+                >
+                  Consolidate
+                </button>
+              )}
+            </div>
             {data.announcements.map((announcement, idx) => (
               <div key={announcement.id} className="bg-gray-50 p-4 rounded-lg space-y-3 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
                 <div className="flex-1 space-y-3">
@@ -849,6 +912,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                     theme="snow"
                     modules={{
                       toolbar: [
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
                         ['bold', 'italic', 'underline', { 'color': [] }, 'link'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']

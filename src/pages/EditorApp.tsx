@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Download, QrCode, LogIn, Menu, X } from 'lucide-react';
+import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { supabase, isSupabaseConfigured, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
@@ -12,6 +12,7 @@ import SavedBulletinsModal from '../components/SavedBulletinsModal';
 import TemplatesModal from '../components/TemplatesModal';
 import ProfileModal from '../components/ProfileModal';
 import PublicBulletinView from '../components/PublicBulletinView';
+import SubmissionReviewModal from '../components/SubmissionReviewModal';
 import { BulletinData } from '../types/bulletin';
 import templateService, { Template } from '../lib/templateService';
 import { ToastContainer, toast } from 'react-toastify';
@@ -50,6 +51,8 @@ function EditorApp() {
   const [showSavedBulletins, setShowSavedBulletins] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showSubmissionReview, setShowSubmissionReview] = useState(false);
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
   const [currentBulletinId, setCurrentBulletinId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -532,6 +535,34 @@ function EditorApp() {
     }
   };
 
+  // Check for pending submissions
+  const checkPendingSubmissions = async () => {
+    if (!supabase || !profile?.profile_slug) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('announcement_submissions')
+        .select('id')
+        .eq('profile_slug', profile.profile_slug)
+        .eq('status', 'pending');
+      
+      if (!error && data) {
+        setPendingSubmissionsCount(data.length);
+      }
+    } catch (error) {
+      console.error('Error checking pending submissions:', error);
+    }
+  };
+
+  // Check for pending submissions when user or profile changes
+  useEffect(() => {
+    if (user && profile?.profile_slug) {
+      checkPendingSubmissions();
+    } else {
+      setPendingSubmissionsCount(0);
+    }
+  }, [user, profile?.profile_slug]);
+
   const handleNewBulletin = () => {
     if (hasUnsavedChanges) {
       if (!confirm('You have unsaved changes. Creating a new bulletin will discard them. Continue?')) {
@@ -696,11 +727,22 @@ function EditorApp() {
               <button
                 onClick={() => setShowQRCode(!showQRCode)}
                 className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                title="Manage your permanent QR code"
+                title="Share your QR code"
               >
                 <QrCode className="w-4 h-4 mr-2" />
-                My QR Code
+                Share
               </button>
+              
+              {user && pendingSubmissionsCount > 0 && (
+                <button
+                  onClick={() => setShowSubmissionReview(true)}
+                  className="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  title="Review announcement submissions"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Review Submissions ({pendingSubmissionsCount})
+                </button>
+              )}
               
                 {user ? (
                   <UserMenu
@@ -712,6 +754,8 @@ function EditorApp() {
                     onViewSavedBulletins={handleViewSavedBulletins}
                     hasUnsavedChanges={hasUnsavedChanges}
                     onOpenProfile={() => setShowProfile(true)}
+                    onOpenReviewSubmissions={() => setShowSubmissionReview(true)}
+                    pendingSubmissionsCount={pendingSubmissionsCount}
                   />
               ) : (
                 <button
@@ -776,11 +820,23 @@ function EditorApp() {
                   className="w-full flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
                   <QrCode className="w-4 h-4 mr-2" />
-                  My QR Code
+                  Share
                 </button>
                 
                 {user ? (
                   <div className="space-y-2">
+                    {pendingSubmissionsCount > 0 && (
+                      <button
+                        onClick={() => {
+                          setShowSubmissionReview(true);
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Review Submissions ({pendingSubmissionsCount})
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         handleViewSavedBulletins();
@@ -968,6 +1024,55 @@ function EditorApp() {
           onProfileUpdate={() => {
             // Optionally refresh user data or show success message
           }}
+        />
+
+        {/* Submission Review Modal */}
+        <SubmissionReviewModal
+          isOpen={showSubmissionReview}
+          onClose={() => setShowSubmissionReview(false)}
+          profileSlug={profile?.profile_slug || ''}
+          onSubmissionApproved={(submission) => {
+            // Convert submission to announcement format
+            const newAnnouncement = {
+              id: Date.now().toString(),
+              title: submission.title,
+              content: submission.content,
+              category: submission.category,
+              audience: submission.audience,
+              date: submission.date
+            };
+
+            // Check if announcement already exists to prevent duplication
+            setBulletinData(prev => {
+              const existingAnnouncement = prev.announcements.find(
+                ann => ann.title === submission.title && ann.content === submission.content
+              );
+              
+              if (existingAnnouncement) {
+                toast.info(`"${submission.title}" already exists in the bulletin`);
+                return prev;
+              }
+
+              // Add to current bulletin
+              return {
+                ...prev,
+                announcements: [...prev.announcements, newAnnouncement]
+              };
+            });
+
+            // Show success toast
+            if (submission.title.trim()) {
+              toast.success(`"${submission.title}" has been approved and added to the ${submission.audience.replace('_', ' ')} section!`);
+            } else {
+              // This is a consolidated announcement
+              toast.success(`${submission.audience.replace('_', ' ')} announcements have been consolidated and added to the bulletin!`);
+            }
+          }}
+          onSubmissionRejected={(submission) => {
+            // Show rejection toast
+            toast.success(`"${submission.title}" has been rejected`);
+          }}
+          onSubmissionsChanged={checkPendingSubmissions}
         />
 
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, LogOut, Save, FileText, Settings } from 'lucide-react';
+import { User, LogOut, Save, FileText, Settings, MessageSquare } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface UserMenuProps {
@@ -10,6 +10,8 @@ interface UserMenuProps {
   hasUnsavedChanges?: boolean;
   onOpenProfile?: () => void;
   onOpenWardSettings?: () => void;
+  onOpenReviewSubmissions?: () => void;
+  pendingSubmissionsCount?: number;
 }
 
 export default function UserMenu({ 
@@ -19,7 +21,9 @@ export default function UserMenu({
   onViewSavedBulletins,
   hasUnsavedChanges,
   onOpenProfile,
-  onOpenWardSettings
+  onOpenWardSettings,
+  onOpenReviewSubmissions,
+  pendingSubmissionsCount
 }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -83,6 +87,26 @@ export default function UserMenu({
                 <FileText className="w-4 h-4" />
                 <span className="text-sm">My Bulletins</span>
               </button>
+              
+              {onOpenReviewSubmissions && (
+                <button
+                  onClick={() => {
+                    onOpenReviewSubmissions();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center space-x-2 px-3 py-2 text-left text-orange-700 hover:bg-orange-50 rounded-lg transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="text-sm">
+                    Review Submissions
+                    {pendingSubmissionsCount && typeof pendingSubmissionsCount === 'number' && pendingSubmissionsCount > 0 ? (
+                      <span className="ml-1 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                        {pendingSubmissionsCount}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              )}
               
               {onOpenProfile && (
                 <button

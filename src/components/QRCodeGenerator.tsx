@@ -186,19 +186,19 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   return (
     <div className="max-w-2xl mx-auto">
       {/* QR Code Section */}
-      <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-4 sm:p-8 shadow-sm border border-gray-100 mb-4 sm:mb-6">
         <div className="text-center">
           <canvas
             ref={canvasRef}
             width={300}
             height={300}
-            className="border-2 border-gray-200 rounded-xl mx-auto shadow-sm"
+            className="border-2 border-gray-200 rounded-xl mx-auto shadow-sm max-w-full h-auto"
           />
         </div>
       </div>
 
       {/* Custom Link Section */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 mb-4 sm:mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Custom Link</h3>
         
         {isEditing ? (
@@ -247,12 +247,12 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
               </button>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Domain:</label>
               <select
                 value={useShortDomain ? 'short' : 'full'}
                 onChange={(e) => setUseShortDomain(e.target.value === 'short')}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors w-full sm:w-auto"
               >
                 <option value="full">{FULL_DOMAIN}</option>
                 <option value="short">{SHORT_DOMAIN}</option>
@@ -267,7 +267,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 mb-4 sm:mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -316,7 +316,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       </div>
 
       {/* Tips Section */}
-      <div className="bg-blue-50 rounded-xl p-6 border border-blue-100 mb-6">
+      <div className="bg-blue-50 rounded-xl p-4 sm:p-6 border border-blue-100 mb-4 sm:mb-6">
         <h3 className="text-lg font-semibold text-blue-900 mb-3">How to Use</h3>
         <div className="space-y-2 text-sm text-blue-800">
           <p>• Print this QR code and place it on physical bulletins</p>
@@ -331,7 +331,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       
       {/* Bulletin Selector */}
       {onActiveBulletinSelect && user && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
           <BulletinSelector
             user={user}
             currentActiveBulletinId={currentActiveBulletinId || undefined}

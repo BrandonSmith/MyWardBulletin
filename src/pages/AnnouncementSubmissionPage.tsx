@@ -168,9 +168,9 @@ export default function AnnouncementSubmissionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-lg shadow-lg p-3 sm:p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Submit Announcement</h1>
             <p className="text-gray-600">
@@ -223,12 +223,11 @@ export default function AnnouncementSubmissionPage() {
 
             {/* Announcements */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={addAnnouncement}
-                  className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  className="inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm w-full sm:w-auto"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Announcement
@@ -331,10 +330,9 @@ export default function AnnouncementSubmissionPage() {
           <div className="mt-8 p-4 bg-blue-50 rounded-lg">
             <h4 className="font-semibold text-blue-900 mb-2">What happens next?</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>� Your announcement will be reviewed by the bulletin editor</li>
-              <li>� If approved, it will be added to the next bulletin</li>
-              <li>� You may be contacted if additional information is needed</li>
-              <li>� All submissions are reviewed for appropriateness and clarity</li>
+              <li>📋 Your announcement will be reviewed by the bulletin editor</li>
+              <li>✅ If approved, it will be added to the next bulletin</li>
+              <li>🔎 All submissions are reviewed for appropriateness and clarity</li>
             </ul>
           </div>
         </div>

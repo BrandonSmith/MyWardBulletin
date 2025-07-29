@@ -139,6 +139,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
               <ProgramTableRow label="Conducting" value={data.leadership?.conducting} />
               <ProgramTableRow label="Chorister" value={data.leadership?.chorister} />
               <ProgramTableRow label="Organist" value={data.leadership?.organist} />
+              <ProgramTableRow label="Prelude Music" value={data.leadership?.preludeMusic} />
               <ProgramTableRow
                 label="Opening Hymn"
                 value={data.musicProgram?.openingHymnNumber}

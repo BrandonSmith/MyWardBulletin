@@ -125,6 +125,11 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             <DottedLine rightAlign={data.leadership.organist}>
               <span>Organist</span>
             </DottedLine>
+            {data.leadership.preludeMusic && (
+              <DottedLine rightAlign={data.leadership.preludeMusic}>
+                <span>Prelude Music</span>
+              </DottedLine>
+            )}
           </div>
 
           {/* Theme */}
@@ -386,6 +391,11 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           <DottedLine rightAlign={data.leadership.organist}>
             <span>Organist</span>
           </DottedLine>
+          {data.leadership.preludeMusic && (
+            <DottedLine rightAlign={data.leadership.preludeMusic}>
+              <span>Prelude Music</span>
+            </DottedLine>
+          )}
         </div>
 
         {/* Theme */}

@@ -203,6 +203,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     conducting: 'default_conducting',
     chorister: 'default_chorister',
     organist: 'default_organist',
+    preludeMusic: 'default_preludeMusic',
     wardLeadership: 'default_wardLeadership',
     missionaries: 'default_missionaries',
   };
@@ -229,6 +230,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     }
     if (!data.leadership.organist && localStorage.getItem(DEFAULT_KEYS.organist)) {
       newData.leadership = { ...newData.leadership, organist: localStorage.getItem(DEFAULT_KEYS.organist) || '' };
+      changed = true;
+    }
+    if (!data.leadership.preludeMusic && localStorage.getItem(DEFAULT_KEYS.preludeMusic)) {
+      newData.leadership = { ...newData.leadership, preludeMusic: localStorage.getItem(DEFAULT_KEYS.preludeMusic) || '' };
       changed = true;
     }
     // Ward Leadership
@@ -458,7 +463,8 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
           {/* Leadership */}
           <section className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Leadership</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* First Row: 2 fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Presiding</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
@@ -499,6 +505,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   </button>
                 </div>
               </div>
+            </div>
+            
+            {/* Second Row: 3 fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Chorister</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
@@ -532,6 +542,26 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('organist', data.leadership.organist)}
+                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prelude Music</label>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.preludeMusic || ''}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, preludeMusic: e.target.value })}
+                    placeholder="e.g., Hymn 1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('preludeMusic', data.leadership.preludeMusic || '')}
                     className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >

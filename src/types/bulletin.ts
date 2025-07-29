@@ -49,6 +49,7 @@ export interface Leadership {
   conducting?: string;
   chorister: string;
   organist: string;
+  preludeMusic?: string;
 }
 
 export interface Speaker {

@@ -247,6 +247,8 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
               </button>
             </div>
             
+
+            
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Domain:</label>
               <select
@@ -297,6 +299,19 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
               className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
             >
               Share
+            </button>
+          )}
+          
+          {profileSlug && (
+            <button
+              onClick={() => {
+                const shareUrl = `https://${useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN}/${profileSlug}`;
+                navigator.clipboard.writeText(shareUrl);
+                toast.success('Share link copied to clipboard!');
+              }}
+              className="w-full px-4 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
+            >
+              Copy Link
             </button>
           )}
           

@@ -29,18 +29,56 @@ export default function PublicBulletinView({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-lg mx-auto">
           <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Bulletin Not Found</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={onBackToEditor}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go to MyWardBulletin
-            </button>
+            {/* Icon */}
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Bulletin Not Available</h2>
+            
+            {/* Description */}
+            <div className="text-gray-600 mb-6 space-y-2">
+              <p>This bulletin link doesn't exist or may have been removed.</p>
+              <p className="text-sm">This could happen if:</p>
+              <ul className="text-sm text-left max-w-sm mx-auto space-y-1">
+                <li>• The link was typed incorrectly</li>
+                <li>• The bulletin was deleted</li>
+                <li>• The ward hasn't published a bulletin yet</li>
+              </ul>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={onBackToEditor}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Create Your Own Bulletin
+              </button>
+              
+              <button
+                onClick={() => window.history.back()}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </button>
+            </div>
+            
+            {/* Help Text */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                Need help? Contact your ward bulletin specialist or visit{' '}
+                <a href="/contact" className="text-blue-600 hover:underline">MyWardBulletin.com</a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -49,18 +87,56 @@ export default function PublicBulletinView({
 
   if (!bulletinData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center max-w-md mx-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="text-center max-w-lg mx-auto">
           <div className="bg-white rounded-xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Bulletin Available</h2>
-            <p className="text-gray-600 mb-6">This ward hasn't published a bulletin yet.</p>
-            <button
-              onClick={onBackToEditor}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Go to MyWardBulletin
-            </button>
+            {/* Icon */}
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">No Bulletin Published</h2>
+            
+            {/* Description */}
+            <div className="text-gray-600 mb-6 space-y-2">
+              <p>This ward hasn't published any bulletins yet.</p>
+              <p className="text-sm">The bulletin administrator may be:</p>
+              <ul className="text-sm text-left max-w-sm mx-auto space-y-1">
+                <li>• Setting up their first bulletin</li>
+                <li>• Working on the current week's bulletin</li>
+                <li>• Taking a break from publishing</li>
+              </ul>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={onBackToEditor}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Create Your Own Bulletin
+              </button>
+              
+              <button
+                onClick={() => window.history.back()}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </button>
+            </div>
+            
+            {/* Help Text */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                Want to create bulletins for your ward? Visit{' '}
+                <a href="/" className="text-blue-600 hover:underline">MyWardBulletin.com</a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

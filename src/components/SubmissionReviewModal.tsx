@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-toastify';
+import { SkeletonList } from './SkeletonLoader';
 
 import { 
   CheckCircle, 
@@ -300,9 +301,8 @@ export default function SubmissionReviewModal({
 
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              <span>Loading submissions...</span>
+            <div className="space-y-4">
+              <SkeletonList items={5} />
             </div>
           ) : (() => {
             // Filter submissions by active tab

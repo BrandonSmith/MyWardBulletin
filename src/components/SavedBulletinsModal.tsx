@@ -4,6 +4,8 @@ import { bulletinService } from '../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useSession } from '../lib/SessionContext';
+import { SkeletonList, SkeletonCard } from './SkeletonLoader';
+import ConfirmationModal from './ConfirmationModal';
 
 const LAST_USER_ID = 'last_user_id';
 
@@ -21,6 +23,13 @@ export default function SavedBulletinsModal({
   onDeleteBulletin
 }: SavedBulletinsModalProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    bulletinId: string | null;
+  }>({
+    isOpen: false,
+    bulletinId: null
+  });
   const queryClient = useQueryClient();
   const { user } = useSession();
 
@@ -39,20 +48,29 @@ export default function SavedBulletinsModal({
   });
 
   const handleDelete = async (bulletinId: string) => {
-    if (!confirm('Are you sure you want to delete this bulletin? This action cannot be undone.')) {
+    setConfirmationModal({
+      isOpen: true,
+      bulletinId
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmationModal.bulletinId || !user) {
+      toast.error('User not authenticated');
       return;
     }
 
-    setDeletingId(bulletinId);
+    setDeletingId(confirmationModal.bulletinId);
     try {
-      await bulletinService.deleteBulletin(bulletinId, user.id);
+      await bulletinService.deleteBulletin(confirmationModal.bulletinId, user.id);
       // Invalidate the user-bulletins query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['user-bulletins', user.id] });
-      onDeleteBulletin(bulletinId);
+      onDeleteBulletin(confirmationModal.bulletinId);
     } catch (error: any) {
       toast.error('Failed to delete bulletin: ' + error.message);
     } finally {
       setDeletingId(null);
+      setConfirmationModal({ isOpen: false, bulletinId: null });
     }
   };
 
@@ -97,9 +115,8 @@ export default function SavedBulletinsModal({
         {/* Scrollable Content */}
         <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Loading bulletins...</span>
+            <div className="space-y-4">
+              <SkeletonList items={5} />
             </div>
           )}
 
@@ -202,6 +219,18 @@ export default function SavedBulletinsModal({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ isOpen: false, bulletinId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Bulletin"
+        message="Are you sure you want to delete this bulletin? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

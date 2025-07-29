@@ -13,6 +13,7 @@ import TemplatesModal from '../components/TemplatesModal';
 import ProfileModal from '../components/ProfileModal';
 import PublicBulletinView from '../components/PublicBulletinView';
 import SubmissionReviewModal from '../components/SubmissionReviewModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { BulletinData } from '../types/bulletin';
 import templateService, { Template } from '../lib/templateService';
 import { ToastContainer, toast } from 'react-toastify';
@@ -21,6 +22,7 @@ import Logo from '../components/Logo';
 import BulletinPrintLayout from '../components/BulletinPrintLayout';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { useSession } from '../lib/SessionContext';
+import { handleError, NetworkError, DatabaseError, withErrorHandling, withRetry } from '../lib/errorHandler';
 
 
 function decodeJwtExp(token: string) {
@@ -57,6 +59,21 @@ function EditorApp() {
   const [loading, setLoading] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    variant: 'warning'
+  });
 
 
   // Move DEFAULT_KEYS and getDefault above useState
@@ -283,14 +300,7 @@ function EditorApp() {
       if (error) {
         console.error('[DEBUG] On app load: Supabase session error:', error);
       }
-      // Log all localStorage keys and values
-      console.log('[DEBUG] On app load: localStorage dump:');
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          console.log(`  [localStorage] ${key}:`, localStorage.getItem(key));
-        }
-      }
+      // Security: Removed debug logging of localStorage contents
     })();
   }, []);
 
@@ -452,9 +462,70 @@ function EditorApp() {
   const handleLoadSavedBulletin = (bulletin: any) => {
     // Check for unsaved changes
     if (hasUnsavedChanges) {
-      if (!confirm('You have unsaved changes. Loading this bulletin will discard them. Continue?')) {
-        return;
-      }
+      setConfirmationModal({
+        isOpen: true,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes. Loading this bulletin will discard them. Continue?',
+        onConfirm: () => {
+          // Convert database format back to app format
+          const loadedData: BulletinData = {
+            wardName: bulletin.ward_name,
+            date: bulletin.date,
+            meetingType: bulletin.meeting_type,
+            theme: bulletin.theme || '',
+            bishopricMessage: bulletin.bishopric_message || '',
+            announcements: bulletin.announcements || [],
+            meetings: bulletin.meetings || [],
+            specialEvents: bulletin.special_events || [],
+            agenda: bulletin.agenda || [],
+            prayers: bulletin.prayers || {
+              opening: '',
+              closing: '',
+              invocation: '',
+              benediction: ''
+            },
+            musicProgram: bulletin.music_program || {
+              openingHymn: '',
+              openingHymnNumber: '',
+              openingHymnTitle: '',
+              sacramentHymn: '',
+              sacramentHymnNumber: '',
+              sacramentHymnTitle: '',
+              closingHymn: '',
+              closingHymnNumber: '',
+              closingHymnTitle: ''
+            },
+            leadership: bulletin.leadership || {
+              presiding: '',
+              chorister: '',
+              organist: ''
+            },
+            wardLeadership: bulletin.wardLeadership || [
+              { title: 'Bishop', name: '', phone: '' },
+              { title: '1st Counselor', name: '', phone: '' },
+              { title: '2nd Counselor', name: '', phone: '' },
+              { title: 'Executive Secretary', name: '', phone: '' },
+              { title: 'Ward Clerk', name: '', phone: '' },
+              { title: 'Elders Quorum President', name: '', phone: '' },
+              { title: 'Relief Society President', name: '', phone: '' },
+              { title: 'Young Women\'s President', name: '', phone: '' },
+              { title: 'Primary President', name: '', phone: '' },
+              { title: 'Sunday School President', name: '', phone: '' },
+              { title: 'Ward Mission Leader', name: '', phone: '' },
+              { title: 'Building Representative', name: '', phone: '' },
+              { title: 'Temple & Family History', name: '', phone: '' }
+            ],
+            missionaries: bulletin.missionaries || []
+          };
+
+          setBulletinData(loadedData);
+          setCurrentBulletinId(bulletin.id);
+          setHasUnsavedChanges(false);
+          setShowSavedBulletins(false);
+        },
+        variant: 'warning'
+      });
+      return;
     }
 
     // Convert database format back to app format
@@ -565,9 +636,16 @@ function EditorApp() {
 
   const handleNewBulletin = () => {
     if (hasUnsavedChanges) {
-      if (!confirm('You have unsaved changes. Creating a new bulletin will discard them. Continue?')) {
-        return;
-      }
+      setConfirmationModal({
+        isOpen: true,
+        title: 'Unsaved Changes',
+        message: 'You have unsaved changes. Creating a new bulletin will discard them. Continue?',
+        onConfirm: () => {
+          setShowTemplates(true);
+        },
+        variant: 'warning'
+      });
+      return;
     }
     setShowTemplates(true);
   };
@@ -1075,7 +1153,15 @@ function EditorApp() {
           onSubmissionsChanged={checkPendingSubmissions}
         />
 
-
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          variant={confirmationModal.variant}
+        />
 
         {/* Hidden print layout for PDF export */}
         <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>

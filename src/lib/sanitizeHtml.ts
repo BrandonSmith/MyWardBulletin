@@ -1,5 +1,18 @@
 import DOMPurify from 'isomorphic-dompurify';
 
 export function sanitizeHtml(content: string): string {
-  return DOMPurify.sanitize(content);
+  return DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'blockquote', 'div', 'span'
+    ],
+    ALLOWED_ATTR: ['class', 'style'],
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+    KEEP_CONTENT: true,
+    RETURN_DOM: false,
+    RETURN_DOM_FRAGMENT: false,
+    RETURN_TRUSTED_TYPE: false
+  });
 }

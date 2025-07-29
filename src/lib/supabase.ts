@@ -139,7 +139,7 @@ export const tokenService = {
   async saveToken(userId: string, key: string, value: string) {
     if (!supabase) throw new Error('Supabase not configured');
 
-    console.log('Saving token:', { userId, key, valueLength: value.length });
+    // Security: Removed debug logging of sensitive data
 
     let data, error;
     try {
@@ -165,7 +165,7 @@ export const tokenService = {
       console.error('Token save error:', error);
       throw error;
     }
-    console.log('Successfully saved token:', key);
+    // Security: Removed debug logging of sensitive data
     return data;
   },
 
@@ -354,7 +354,7 @@ export const bulletinService = {
 
     // Save tokens (batch upsert)
     try {
-      console.log('[DEBUG] saveBulletin: saving tokens (batch upsert)');
+      // Security: Removed debug logging
       const tokens = [
         { key: `bulletin-${slug}-ward_name`, value: bulletinData.wardName || '', created_by: userId },
         { key: `bulletin-${slug}-theme`, value: bulletinData.theme || '', created_by: userId },
@@ -369,7 +369,7 @@ export const bulletinService = {
         { key: `bulletin-${slug}-wardLeadership`, value: JSON.stringify(bulletinData.wardLeadership || []), created_by: userId },
         { key: `bulletin-${slug}-missionaries`, value: JSON.stringify(bulletinData.missionaries || []), created_by: userId },
       ];
-      console.log('[DEBUG] saveBulletin: tokens array', tokens);
+      // Security: Removed debug logging
       let data, error;
       try {
         ({ data, error } = await withTimeout(
@@ -378,7 +378,7 @@ export const bulletinService = {
             .upsert(tokens, { onConflict: 'key,created_by' }),
           20000
         ));
-        console.log('[DEBUG] saveBulletin: tokens upsert result', { data, error });
+        // Security: Removed debug logging
       } catch (timeoutError) {
         console.error('[DEBUG] saveBulletin: token batch upsert timed out or failed', timeoutError);
         throw timeoutError;
@@ -387,7 +387,7 @@ export const bulletinService = {
         console.error('[DEBUG] saveBulletin: token upsert error', error);
         throw error;
       }
-      console.log('[DEBUG] saveBulletin: successfully batch upserted all tokens', data);
+      // Security: Removed debug logging
     } catch (tokenError) {
       console.error('[DEBUG] saveBulletin: error saving tokens (batch upsert)', tokenError);
     }

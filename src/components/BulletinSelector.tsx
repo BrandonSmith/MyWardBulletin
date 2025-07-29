@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, Calendar, FileText } from 'lucide-react';
 import { bulletinService } from '../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { SkeletonList, SkeletonCard } from './SkeletonLoader';
 
 // Key for caching the last authenticated user ID
 const LAST_USER_ID = 'last_user_id';
@@ -46,9 +47,12 @@ export default function BulletinSelector({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading bulletins...</span>
+      <div className="space-y-3">
+        <h4 className="font-medium text-gray-900">Select Active Bulletin for QR Code</h4>
+        <p className="text-sm text-gray-600">
+          Choose which bulletin people will see when they scan your QR code
+        </p>
+        <SkeletonList items={3} className="max-h-64" />
       </div>
     );
   }
@@ -56,7 +60,7 @@ export default function BulletinSelector({
   if (error) {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-red-600 text-sm">{error}</p>
+        <p className="text-red-600 text-sm">{error instanceof Error ? error.message : String(error)}</p>
       </div>
     );
   }

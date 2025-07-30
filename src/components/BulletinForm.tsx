@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
-import { getHymnTitle, isValidHymnNumber, searchHymnByTitle } from '../data/hymns';
+import { getSongTitle, isValidSongNumber, searchSongsByTitle, SongType } from '../lib/songService';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -13,8 +13,14 @@ interface BulletinFormProps {
 
 export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
-  const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: number, title: string}>>([]);
+  const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: string, title: string, type: SongType}>>([]);
   const [activeHymnSearch, setActiveHymnSearch] = useState<string | null>(null);
+  const [songTypes, setSongTypes] = useState<Record<string, SongType>>({
+    openingHymn: 'hymn',
+    sacramentHymn: 'hymn',
+    closingHymn: 'hymn'
+  });
+  
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -41,33 +47,37 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   };
 
   const handleHymnNumberChange = (field: string, value: string) => {
-    const number = parseInt(value);
-
     if (field.startsWith('agenda-')) {
       const id = field.replace('agenda-', '');
+      const agendaSongType = songTypes[`agenda-${id}`] || 'hymn';
       updateAgendaItem(id, {
         hymnNumber: value,
-        hymnTitle: isValidHymnNumber(number) ? getHymnTitle(number) : ''
+        hymnTitle: isValidSongNumber(value, agendaSongType) ? getSongTitle(value, agendaSongType) : '',
+        hymnType: agendaSongType
       });
       return;
     }
 
     const hymnData = { ...data.musicProgram };
+    const fieldSongType = songTypes[field] || 'hymn';
 
     if (field === 'openingHymnNumber') {
       hymnData.openingHymnNumber = value;
-      if (isValidHymnNumber(number)) {
-        hymnData.openingHymnTitle = getHymnTitle(number);
+      hymnData.openingHymnType = fieldSongType;
+      if (isValidSongNumber(value, fieldSongType)) {
+        hymnData.openingHymnTitle = getSongTitle(value, fieldSongType);
       }
     } else if (field === 'sacramentHymnNumber') {
       hymnData.sacramentHymnNumber = value;
-      if (isValidHymnNumber(number)) {
-        hymnData.sacramentHymnTitle = getHymnTitle(number);
+      hymnData.sacramentHymnType = fieldSongType;
+      if (isValidSongNumber(value, fieldSongType)) {
+        hymnData.sacramentHymnTitle = getSongTitle(value, fieldSongType);
       }
     } else if (field === 'closingHymnNumber') {
       hymnData.closingHymnNumber = value;
-      if (isValidHymnNumber(number)) {
-        hymnData.closingHymnTitle = getHymnTitle(number);
+      hymnData.closingHymnType = fieldSongType;
+      if (isValidSongNumber(value, fieldSongType)) {
+        hymnData.closingHymnTitle = getSongTitle(value, fieldSongType);
       }
     }
     
@@ -81,15 +91,18 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
       return;
     }
     
-    const results = searchHymnByTitle(searchTerm);
+    const fieldSongType = songTypes[field] || 'hymn';
+    const results = searchSongsByTitle(searchTerm, fieldSongType);
     setHymnSearchResults(results);
     setActiveHymnSearch(field);
   };
 
-  const selectHymnFromSearch = (field: string, hymnNumber: number, hymnTitle: string) => {
+  const selectHymnFromSearch = (field: string, hymnNumber: string, hymnTitle: string, songType?: SongType) => {
+    const fieldSongType = songType || songTypes[field] || 'hymn';
+    
     if (field.startsWith('agenda-')) {
       const id = field.replace('agenda-', '');
-      updateAgendaItem(id, { hymnNumber: hymnNumber.toString(), hymnTitle });
+      updateAgendaItem(id, { hymnNumber, hymnTitle, hymnType: fieldSongType });
       setHymnSearchResults([]);
       setActiveHymnSearch(null);
       return;
@@ -98,14 +111,17 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     const hymnData = { ...data.musicProgram };
 
     if (field === 'openingHymnNumber') {
-      hymnData.openingHymnNumber = hymnNumber.toString();
+      hymnData.openingHymnNumber = hymnNumber;
       hymnData.openingHymnTitle = hymnTitle;
+      hymnData.openingHymnType = fieldSongType;
     } else if (field === 'sacramentHymnNumber') {
-      hymnData.sacramentHymnNumber = hymnNumber.toString();
+      hymnData.sacramentHymnNumber = hymnNumber;
       hymnData.sacramentHymnTitle = hymnTitle;
+      hymnData.sacramentHymnType = fieldSongType;
     } else if (field === 'closingHymnNumber') {
-      hymnData.closingHymnNumber = hymnNumber.toString();
+      hymnData.closingHymnNumber = hymnNumber;
       hymnData.closingHymnTitle = hymnTitle;
+      hymnData.closingHymnType = fieldSongType;
     }
     
     updateField('musicProgram', hymnData);
@@ -116,6 +132,47 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const closeHymnSearch = () => {
     setHymnSearchResults([]);
     setActiveHymnSearch(null);
+  };
+
+  const setSongType = (field: string, type: SongType) => {
+    setSongTypes(prev => ({ ...prev, [field]: type }));
+    
+    // Also update the data structure to persist the song type
+    if (field === 'openingHymnNumber') {
+      updateField('musicProgram', { 
+        ...data.musicProgram, 
+        openingHymnType: type 
+      });
+    } else if (field === 'sacramentHymnNumber') {
+      updateField('musicProgram', { 
+        ...data.musicProgram, 
+        sacramentHymnType: type 
+      });
+    } else if (field === 'closingHymnNumber') {
+      updateField('musicProgram', { 
+        ...data.musicProgram, 
+        closingHymnType: type 
+      });
+    } else if (field.startsWith('agenda-')) {
+      const id = field.replace('agenda-', '');
+      const updatedAgenda = data.agenda.map(item => 
+        item.id === id ? { ...item, hymnType: type } : item
+      );
+      updateField('agenda', updatedAgenda);
+    }
+  };
+
+  const getSongTypeForField = (field: string): SongType => {
+    return songTypes[field] || 'hymn';
+  };
+
+  const getPlaceholderForField = (field: string): string => {
+    const type = getSongTypeForField(field);
+    if (type === 'childrens') {
+      const examples = ['2', '4', '20a', '20b', '241a', '241b', '284a', '284b', '267a', '267b', '275a', '275b'];
+      return `e.g., ${examples[Math.floor(Math.random() * examples.length)]}`;
+    }
+    return 'e.g., 9';
   };
 
   const addMeeting = () => {
@@ -297,8 +354,8 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
       if (item.type === 'musical' && 'hymnNumber' in changes) {
         const hymnNumber = changes.hymnNumber;
         const number = parseInt(hymnNumber || '');
-        if (hymnNumber && isValidHymnNumber(number)) {
-          return { ...item, ...changes, hymnTitle: getHymnTitle(number) };
+        if (hymnNumber && isValidSongNumber(hymnNumber, getSongTypeForField(`agenda-${id}`))) {
+          return { ...item, ...changes, hymnTitle: getSongTitle(hymnNumber, getSongTypeForField(`agenda-${id}`)) };
         } else {
           return { ...item, ...changes, hymnTitle: '' };
         }
@@ -575,22 +632,46 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
           {/* Music Program */}
           <section className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Music Program</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Number</label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setSongType('openingHymnNumber', 'hymn')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('openingHymnNumber') === 'hymn'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Hymns
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSongType('openingHymnNumber', 'childrens')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('openingHymnNumber') === 'childrens'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Children's Songs
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={data.musicProgram.openingHymnNumber}
                   onChange={(e) => handleHymnNumberChange('openingHymnNumber', e.target.value)}
-                  placeholder="e.g., 9"
+                  placeholder={getPlaceholderForField('openingHymnNumber')}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    Boolean(data.musicProgram.openingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) === false
+                    Boolean(data.musicProgram.openingHymnNumber) && isValidSongNumber(data.musicProgram.openingHymnNumber, getSongTypeForField('openingHymnNumber')) === false
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-300'
                   }`}
                 />
-                {Boolean(data.musicProgram.openingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber)) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                {Boolean(data.musicProgram.openingHymnNumber) && isValidSongNumber(data.musicProgram.openingHymnNumber, getSongTypeForField('openingHymnNumber')) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('openingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
               <div className="md:col-span-2 relative hymn-search-container">
@@ -609,7 +690,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }}
                   placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    data.musicProgram.openingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.openingHymnNumber))
+                    data.musicProgram.openingHymnNumber && isValidSongNumber(data.musicProgram.openingHymnNumber, getSongTypeForField('openingHymnNumber'))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
@@ -618,34 +699,63 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {hymnSearchResults.map((hymn) => (
                       <button
-                        key={hymn.number}
+                        key={`${hymn.type}-${hymn.number}`}
                         type="button"
-                        onClick={() => selectHymnFromSearch('openingHymnNumber', hymn.number, hymn.title)}
+                        onClick={() => selectHymnFromSearch('openingHymnNumber', hymn.number, hymn.title, hymn.type)}
                         className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
                       >
-                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                            {hymn.type === 'hymn' ? 'H' : 'CS'}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Number</label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setSongType('sacramentHymnNumber', 'hymn')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('sacramentHymnNumber') === 'hymn'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Hymns
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSongType('sacramentHymnNumber', 'childrens')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('sacramentHymnNumber') === 'childrens'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Children's Songs
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={data.musicProgram.sacramentHymnNumber}
                   onChange={(e) => handleHymnNumberChange('sacramentHymnNumber', e.target.value)}
-                  placeholder="e.g., 181"
+                  placeholder={getPlaceholderForField('sacramentHymnNumber')}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    Boolean(data.musicProgram.sacramentHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) === false
+                    Boolean(data.musicProgram.sacramentHymnNumber) && isValidSongNumber(data.musicProgram.sacramentHymnNumber, getSongTypeForField('sacramentHymnNumber')) === false
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-300'
                   }`}
                 />
-                {Boolean(data.musicProgram.sacramentHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber)) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                {Boolean(data.musicProgram.sacramentHymnNumber) && isValidSongNumber(data.musicProgram.sacramentHymnNumber, getSongTypeForField('sacramentHymnNumber')) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('sacramentHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
               <div className="md:col-span-2 relative hymn-search-container">
@@ -664,7 +774,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }}
                   placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    data.musicProgram.sacramentHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.sacramentHymnNumber))
+                    data.musicProgram.sacramentHymnNumber && isValidSongNumber(data.musicProgram.sacramentHymnNumber, getSongTypeForField('sacramentHymnNumber'))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
@@ -673,34 +783,63 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {hymnSearchResults.map((hymn) => (
                       <button
-                        key={hymn.number}
+                        key={`${hymn.type}-${hymn.number}`}
                         type="button"
-                        onClick={() => selectHymnFromSearch('sacramentHymnNumber', hymn.number, hymn.title)}
+                        onClick={() => selectHymnFromSearch('sacramentHymnNumber', hymn.number, hymn.title, hymn.type)}
                         className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
                       >
-                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                            {hymn.type === 'hymn' ? 'H' : 'CS'}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Number</label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setSongType('closingHymnNumber', 'hymn')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('closingHymnNumber') === 'hymn'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Hymns
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSongType('closingHymnNumber', 'childrens')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      getSongTypeForField('closingHymnNumber') === 'childrens'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Children's Songs
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={data.musicProgram.closingHymnNumber}
                   onChange={(e) => handleHymnNumberChange('closingHymnNumber', e.target.value)}
-                  placeholder="e.g., 89"
+                  placeholder={getPlaceholderForField('closingHymnNumber')}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    Boolean(data.musicProgram.closingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) === false
+                    Boolean(data.musicProgram.closingHymnNumber) && isValidSongNumber(data.musicProgram.closingHymnNumber, getSongTypeForField('closingHymnNumber')) === false
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-300'
                   }`}
                 />
-                {Boolean(data.musicProgram.closingHymnNumber) && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber)) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid hymn number</p>
+                {Boolean(data.musicProgram.closingHymnNumber) && isValidSongNumber(data.musicProgram.closingHymnNumber, getSongTypeForField('closingHymnNumber')) === false && (
+                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('closingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
               <div className="md:col-span-2 relative hymn-search-container">
@@ -719,7 +858,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }}
                   placeholder="Search for hymn title or enter manually"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    data.musicProgram.closingHymnNumber && isValidHymnNumber(parseInt(data.musicProgram.closingHymnNumber))
+                    data.musicProgram.closingHymnNumber && isValidSongNumber(data.musicProgram.closingHymnNumber, getSongTypeForField('closingHymnNumber'))
                       ? 'border-green-300 bg-green-50'
                       : 'border-gray-300'
                   }`}
@@ -728,12 +867,17 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {hymnSearchResults.map((hymn) => (
                       <button
-                        key={hymn.number}
+                        key={`${hymn.type}-${hymn.number}`}
                         type="button"
-                        onClick={() => selectHymnFromSearch('closingHymnNumber', hymn.number, hymn.title)}
+                        onClick={() => selectHymnFromSearch('closingHymnNumber', hymn.number, hymn.title, hymn.type)}
                         className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
                       >
-                        <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                            {hymn.type === 'hymn' ? 'H' : 'CS'}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -788,69 +932,127 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                     </select>
                   </>
                 ) : (
-                  <>
-                    <select
-                      value={item.label || 'Musical Number'}
-                      onChange={e => updateAgendaItem(item.id, { label: e.target.value })}
-                      className="px-2 py-1 border rounded-lg min-w-[150px]"
-                    >
-                      <option value="Musical Number">Musical Number</option>
-                      <option value="Intermediate Hymn">Intermediate Hymn</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={item.hymnNumber || ''}
-                      onChange={e => handleHymnNumberChange(`agenda-${item.id}`, e.target.value)}
-                      placeholder="Hymn # (optional)"
-                      className="min-w-[80px] max-w-[100px] px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                    <div className="relative hymn-search-container flex-1">
-                      <input
-                        type="text"
-                        value={item.hymnTitle || ''}
-                        onChange={e => {
-                          updateAgendaItem(item.id, { hymnTitle: e.target.value });
-                          handleHymnTitleSearch(`agenda-${item.id}`, e.target.value);
-                        }}
-                        onFocus={() => {
-                          if (item.hymnTitle && item.hymnTitle.length >= 2) {
-                            handleHymnTitleSearch(`agenda-${item.id}`, item.hymnTitle);
-                          }
-                        }}
-                        placeholder="Hymn Title (search or auto)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        readOnly={!!item.hymnNumber}
-                      />
-                      {activeHymnSearch === `agenda-${item.id}` && hymnSearchResults.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {hymnSearchResults.map(hymn => (
-                            <button
-                              key={hymn.number}
-                              type="button"
-                              onClick={() => selectHymnFromSearch(`agenda-${item.id}`, hymn.number, hymn.title)}
-                              className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
-                            >
-                              <div className="font-medium">#{hymn.number} - {hymn.title}</div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                  <div className="w-full space-y-3">
+                    {/* Song Type Selection */}
+                    <div className="flex gap-1 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setSongType(`agenda-${item.id}`, 'hymn')}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          getSongTypeForField(`agenda-${item.id}`) === 'hymn'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        Hymns
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSongType(`agenda-${item.id}`, 'childrens')}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          getSongTypeForField(`agenda-${item.id}`) === 'childrens'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        Children's Songs
+                      </button>
                     </div>
-                    <input
-                      type="text"
-                      value={item.songName || ''}
-                      onChange={e => updateAgendaItem(item.id, { songName: e.target.value })}
-                      placeholder="Song Name (if not hymn)"
-                      className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                    <input
-                      type="text"
-                      value={item.performers || ''}
-                      onChange={e => updateAgendaItem(item.id, { performers: e.target.value })}
-                      placeholder="Performers (optional)"
-                      className="flex-1 min-w-[120px] max-w-xs px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </>
+
+                    {/* Type Selection */}
+                    <div className="mb-3">
+                      <select
+                        value={item.label || 'Musical Number'}
+                        onChange={e => updateAgendaItem(item.id, { label: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="Musical Number">Musical Number</option>
+                        <option value="Intermediate Hymn">Intermediate Hymn</option>
+                      </select>
+                    </div>
+
+                    {/* Hymn/Song Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {getSongTypeForField(`agenda-${item.id}`) === 'hymn' ? 'Hymn' : 'Song'} Number
+                        </label>
+                        <input
+                          type="text"
+                          value={item.hymnNumber || ''}
+                          onChange={e => handleHymnNumberChange(`agenda-${item.id}`, e.target.value)}
+                          placeholder={getPlaceholderForField(`agenda-${item.id}`)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {getSongTypeForField(`agenda-${item.id}`) === 'hymn' ? 'Hymn' : 'Song'} Title
+                        </label>
+                        <input
+                          type="text"
+                          value={item.hymnTitle || ''}
+                          onChange={e => {
+                            updateAgendaItem(item.id, { hymnTitle: e.target.value });
+                            handleHymnTitleSearch(`agenda-${item.id}`, e.target.value);
+                          }}
+                          onFocus={() => {
+                            if (item.hymnTitle && item.hymnTitle.length >= 2) {
+                              handleHymnTitleSearch(`agenda-${item.id}`, item.hymnTitle);
+                            }
+                          }}
+                          placeholder={`Search ${getSongTypeForField(`agenda-${item.id}`) === 'hymn' ? 'hymn' : 'song'} title...`}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          readOnly={!!item.hymnNumber}
+                        />
+                        {activeHymnSearch === `agenda-${item.id}` && hymnSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {hymnSearchResults.map(hymn => (
+                              <button
+                                key={`${hymn.type}-${hymn.number}`}
+                                type="button"
+                                onClick={() => selectHymnFromSearch(`agenda-${item.id}`, hymn.number, hymn.title, hymn.type)}
+                                className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium">#{hymn.number} - {hymn.title}</div>
+                                  <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                                    {hymn.type === 'hymn' ? 'H' : 'CS'}
+                                  </span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Song Name (if not hymn)</label>
+                        <input
+                          type="text"
+                          value={item.songName || ''}
+                          onChange={e => updateAgendaItem(item.id, { songName: e.target.value })}
+                          placeholder="e.g., Special musical number"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Performers (optional)</label>
+                        <input
+                          type="text"
+                          value={item.performers || ''}
+                          onChange={e => updateAgendaItem(item.id, { performers: e.target.value })}
+                          placeholder="e.g., Primary children"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
                 <div className="flex flex-row items-center space-x-1">
                   <button onClick={() => moveAgendaItem(idx, -1)} disabled={idx === 0} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↑</button>
@@ -860,39 +1062,28 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               </div>
             ))}
             </div>
-            <div className="relative mt-2" ref={addSectionRef}>
+            <div className="flex gap-3 mt-4">
               <button
                 type="button"
-                onClick={() => setShowAddSection(!showAddSection)}
-                className="px-3 py-1 bg-blue-600 text-white rounded-lg"
+                onClick={() => handleAddSection('speaker')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
               >
-                Add Section
+                Add Speaker
               </button>
-              {showAddSection && (
-                <div className="absolute z-10 mt-2 bg-white border rounded shadow-lg w-56">
-                  <button
-                    type="button"
-                    onClick={() => handleAddSection('speaker')}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Add Speaker
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSection('musical')}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Add Hymn/Musical Number
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSection('testimony')}
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Bearing of Testimonies
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => handleAddSection('musical')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex-1"
+              >
+                Add Musical Number
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddSection('testimony')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex-1"
+              >
+                Add Testimonies
+              </button>
             </div>
           </section>
         </>

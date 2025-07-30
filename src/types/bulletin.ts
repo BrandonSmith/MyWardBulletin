@@ -1,3 +1,5 @@
+import { SongType } from '../lib/songService';
+
 export interface Announcement {
   id: string;
   title: string;
@@ -36,12 +38,15 @@ export interface MusicProgram {
   openingHymn: string;
   openingHymnNumber: string;
   openingHymnTitle: string;
+  openingHymnType?: SongType;
   sacramentHymn: string;
   sacramentHymnNumber: string;
   sacramentHymnTitle: string;
+  sacramentHymnType?: SongType;
   closingHymn: string;
   closingHymnNumber: string;
   closingHymnTitle: string;
+  closingHymnType?: SongType;
 }
 
 export interface Leadership {
@@ -60,7 +65,7 @@ export interface Speaker {
 
 export type AgendaItem =
   | { type: 'speaker'; id: string; name: string; speakerType: 'youth' | 'adult' }
-  | { type: 'musical'; id: string; label?: string; hymnNumber?: string; hymnTitle?: string; songName?: string; performers?: string }
+  | { type: 'musical'; id: string; label?: string; hymnNumber?: string; hymnTitle?: string; hymnType?: SongType; songName?: string; performers?: string }
   | { type: 'testimony'; id: string };
 
 export interface WardLeadershipEntry {

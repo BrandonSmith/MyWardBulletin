@@ -402,14 +402,26 @@ export const getHymnTitle = (number: number): string => {
 export const getHymnUrl = (number: number): string => {
   const title = LDS_HYMNS[number];
   if (!title) return '';
-  // Remove apostrophes, then slugify: lowercase, replace non-alphanum with hyphens, collapse multiple hyphens
+  
+  // Special case for hymn 323
+  if (number === 323) {
+    return 'https://www.churchofjesuschrist.org/media/music/songs/rise-up-o-men-of-god-mens-choir?crumbs=hymns&lang=eng';
+  }
+  
+  // Remove apostrophes and parentheses, then slugify: lowercase, replace non-alphanum with hyphens, collapse multiple hyphens
   const slug = title
     .toLowerCase()
     .replace(/'/g, '') // Remove apostrophes
+    .replace(/\([^)]*\)/g, '') // Remove parentheses and their content
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .replace(/-+/g, '-');
-  return `https://www.churchofjesuschrist.org/media/music/songs/${slug}?crumbs=hymns&lang=eng`;
+  
+  // Add -women to URL for hymns 312-318
+  const womenSuffix = (number >= 312 && number <= 318) ? '-women' : '';
+  // Add -mens-choir to URL for hymns 326-335
+  const mensChoirSuffix = (number >= 326 && number <= 335) ? '-mens-choir' : '';
+  return `https://www.churchofjesuschrist.org/media/music/songs/${slug}${womenSuffix}${mensChoirSuffix}?crumbs=hymns&lang=eng`;
 };
 
 export const isValidHymnNumber = (number: number): boolean => {

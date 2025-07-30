@@ -665,8 +665,8 @@ function EditorApp() {
   const handleExportPDF = async () => {
     if (printPage1Ref.current && printPage2Ref.current) {
       try {
-        // Use a higher scale for crisper print quality
-        const scale = 3;
+        // Optimized scale for better file size while maintaining quality
+        const scale = 1.5;
         const marginX = 0; // extra horizontal margin handled by centering
         const marginY = 10; // mm top/bottom padding
 
@@ -677,7 +677,9 @@ function EditorApp() {
           allowTaint: true,
           backgroundColor: '#ffffff',
           width: printPage1Ref.current.scrollWidth,
-          height: printPage1Ref.current.scrollHeight
+          height: printPage1Ref.current.scrollHeight,
+          logging: false, // Disable logging for better performance
+          removeContainer: true // Clean up after rendering
         });
 
         // Render page 2
@@ -687,13 +689,21 @@ function EditorApp() {
           allowTaint: true,
           backgroundColor: '#ffffff',
           width: printPage2Ref.current.scrollWidth,
-          height: printPage2Ref.current.scrollHeight
+          height: printPage2Ref.current.scrollHeight,
+          logging: false, // Disable logging for better performance
+          removeContainer: true // Clean up after rendering
         });
 
-        const imgData1 = canvas1.toDataURL('image/png');
-        const imgData2 = canvas2.toDataURL('image/png');
+        // Convert to JPEG with compression for smaller file size
+        const imgData1 = canvas1.toDataURL('image/jpeg', 0.85);
+        const imgData2 = canvas2.toDataURL('image/jpeg', 0.85);
 
-        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pdf = new jsPDF({ 
+          orientation: 'landscape', 
+          unit: 'mm', 
+          format: 'a4',
+          compress: true // Enable PDF compression
+        });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
@@ -707,7 +717,7 @@ function EditorApp() {
         const imgY1 = marginY;
         pdf.addImage(
           imgData1,
-          'PNG',
+          'JPEG',
           imgX1,
           imgY1,
           canvas1.width * ratio1,
@@ -725,7 +735,7 @@ function EditorApp() {
         const imgY2 = marginY;
         pdf.addImage(
           imgData2,
-          'PNG',
+          'JPEG',
           imgX2,
           imgY2,
           canvas2.width * ratio2,

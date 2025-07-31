@@ -153,7 +153,8 @@ function EditorApp() {
         presiding: getDefault('presiding', ''),
         conducting: getDefault('conducting', ''),
         chorister: getDefault('chorister', ''),
-        organist: getDefault('organist', '')
+        organist: getDefault('organist', ''),
+        organistLabel: 'Organist'
       },
       wardLeadership: getDefault('wardLeadership', [
         { title: 'Bishop', name: '', phone: '' },
@@ -275,7 +276,8 @@ function EditorApp() {
     leadership: bulletin.leadership || {
       presiding: '',
       chorister: '',
-      organist: ''
+      organist: '',
+      organistLabel: 'Organist'
     },
     wardLeadership: bulletin.wardLeadership || [
       { title: 'Bishop', name: '', phone: '' },

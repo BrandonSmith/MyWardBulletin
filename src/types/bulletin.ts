@@ -54,6 +54,7 @@ export interface Leadership {
   conducting?: string;
   chorister: string;
   organist: string;
+  organistLabel?: 'Organist' | 'Pianist';
   preludeMusic?: string;
 }
 

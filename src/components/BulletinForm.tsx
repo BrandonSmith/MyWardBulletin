@@ -20,6 +20,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     sacramentHymn: 'hymn',
     closingHymn: 'hymn'
   });
+  const [organistLabel, setOrganistLabel] = useState<'Organist' | 'Pianist'>(data.leadership.organistLabel || 'Organist');
   
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -488,7 +489,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('wardName', data.wardName)}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >
                     Save as default
@@ -537,7 +538,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('presiding', data.leadership.presiding)}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >
                     Save as default
@@ -557,7 +558,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('conducting', data.leadership.conducting || '')}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >
                     Save as default
@@ -581,33 +582,53 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('chorister', data.leadership.chorister)}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >
                     Save as default
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Organist</label>
-                <div className="flex gap-2 md:flex-col md:gap-0">
-                  <input
-                    type="text"
-                    value={data.leadership.organist}
-                    onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
-                    placeholder="e.g., Tom Webster"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => saveDefault('organist', data.leadership.organist)}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-                    title="Save as default"
-                  >
-                    Save as default
-                  </button>
-                </div>
-              </div>
+                      <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span 
+              className={`text-base font-medium cursor-pointer px-2 py-1 rounded ${organistLabel === 'Organist' ? 'text-gray-700 bg-gray-100' : 'text-gray-400'}`}
+              onClick={() => {
+                setOrganistLabel('Organist');
+                updateField('leadership', { ...data.leadership, organistLabel: 'Organist' });
+              }}
+            >
+              Organist
+            </span>
+            <span className="text-gray-400">-</span>
+            <span 
+              className={`text-base font-medium cursor-pointer px-2 py-1 rounded ${organistLabel === 'Pianist' ? 'text-gray-700 bg-gray-100' : 'text-gray-400'}`}
+              onClick={() => {
+                setOrganistLabel('Pianist');
+                updateField('leadership', { ...data.leadership, organistLabel: 'Pianist' });
+              }}
+            >
+              Pianist
+            </span>
+          </div>
+          <div className="flex gap-2 md:flex-col md:gap-0">
+            <input
+              type="text"
+              value={data.leadership.organist}
+              onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
+              placeholder="e.g., Tom Webster"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => saveDefault('organist', data.leadership.organist)}
+              className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+              title="Save as default"
+            >
+              Save as default
+            </button>
+          </div>
+        </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Prelude Music</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
@@ -621,7 +642,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => saveDefault('preludeMusic', data.leadership.preludeMusic || '')}
-                    className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
                     title="Save as default"
                   >
                     Save as default
@@ -634,14 +655,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
           {/* Music Program */}
           <section className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Music Program</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Number</label>
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
                     onClick={() => setSongType('openingHymnNumber', 'hymn')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('openingHymnNumber') === 'hymn'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -652,7 +673,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => setSongType('openingHymnNumber', 'childrens')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('openingHymnNumber') === 'childrens'
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -673,10 +694,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }`}
                 />
                 {Boolean(data.musicProgram.openingHymnNumber) && isValidSongNumber(data.musicProgram.openingHymnNumber, getSongTypeForField('openingHymnNumber')) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('openingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
+                  <p className="text-sm text-red-600 mt-1">Invalid {getSongTypeForField('openingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
-              <div className="md:col-span-2 relative hymn-search-container">
+              <div className="relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Title</label>
                 <input
                   type="text"
@@ -708,7 +729,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium">#{hymn.number} - {hymn.title}</div>
-                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                          <span className="text-sm bg-gray-200 px-3 py-2 rounded">
                             {hymn.type === 'hymn' ? 'H' : 'CS'}
                           </span>
                         </div>
@@ -718,14 +739,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 )}
               </div>
             </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Number</label>
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
                     onClick={() => setSongType('sacramentHymnNumber', 'hymn')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('sacramentHymnNumber') === 'hymn'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -736,7 +757,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => setSongType('sacramentHymnNumber', 'childrens')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('sacramentHymnNumber') === 'childrens'
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -757,10 +778,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }`}
                 />
                 {Boolean(data.musicProgram.sacramentHymnNumber) && isValidSongNumber(data.musicProgram.sacramentHymnNumber, getSongTypeForField('sacramentHymnNumber')) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('sacramentHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
+                  <p className="text-sm text-red-600 mt-1">Invalid {getSongTypeForField('sacramentHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
-              <div className="md:col-span-2 relative hymn-search-container">
+              <div className="relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sacrament Hymn Title</label>
                 <input
                   type="text"
@@ -792,7 +813,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium">#{hymn.number} - {hymn.title}</div>
-                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                          <span className="text-sm bg-gray-200 px-3 py-2 rounded">
                             {hymn.type === 'hymn' ? 'H' : 'CS'}
                           </span>
                         </div>
@@ -802,14 +823,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 )}
               </div>
             </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Number</label>
                 <div className="flex gap-2 mb-2">
                   <button
                     type="button"
                     onClick={() => setSongType('closingHymnNumber', 'hymn')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('closingHymnNumber') === 'hymn'
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -820,7 +841,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <button
                     type="button"
                     onClick={() => setSongType('closingHymnNumber', 'childrens')}
-                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded text-base font-medium transition-colors ${
                       getSongTypeForField('closingHymnNumber') === 'childrens'
                         ? 'bg-green-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -841,10 +862,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   }`}
                 />
                 {Boolean(data.musicProgram.closingHymnNumber) && isValidSongNumber(data.musicProgram.closingHymnNumber, getSongTypeForField('closingHymnNumber')) === false && (
-                  <p className="text-xs text-red-600 mt-1">Invalid {getSongTypeForField('closingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
+                  <p className="text-sm text-red-600 mt-1">Invalid {getSongTypeForField('closingHymnNumber') === 'hymn' ? 'hymn' : 'song'} number</p>
                 )}
               </div>
-              <div className="md:col-span-2 relative hymn-search-container">
+              <div className="relative hymn-search-container">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Closing Hymn Title</label>
                 <input
                   type="text"
@@ -876,7 +897,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-medium">#{hymn.number} - {hymn.title}</div>
-                          <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                          <span className="text-sm bg-gray-200 px-3 py-2 rounded">
                             {hymn.type === 'hymn' ? 'H' : 'CS'}
                           </span>
                         </div>
@@ -944,7 +965,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       <button
                         type="button"
                         onClick={() => setSongType(`agenda-${item.id}`, 'hymn')}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                        className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
                           getSongTypeForField(`agenda-${item.id}`) === 'hymn'
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -955,7 +976,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       <button
                         type="button"
                         onClick={() => setSongType(`agenda-${item.id}`, 'childrens')}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                        className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
                           getSongTypeForField(`agenda-${item.id}`) === 'childrens'
                             ? 'bg-green-600 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -1023,7 +1044,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="font-medium">#{hymn.number} - {hymn.title}</div>
-                                  <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                                  <span className="text-sm bg-gray-200 px-3 py-2 rounded">
                                     {hymn.type === 'hymn' ? 'H' : 'CS'}
                                   </span>
                                 </div>
@@ -1060,40 +1081,40 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                     </div>
                   </div>
                 )}
-                <div className="flex flex-row items-center space-x-1">
-                  <button onClick={() => moveAgendaItem(idx, -1)} disabled={idx === 0} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↑</button>
-                  <button onClick={() => moveAgendaItem(idx, 1)} disabled={idx === data.agenda.length - 1} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↓</button>
-                  <button onClick={() => updateField('agenda', data.agenda.filter(ag => ag.id !== item.id))} className="ml-2 p-2 text-red-600 hover:bg-red-100 rounded-lg">Remove</button>
+                <div className="flex flex-row items-center space-x-2">
+                  <button onClick={() => moveAgendaItem(idx, -1)} disabled={idx === 0} className="px-3 py-2 text-gray-600 hover:text-black disabled:opacity-30 text-lg">↑</button>
+                  <button onClick={() => moveAgendaItem(idx, 1)} disabled={idx === data.agenda.length - 1} className="px-3 py-2 text-gray-600 hover:text-black disabled:opacity-30 text-lg">↓</button>
+                  <button onClick={() => updateField('agenda', data.agenda.filter(ag => ag.id !== item.id))} className="ml-2 px-3 py-2 text-red-600 hover:bg-red-100 rounded-lg text-sm">Remove</button>
                 </div>
               </div>
             ))}
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <button
                 type="button"
                 onClick={() => handleAddSection('speaker')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex-1"
+                className="px-4 py-3 bg-blue-600 text-white rounded-lg text-base font-medium hover:bg-blue-700 transition-colors flex-1"
               >
                 Add Speaker
               </button>
               <button
                 type="button"
                 onClick={() => handleAddSection('musical')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex-1"
+                className="px-4 py-3 bg-green-600 text-white rounded-lg text-base font-medium hover:bg-green-700 transition-colors flex-1"
               >
                 Add Musical Number
               </button>
               <button
                 type="button"
                 onClick={() => handleAddSection('testimony')}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex-1"
+                className="px-4 py-3 bg-purple-600 text-white rounded-lg text-base font-medium hover:bg-purple-700 transition-colors flex-1"
               >
                 Add Testimonies
               </button>
               <button
                 type="button"
                 onClick={() => handleAddSection('sacrament')}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors flex-1"
+                className="px-4 py-3 bg-orange-600 text-white rounded-lg text-base font-medium hover:bg-orange-700 transition-colors flex-1"
               >
                 Add Sacrament
               </button>
@@ -1110,7 +1131,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               {data.announcements.length > 1 && (
                 <button
                   onClick={consolidateAnnouncements}
-                  className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="px-4 py-2 text-base bg-blue-600 text-white rounded hover:bg-blue-700"
                   title="Group multiple announcements by their target audience (Ward, Relief Society, etc.) into single consolidated entries. Original titles will be preserved as headers within the content."
                 >
                   Consolidate
@@ -1131,7 +1152,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   <p className="text-sm text-blue-800 mb-2">
                     Ward members can now submit announcements directly! Share your submissions link with the ward to let them add announcements that you can review and approve.
                   </p>
-                  <div className="flex items-center space-x-2 text-xs text-blue-700">
+                  <div className="flex items-center space-x-2 text-sm text-blue-700">
                     <span>📋 Get your submissions link from the QR Code modal</span>
                     <span>•</span>
                     <span>✅ Review submissions in the toolbar</span>
@@ -1177,9 +1198,9 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   />
                 </div>
                 <div className="flex flex-col items-end space-y-2 sm:space-y-0 sm:ml-4 sm:flex-row sm:items-center sm:space-x-2">
-                  <div className="flex flex-row items-center space-x-1">
-                    <button onClick={() => moveAnnouncement(idx, -1)} disabled={idx === 0} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↑</button>
-                    <button onClick={() => moveAnnouncement(idx, 1)} disabled={idx === data.announcements.length - 1} className="px-2 py-1 text-gray-600 hover:text-black disabled:opacity-30">↓</button>
+                  <div className="flex flex-row items-center space-x-2">
+                    <button onClick={() => moveAnnouncement(idx, -1)} disabled={idx === 0} className="px-3 py-2 text-gray-600 hover:text-black disabled:opacity-30 text-lg">↑</button>
+                    <button onClick={() => moveAnnouncement(idx, 1)} disabled={idx === data.announcements.length - 1} className="px-3 py-2 text-gray-600 hover:text-black disabled:opacity-30 text-lg">↓</button>
                   </div>
                   <button
                     type="button"
@@ -1193,7 +1214,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             ))}
             <button
               onClick={addAnnouncement}
-              className="inline-flex items-center justify-center w-full sm:w-auto px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm mt-2"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base mt-2"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add Announcement
@@ -1208,28 +1229,28 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               <button
                 type="button"
                 onClick={() => saveDefault('wardLeadership', data.wardLeadership)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
                 title="Save as default"
               >
                 Save as default
               </button>
-              <span className="text-xs text-gray-500 mt-1">Saves title, name, and phone for each row as your template.</span>
+              <span className="text-sm text-gray-500 mt-1">Saves title, name, and phone for each row as your template.</span>
             </div>
           </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-2 py-1 border-b">Title</th>
-                  <th className="px-2 py-1 border-b">Name</th>
-                  <th className="px-2 py-1 border-b">Phone</th>
-                  <th className="px-2 py-1 border-b"></th>
+                                  <th className="px-3 py-2 border-b text-sm">Title</th>
+                <th className="px-3 py-2 border-b text-sm">Name</th>
+                <th className="px-3 py-2 border-b text-sm">Phone</th>
+                <th className="px-3 py-2 border-b text-sm"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.wardLeadership.map((entry, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition">
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="text"
                         value={entry.title}
@@ -1238,10 +1259,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], title: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="text"
                         value={entry.name}
@@ -1250,10 +1271,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], name: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1262,10 +1283,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], phone: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1 text-center">
+                    <td className="border-b px-3 py-2 text-center">
                       <button
                         type="button"
                         onClick={() => {
@@ -1285,7 +1306,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             <button
               type="button"
               onClick={() => updateField('wardLeadership', [...data.wardLeadership, { title: '', name: '', phone: '' }])}
-              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded-lg"
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-base"
             >
               Add Leadership Position
             </button>
@@ -1296,28 +1317,28 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               <button
                 type="button"
                 onClick={() => saveDefault('missionaries', data.missionaries)}
-                className="px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
                 title="Save as default"
               >
                 Save as default
               </button>
-              <span className="text-xs text-gray-500 mt-1">Saves name, phone, and email for each missionary as your template.</span>
+              <span className="text-sm text-gray-500 mt-1">Saves name, phone, and email for each missionary as your template.</span>
             </div>
           </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-2 py-1 border-b">Name</th>
-                  <th className="px-2 py-1 border-b">Phone</th>
-                  <th className="px-2 py-1 border-b">Email</th>
-                  <th className="px-2 py-1 border-b"></th>
+                  <th className="px-3 py-2 border-b text-sm">Name</th>
+                  <th className="px-3 py-2 border-b text-sm">Phone</th>
+                  <th className="px-3 py-2 border-b text-sm">Email</th>
+                  <th className="px-3 py-2 border-b text-sm"></th>
                 </tr>
               </thead>
               <tbody>
                 {data.missionaries.map((entry, idx) => (
                   <tr key={idx} className="hover:bg-blue-50 transition">
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="text"
                         value={entry.name}
@@ -1326,10 +1347,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], name: e.target.value };
                           updateField('missionaries', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1338,10 +1359,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], phone: e.target.value };
                           updateField('missionaries', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1">
+                    <td className="border-b px-3 py-2">
                       <input
                         type="email"
                         value={entry.email || ''}
@@ -1350,10 +1371,10 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], email: e.target.value };
                           updateField('missionaries', updated);
                         }}
-                        className="w-full px-1 py-1 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
                       />
                     </td>
-                    <td className="border-b px-2 py-1 text-center">
+                    <td className="border-b px-3 py-2 text-center">
                       <button
                         type="button"
                         onClick={() => {
@@ -1373,7 +1394,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             <button
               type="button"
               onClick={() => updateField('missionaries', [...data.missionaries, { name: '', phone: '', email: '' }])}
-              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded-lg"
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-base"
             >
               Add Missionary
             </button>

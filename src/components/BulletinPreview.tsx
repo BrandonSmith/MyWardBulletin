@@ -123,7 +123,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               <span>Chorister</span>
             </DottedLine>
             <DottedLine rightAlign={data.leadership.organist}>
-              <span>Organist</span>
+              <span>{data.leadership.organistLabel || 'Organist'}</span>
             </DottedLine>
             {data.leadership.preludeMusic && (
               <DottedLine rightAlign={data.leadership.preludeMusic}>
@@ -217,7 +217,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                 )}
                 {item.performers && (
                   <div className="text-center py-1">
-                    <p className="text-xs">{item.performers}</p>
+                    <p className="text-sm">{item.performers}</p>
                   </div>
                 )}
               </div>
@@ -269,7 +269,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           {data.announcements.length > 0 ? (
             <div className="space-y-4">
               {data.announcements.map((announcement) => (
-                <div key={announcement.id} className="text-xs mb-6">
+                <div key={announcement.id} className="text-sm mb-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{audienceLabels[(announcement.audience || 'ward') as keyof typeof audienceLabels]}</h3>
                   <div className="flex items-center mb-1">
                     <h4 className="text-base font-semibold mr-2 text-gray-900">{announcement.title}</h4>
@@ -310,20 +310,20 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
         <div className="p-6 space-y-4 text-sm leading-relaxed">
           <h3 className="text-base font-bold mb-3 text-center">Ward Leadership</h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full border text-xs">
+            <table className="min-w-full border text-sm">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-2 py-1 border">Title</th>
-                  <th className="px-2 py-1 border">Name</th>
-                  <th className="px-2 py-1 border">Phone</th>
+                  <th className="px-3 py-2 border">Title</th>
+                  <th className="px-3 py-2 border">Name</th>
+                  <th className="px-3 py-2 border">Phone</th>
                 </tr>
               </thead>
               <tbody>
                 {data.wardLeadership.map((entry, idx) => (
                   <tr key={idx}>
-                    <td className="border px-2 py-1">{entry.title}</td>
-                    <td className="border px-2 py-1">{entry.name}</td>
-                    <td className="border px-2 py-1">{entry.phone}</td>
+                    <td className="border px-3 py-2">{entry.title}</td>
+                    <td className="border px-3 py-2">{entry.name}</td>
+                    <td className="border px-3 py-2">{entry.phone}</td>
                   </tr>
                 ))}
               </tbody>
@@ -331,20 +331,20 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           </div>
           <h3 className="text-base font-bold mb-3 text-center mt-8">Missionaries</h3>
           <div className="overflow-x-auto">
-            <table className="min-w-full border text-xs">
+            <table className="min-w-full border text-sm">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-2 py-1 border">Name</th>
-                  <th className="px-2 py-1 border">Phone</th>
-                  <th className="px-2 py-1 border">Email</th>
+                  <th className="px-3 py-2 border">Name</th>
+                  <th className="px-3 py-2 border">Phone</th>
+                  <th className="px-3 py-2 border">Email</th>
                 </tr>
               </thead>
               <tbody>
                 {data.missionaries.map((entry, idx) => (
                   <tr key={idx}>
-                    <td className="border px-2 py-1">{entry.name}</td>
-                    <td className="border px-2 py-1">{entry.phone}</td>
-                    <td className="border px-2 py-1">{entry.email}</td>
+                    <td className="border px-3 py-2">{entry.name}</td>
+                    <td className="border px-3 py-2">{entry.phone}</td>
+                    <td className="border px-3 py-2">{entry.email}</td>
                   </tr>
                 ))}
               </tbody>
@@ -390,7 +390,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             <span>Chorister</span>
           </DottedLine>
           <DottedLine rightAlign={data.leadership.organist}>
-            <span>Organist</span>
+            <span>{data.leadership.organistLabel || 'Organist'}</span>
           </DottedLine>
           {data.leadership.preludeMusic && (
             <DottedLine rightAlign={data.leadership.preludeMusic}>
@@ -484,7 +484,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               )}
               {item.performers && (
                 <div className="text-center py-1">
-                  <p className="text-xs">{item.performers}</p>
+                  <p className="text-sm">{item.performers}</p>
                 </div>
               )}
             </div>
@@ -533,9 +533,9 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
         {data.announcements.length > 0 ? (
           <div className="space-y-4">
             {data.announcements.map((announcement) => (
-              <div key={announcement.id} className="text-xs">
+              <div key={announcement.id} className="text-sm">
                 <div className="mb-1">
-                  <span className="font-bold text-gray-900 text-xs mr-2">{audienceLabels[(announcement.audience || 'ward') as keyof typeof audienceLabels]}</span>
+                                      <span className="font-bold text-gray-900 text-sm mr-2">{audienceLabels[(announcement.audience || 'ward') as keyof typeof audienceLabels]}</span>
                 </div>
                 <div className="flex items-center mb-1">
                   <h4 className="font-semibold mr-2 text-gray-900">{announcement.title}</h4>
@@ -555,7 +555,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             <h3 className="text-base font-bold mb-3 text-center">Meetings This Week</h3>
             <div className="space-y-3">
               {data.meetings.map((meeting) => (
-                <div key={meeting.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div key={meeting.id} className="text-sm bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
                   <div>
                     <h4 className="font-semibold">{meeting.title}</h4>
                     <p className="text-gray-700">{meeting.description}</p>
@@ -576,7 +576,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             <h3 className="text-base font-bold mb-3 text-center">Special Events</h3>
             <div className="space-y-3">
               {data.specialEvents.map((event) => (
-                <div key={event.id} className="text-xs bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div key={event.id} className="text-sm bg-gray-50 p-3 rounded-lg flex flex-col sm:flex-row sm:justify-between sm:items-center">
                   <div>
                     <h4 className="font-semibold">{event.title}</h4>
                     <p className="text-gray-700">{event.description}</p>
@@ -595,7 +595,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
 
       {/* Footer */}
       <div className="bg-gray-100 text-center border-t border-gray-300 p-3">
-        <p className="text-xs text-gray-500">
+        <p className="text-sm text-gray-500">
           {data.wardName}
         </p>
       </div>

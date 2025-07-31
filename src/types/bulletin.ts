@@ -66,7 +66,8 @@ export interface Speaker {
 export type AgendaItem =
   | { type: 'speaker'; id: string; name: string; speakerType: 'youth' | 'adult' }
   | { type: 'musical'; id: string; label?: string; hymnNumber?: string; hymnTitle?: string; hymnType?: SongType; songName?: string; performers?: string }
-  | { type: 'testimony'; id: string };
+  | { type: 'testimony'; id: string }
+  | { type: 'sacrament'; id: string };
 
 export interface WardLeadershipEntry {
   title: string;

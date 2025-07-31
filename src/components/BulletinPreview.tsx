@@ -192,10 +192,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             </div>
           )}
 
-          {/* Administration of the Sacrament */}
-          <div className="text-center py-3">
-            <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
-          </div>
+
 
           {data.agenda.map((item) => (
             item.type === 'speaker' ? (
@@ -227,6 +224,10 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             ) : item.type === 'testimony' ? (
               <div key={item.id} className="text-center py-3">
                 <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
+              </div>
+            ) : item.type === 'sacrament' ? (
+              <div key={item.id} className="text-center py-3">
+                <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
               </div>
             ) : null
           ))}
@@ -458,10 +459,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           </div>
         )}
 
-        {/* Administration of the Sacrament */}
-        <div className="text-center py-3">
-          <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
-        </div>
+
 
         {data.agenda.map((item) => (
           item.type === 'speaker' ? (
@@ -493,6 +491,10 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           ) : item.type === 'testimony' ? (
             <div key={item.id} className="text-center py-3">
               <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
+            </div>
+          ) : item.type === 'sacrament' ? (
+            <div key={item.id} className="text-center py-3">
+              <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
             </div>
           ) : null
         ))}

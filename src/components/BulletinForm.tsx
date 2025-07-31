@@ -223,7 +223,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
   const [showAddSection, setShowAddSection] = useState(false);
   const addSectionRef = useRef<HTMLDivElement>(null);
 
-  const handleAddSection = (type: 'speaker' | 'musical' | 'testimony') => {
+  const handleAddSection = (type: 'speaker' | 'musical' | 'testimony' | 'sacrament') => {
     if (type === 'speaker') {
       updateField('agenda', [
         ...data.agenda,
@@ -232,10 +232,12 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     } else if (type === 'musical') {
       updateField('agenda', [
         ...data.agenda,
-        { id: Date.now().toString(), type: 'musical', label: 'Musical Number', hymnNumber: '', hymnTitle: '', songName: '', performers: '' }
+        { id: Date.now().toString(), type: 'musical', label: 'Musical Number' }
       ]);
     } else if (type === 'testimony') {
       updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'testimony' }]);
+    } else if (type === 'sacrament') {
+      updateField('agenda', [...data.agenda, { id: Date.now().toString(), type: 'sacrament' }]);
     }
     setShowAddSection(false);
   };
@@ -913,15 +915,19 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             </div>
           </section>
 
-          {/* Agenda (After Sacrament) */}
+          {/* Agenda */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Agenda (After Sacrament)</h3>
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Agenda</h3>
             <div className="space-y-3">
             {data.agenda.map((item, idx) => (
               <div key={item.id} className="bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2 items-center">
                 {item.type === 'testimony' ? (
                   <div className="w-full flex items-center justify-center">
                     <span className="block w-full text-center font-bold text-lg text-gray-700 py-2">Bearing of Testimonies</span>
+                  </div>
+                ) : item.type === 'sacrament' ? (
+                  <div className="w-full flex items-center justify-center">
+                    <span className="block w-full text-center font-bold text-lg text-gray-700 py-2">Administration of the Sacrament</span>
                   </div>
                 ) : item.type === 'speaker' ? (
                   <>
@@ -1083,6 +1089,13 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex-1"
               >
                 Add Testimonies
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddSection('sacrament')}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors flex-1"
+              >
+                Add Sacrament
               </button>
             </div>
           </section>

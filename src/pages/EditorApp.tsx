@@ -106,6 +106,19 @@ function EditorApp() {
     }
   }
 
+  // Helper function to ensure sacrament item exists at the top of agenda
+  function ensureSacramentItem(agenda: any[]): any[] {
+    // Check if sacrament item already exists
+    const hasSacramentItem = agenda.some(item => item.type === 'sacrament');
+    
+    if (!hasSacramentItem) {
+      // Add sacrament item at the top
+      return [{ type: 'sacrament', id: crypto.randomUUID() }, ...agenda];
+    }
+    
+    return agenda;
+  }
+
   function createBlankBulletin(): BulletinData {
     return {
       wardName: getDefault('wardName', ''),
@@ -116,7 +129,9 @@ function EditorApp() {
       announcements: [],
       meetings: [],
       specialEvents: [],
-      agenda: [],
+      agenda: [
+        { type: 'sacrament', id: crypto.randomUUID() }
+      ],
       prayers: {
         opening: '',
         closing: '',
@@ -239,7 +254,7 @@ function EditorApp() {
     announcements: bulletin.announcements || [],
     meetings: bulletin.meetings || [],
     specialEvents: bulletin.special_events || [],
-    agenda: bulletin.agenda || [],
+    agenda: ensureSacramentItem(bulletin.agenda || []),
     prayers: bulletin.prayers || {
       opening: '',
       closing: '',
@@ -477,7 +492,7 @@ function EditorApp() {
             announcements: bulletin.announcements || [],
             meetings: bulletin.meetings || [],
             specialEvents: bulletin.special_events || [],
-            agenda: bulletin.agenda || [],
+            agenda: ensureSacramentItem(bulletin.agenda || []),
             prayers: bulletin.prayers || {
               opening: '',
               closing: '',
@@ -538,7 +553,7 @@ function EditorApp() {
       announcements: bulletin.announcements || [],
       meetings: bulletin.meetings || [],
       specialEvents: bulletin.special_events || [],
-      agenda: bulletin.agenda || [],
+      agenda: ensureSacramentItem(bulletin.agenda || []),
       prayers: bulletin.prayers || {
         opening: '',
         closing: '',

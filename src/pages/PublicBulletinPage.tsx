@@ -6,6 +6,19 @@ import DynamicMetaTags from '../components/DynamicMetaTags';
 import { bulletinService } from '../lib/supabase';
 import { SkeletonBulletin } from '../components/SkeletonLoader';
 
+// Helper function to ensure sacrament item exists at the top of agenda
+function ensureSacramentItem(agenda: any[]): any[] {
+  // Check if sacrament item already exists
+  const hasSacramentItem = agenda.some(item => item.type === 'sacrament');
+  
+  if (!hasSacramentItem) {
+    // Add sacrament item at the top
+    return [{ type: 'sacrament', id: crypto.randomUUID() }, ...agenda];
+  }
+  
+  return agenda;
+}
+
 export default function PublicBulletinPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -39,7 +52,7 @@ export default function PublicBulletinPage() {
     announcements: publicBulletin.announcements || [],
     meetings: publicBulletin.meetings || [],
     specialEvents: publicBulletin.special_events || [],
-    agenda: publicBulletin.agenda || [],
+    agenda: ensureSacramentItem(publicBulletin.agenda || []),
     prayers: publicBulletin.prayers || { opening: '', closing: '', invocation: '', benediction: '' },
     musicProgram: publicBulletin.music_program || {
       openingHymn: '',

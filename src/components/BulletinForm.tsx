@@ -943,8 +943,15 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             {data.agenda.map((item, idx) => (
               <div key={item.id} className="bg-gray-50 p-4 rounded-lg flex flex-wrap gap-2 items-center">
                 {item.type === 'testimony' ? (
-                  <div className="w-full flex items-center justify-center">
+                  <div className="w-full space-y-2">
                     <span className="block w-full text-center font-bold text-lg text-gray-700 py-2">Bearing of Testimonies</span>
+                    <input
+                      type="text"
+                      value={item.note || ''}
+                      onChange={e => updateAgendaItem(item.id, { note: e.target.value })}
+                      placeholder="e.g., Youth after FSY"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
                 ) : item.type === 'sacrament' ? (
                   <div className="w-full flex items-center justify-center">

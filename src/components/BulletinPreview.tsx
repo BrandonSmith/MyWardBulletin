@@ -203,6 +203,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             ) : item.type === 'testimony' ? (
               <div key={item.id} className="text-center py-3">
                 <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
+                {item.note && <p className="italic text-sm mt-1">{item.note}</p>}
               </div>
             ) : item.type === 'sacrament' ? (
               <React.Fragment key={item.id}>
@@ -491,6 +492,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
           ) : item.type === 'testimony' ? (
             <div key={item.id} className="text-center py-3">
               <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
+              {item.note && <p className="italic text-sm mt-1">{item.note}</p>}
             </div>
           ) : item.type === 'sacrament' ? (
             <React.Fragment key={item.id}>

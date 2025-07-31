@@ -146,19 +146,22 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
                 extra={data.musicProgram?.openingHymnTitle}
               />
               <ProgramTableRow label="Invocation" value={data.prayers?.opening} />
-              <ProgramTableRow
-                label="Sacrament Hymn"
-                value={data.musicProgram?.sacramentHymnNumber}
-                extra={data.musicProgram?.sacramentHymnTitle}
-              />
-              <tr>
-                <td colSpan={3} className="text-center font-bold text-lg py-2 print:!text-2xl print:!text-black">Administration of the Sacrament</td>
-              </tr>
               {data.agenda?.map((item: any, idx: number) => (
                 item.type === 'speaker' ? (
                   <ProgramTableRow key={idx} label={item.speakerType === 'youth' ? 'Youth Speaker' : 'Speaker'} value={item.name} />
                 ) : item.type === 'musical' ? (
                   <ProgramTableRow key={idx} label={item.label || 'Musical Number'} value={item.hymnNumber || item.songName} extra={item.hymnTitle} />
+                ) : item.type === 'sacrament' ? (
+                  <React.Fragment key={idx}>
+                    <ProgramTableRow
+                      label="Sacrament Hymn"
+                      value={data.musicProgram?.sacramentHymnNumber}
+                      extra={data.musicProgram?.sacramentHymnTitle}
+                    />
+                    <tr>
+                      <td colSpan={3} className="text-center font-bold text-lg py-2 print:!text-2xl print:!text-black">Administration of the Sacrament</td>
+                    </tr>
+                  </React.Fragment>
                 ) : null
               ))}
               <ProgramTableRow

@@ -169,28 +169,7 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
             </DottedLine>
           )}
 
-          {/* Sacrament Hymn */}
-          {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
-            <div className="space-y-1">
-              <DottedLine rightAlign={data.musicProgram.sacramentHymnNumber}>
-                <span>Sacrament Hymn</span>
-              </DottedLine>
-              {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
-                <div className="text-center py-1">
-                  <p className="italic">
-                    <a
-                      href={getSongUrl(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline hover:text-blue-900"
-                    >
-                      {data.musicProgram.sacramentHymnTitle || getSongTitle(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
-                    </a>
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Sacrament hymn will be inserted with the sacrament agenda item */}
 
 
 
@@ -226,11 +205,32 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
                 <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
               </div>
             ) : item.type === 'sacrament' ? (
-              <div key={item.id} className="text-center py-3">
-                <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
-              </div>
+              <React.Fragment key={item.id}>
+                {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
+                  <div className="space-y-1">
+                    <DottedLine rightAlign={data.musicProgram.sacramentHymnNumber}>
+                      <span>Sacrament Hymn</span>
+                    </DottedLine>
+                    <div className="text-center py-1">
+                      <p className="italic">
+                        <a
+                          href={getSongUrl(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 underline hover:text-blue-900"
+                        >
+                          {data.musicProgram.sacramentHymnTitle || getSongTitle(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="text-center py-3">
+                  <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
+                </div>
+              </React.Fragment>
             ) : null
-          ))}
+         ))}
 
           {/* Closing Hymn */}
           {(data.musicProgram.closingHymnNumber || data.musicProgram.closingHymnTitle) && (
@@ -493,9 +493,30 @@ export default function BulletinPreview({ data, hideTabs = false }: BulletinPrev
               <h2 className="text-lg font-bold text-gray-900 font-sans">Bearing of Testimonies</h2>
             </div>
           ) : item.type === 'sacrament' ? (
-            <div key={item.id} className="text-center py-3">
-              <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
-            </div>
+            <React.Fragment key={item.id}>
+              {(data.musicProgram.sacramentHymnNumber || data.musicProgram.sacramentHymnTitle) && (
+                <div className="space-y-1">
+                  <DottedLine rightAlign={data.musicProgram.sacramentHymnNumber}>
+                    <span>Sacrament Hymn</span>
+                  </DottedLine>
+                  <div className="text-center py-1">
+                    <p className="italic">
+                      <a
+                        href={getSongUrl(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 underline hover:text-blue-900"
+                      >
+                        {data.musicProgram.sacramentHymnTitle || getSongTitle(data.musicProgram.sacramentHymnNumber, data.musicProgram.sacramentHymnType || 'hymn')}
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="text-center py-3">
+                <h2 className="text-lg font-bold text-gray-900 font-sans">Administration of the Sacrament</h2>
+              </div>
+            </React.Fragment>
           ) : null
         ))}
 

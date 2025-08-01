@@ -1,17 +1,37 @@
 {
-  "name": "vite-react-typescript-starter",
-  "private": true,
-  "version": "0.0.0",
+  "name": "mywardbulletin",
+  "description": "A modern, customizable bulletin creation tool for LDS wards and branches",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": false,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/MyWardBulletin.git"
+  },
+  "keywords": [
+    "bulletin",
+    "lds",
+    "church",
+    "react",
+    "typescript",
+    "supabase"
+  ],
+  "author": "Your Name <your-email@example.com>",
+  "contributors": [],
+  "bugs": {
+    "url": "https://github.com/yourusername/MyWardBulletin/issues"
+  },
+  "homepage": "https://github.com/yourusername/MyWardBulletin#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-
     "@supabase/supabase-js": "^2.50.5",
     "@tanstack/react-query": "^5.83.0",
     "@types/qrcode": "^1.5.5",

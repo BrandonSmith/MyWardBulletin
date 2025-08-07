@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { sanitizeHtml } from "../lib/sanitizeHtml";
+import { decodeHtml } from '../lib/decodeHtml';
 import { LDS_IMAGES, getImageById } from '../data/images';
 
 // Function to format date from ISO format to natural format
@@ -176,14 +177,8 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           <h2 className="text-xl font-bold mb-4 print:!text-3xl print:!text-black">Announcements & Events</h2>
           <ul className="space-y-4">
             {data.announcements?.map((a: any, idx: number) => {
-              // Try to decode HTML entities if they're double-encoded
-              const decodedContent = a.content
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'");
-              
+              const decodedContent = sanitizeHtml(decodeHtml(a.content));
+
               return (
                 <li key={idx}>
                   {/* Audience and Category labels */}

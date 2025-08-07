@@ -48,6 +48,8 @@ export default function PublicBulletinPage() {
     date: publicBulletin.date || '',
     meetingType: publicBulletin.meeting_type || '',
     theme: publicBulletin.theme || '',
+    imageId: publicBulletin.imageId || 'none',
+    imagePosition: publicBulletin.imagePosition || { x: 50, y: 50 },
     bishopricMessage: publicBulletin.bishopric_message || '',
     announcements: publicBulletin.announcements || [],
     meetings: publicBulletin.meetings || [],

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { supabase, isSupabaseConfigured, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
+import { supabase, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
 import BulletinForm from '../components/BulletinForm';
 import BulletinPreview from '../components/BulletinPreview';
 import QRCodeGenerator from '../components/QRCodeGenerator';
@@ -78,7 +78,7 @@ function EditorApp() {
 
   // Move DEFAULT_KEYS and getDefault above useState
   const DEFAULT_KEYS: Record<
-    'wardName' | 'presiding' | 'conducting' | 'chorister' | 'organist' | 'wardLeadership' | 'missionaries',
+    'wardName' | 'presiding' | 'conducting' | 'chorister' | 'organist' | 'wardLeadership' | 'missionaries' | 'wardMissionaries',
     string
   > = {
     wardName: 'default_wardName',
@@ -88,12 +88,13 @@ function EditorApp() {
     organist: 'default_organist',
     wardLeadership: 'default_wardLeadership',
     missionaries: 'default_missionaries',
+    wardMissionaries: 'default_wardMissionaries',
   };
   function getDefault<K extends keyof typeof DEFAULT_KEYS, T>(key: K, fallback: T): T {
     try {
       const val = localStorage.getItem(DEFAULT_KEYS[key]);
       if (val) {
-        if (key === 'wardLeadership' || key === 'missionaries') {
+        if (key === 'wardLeadership' || key === 'missionaries' || key === 'wardMissionaries') {
           try { return JSON.parse(val) as T; } catch { return fallback; }
         }
         return val as T;
@@ -171,7 +172,8 @@ function EditorApp() {
         { title: 'Building Representative', name: '', phone: '' },
         { title: 'Temple & Family History', name: '', phone: '' }
       ]),
-      missionaries: getDefault('missionaries', [])
+      missionaries: getDefault('missionaries', []),
+      wardMissionaries: getDefault('wardMissionaries', [])
     };
   }
 
@@ -294,7 +296,8 @@ function EditorApp() {
       { title: 'Building Representative', name: '', phone: '' },
       { title: 'Temple & Family History', name: '', phone: '' }
     ],
-    missionaries: bulletin.missionaries || []
+    missionaries: bulletin.missionaries || [],
+    wardMissionaries: bulletin.wardMissionaries || []
   });
 
   const handleBulletinDataChange = (newData: BulletinData) => {
@@ -359,7 +362,7 @@ function EditorApp() {
   // Load active bulletin on startup (do not automatically load latest)
   useEffect(() => {
     const fetchInitialBulletin = async () => {
-      if (!user || !isSupabaseConfigured()) return;
+      if (!user) return;
       if (currentBulletinId || hasUnsavedChanges) return;
       const bulletinId = activeBulletinId;
       try {
@@ -386,10 +389,6 @@ function EditorApp() {
   };
 
   const handleSaveBulletin = async () => {
-    if (!isSupabaseConfigured()) {
-      toast.error('Please connect to Supabase first to save bulletins.');
-      return;
-    }
     if (!user) {
       // Save draft before showing auth modal
       await robustService.saveDraftBeforeAuth(bulletinData);
@@ -532,7 +531,8 @@ function EditorApp() {
               { title: 'Building Representative', name: '', phone: '' },
               { title: 'Temple & Family History', name: '', phone: '' }
             ],
-            missionaries: bulletin.missionaries || []
+            missionaries: bulletin.missionaries || [],
+            wardMissionaries: bulletin.wardMissionaries || []
           };
 
           setBulletinData(loadedData);
@@ -593,7 +593,8 @@ function EditorApp() {
         { title: 'Building Representative', name: '', phone: '' },
         { title: 'Temple & Family History', name: '', phone: '' }
       ],
-      missionaries: bulletin.missionaries || []
+      missionaries: bulletin.missionaries || [],
+      wardMissionaries: bulletin.wardMissionaries || []
     };
 
     setBulletinData(loadedData);
@@ -682,6 +683,46 @@ function EditorApp() {
   const handleExportPDF = async () => {
     if (printPage1Ref.current && printPage2Ref.current) {
       try {
+        // Preload images to ensure they're available for PDF generation
+        const preloadImages = async () => {
+          const imagePromises: Promise<void>[] = [];
+          
+          // Get all images in the print layout
+          const images = printPage1Ref.current?.querySelectorAll('img') || [];
+          images.forEach((img) => {
+            if (img.src && !img.complete) {
+              const promise = new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve(); // Continue even if image fails to load
+              });
+              imagePromises.push(promise);
+            }
+          });
+          
+          const images2 = printPage2Ref.current?.querySelectorAll('img') || [];
+          images2.forEach((img) => {
+            if (img.src && !img.complete) {
+              const promise = new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve(); // Continue even if image fails to load
+              });
+              imagePromises.push(promise);
+            }
+          });
+          
+          // Wait for all images to load (with timeout)
+          await Promise.race([
+            Promise.all(imagePromises),
+            new Promise(resolve => setTimeout(resolve, 3000)) // 3 second timeout
+          ]);
+        };
+
+        // Wait for images to load
+        await preloadImages();
+
+        // Small delay to ensure layout is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Optimized scale for better file size while maintaining quality
         const scale = 1.5;
         const marginX = 0; // extra horizontal margin handled by centering
@@ -967,11 +1008,10 @@ function EditorApp() {
                       setShowAuthModal(true);
                       setShowMobileMenu(false);
                     }}
-                    disabled={!isSupabaseConfigured()}
                     className="w-full flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     <LogIn className="w-4 h-4 mr-2" />
-                    {isSupabaseConfigured() ? 'Sign In' : 'Sign In (Setup Required)'}
+                    Sign In
                   </button>
                 )}
               </div>
@@ -1073,7 +1113,7 @@ function EditorApp() {
                   ×
                 </button>
               </div>
-                {user && isSupabaseConfigured() ? (
+                {user ? (
                   <QRCodeGenerator
                     currentActiveBulletinId={activeBulletinId}
                     onActiveBulletinSelect={handleActiveBulletinSelect}

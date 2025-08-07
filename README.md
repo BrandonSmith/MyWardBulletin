@@ -19,10 +19,15 @@ A modern, customizable bulletin creation tool for LDS wards and branches.
 2. **Configure Supabase**
    - Create a new project at [supabase.com](https://supabase.com)
    - Go to Settings → API to get your URL and anon key
-   - Create a `.env` file in the project root with your credentials:
-   ```bash
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key
+   - Replace the hardcoded values in `src/lib/supabase.ts` and `api/public-bulletin.ts` with your actual credentials:
+   ```typescript
+   // In src/lib/supabase.ts
+   const supabaseUrl = 'https://your-project.supabase.co'
+   const supabaseAnonKey = 'your-anon-key'
+   
+   // In api/public-bulletin.ts
+   const supabaseUrl = 'https://your-project.supabase.co';
+   const supabaseAnonKey = 'your-anon-key';
    ```
 
 3. **Start development server**

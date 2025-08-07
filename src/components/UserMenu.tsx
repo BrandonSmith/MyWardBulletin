@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, LogOut, Save, FileText, Settings, MessageSquare } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface UserMenuProps {
   user: any;
@@ -28,9 +28,7 @@ export default function UserMenu({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSignOut = async () => {
-    if (isSupabaseConfigured() && supabase) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
     onSignOut();
     setIsOpen(false);
   };

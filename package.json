@@ -3,26 +3,8 @@
   "description": "A modern, customizable bulletin creation tool for LDS wards and branches",
   "version": "1.0.0",
   "license": "MIT",
-  "private": false,
+  "private": true,
   "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/MyWardBulletin.git"
-  },
-  "keywords": [
-    "bulletin",
-    "lds",
-    "church",
-    "react",
-    "typescript",
-    "supabase"
-  ],
-  "author": "Your Name <your-email@example.com>",
-  "contributors": [],
-  "bugs": {
-    "url": "https://github.com/yourusername/MyWardBulletin/issues"
-  },
-  "homepage": "https://github.com/yourusername/MyWardBulletin#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

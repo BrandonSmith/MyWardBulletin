@@ -79,6 +79,12 @@ export interface WardLeadershipEntry {
 export interface MissionaryEntry {
   name: string;
   phone?: string;
+}
+
+export interface WardMissionaryEntry {
+  name: string;
+  mission?: string;
+  missionAddress?: string;
   email?: string;
 }
 
@@ -97,4 +103,7 @@ export interface BulletinData {
   leadership: Leadership;
   wardLeadership: WardLeadershipEntry[];
   missionaries: MissionaryEntry[];
+  wardMissionaries: WardMissionaryEntry[];
+  imageId?: string; // ID of selected image from LDS_IMAGES
+  imagePosition?: { x: number; y: number }; // Image positioning coordinates
 }

@@ -1,16 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Hardcoded Supabase configuration - replace with your actual values
+const supabaseUrl = 'https://mbhllitfppuhosjzirgh.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaGxsaXRmcHB1aG9zanppcmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MzA5MjUsImV4cCI6MjA2ODAwNjkyNX0.XUwI_bOzyBRDGHWtkUeRhoWffDesg3KFqHQbaXdM71Y'
 
-// Create a conditional Supabase client
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Helper function to check if Supabase is configured
+// Always return true since we're using hardcoded configuration
 export const isSupabaseConfigured = () => {
-  return supabase !== null
+  return true
 }
 // Database types
 export interface Database {
@@ -114,8 +113,6 @@ function generateUniqueBulletinSlug(userId: string, date: string): string {
 
 // Helper function to get user's profile_slug
 async function getUserProfileSlug(userId: string): Promise<string | null> {
-  if (!supabase) throw new Error('Supabase not configured');
-  
   try {
     const { data, error } = await supabase
       .from('users')
@@ -137,28 +134,24 @@ async function getUserProfileSlug(userId: string): Promise<string | null> {
 // Token service functions
 export const tokenService = {
   async saveToken(userId: string, key: string, value: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     // Security: Removed debug logging of sensitive data
 
     let data, error;
     try {
-      ({ data, error } = await withTimeout(
-        supabase
-          .from('tokens')
-          .upsert({
-            key,
-            value,
-            created_by: userId
-          }, {
-            onConflict: 'key,created_by'
-          })
-          .select()
-          .single()
-      ));
-    } catch (timeoutError) {
-      console.error('Token save timed out:', timeoutError);
-      throw timeoutError;
+      const { data, error } = await supabase
+        .from('tokens')
+        .upsert({
+          key,
+          value,
+          created_by: userId
+        }, {
+          onConflict: 'key,created_by'
+        })
+        .select()
+        .single();
+    } catch (error) {
+      console.error('Token save error:', error);
+      throw error;
     }
     
     if (error) {
@@ -170,24 +163,17 @@ export const tokenService = {
   },
 
   async getToken(userId: string, key: string): Promise<string | null> {
-    if (!supabase) throw new Error('Supabase not configured');
-
     try {
-      const { data, error } = await withTimeout(
-        supabase
-          .from('tokens')
-          .select('value')
-          .eq('key', key)
-          .eq('created_by', userId)
-          .single()
-      );
+      const { data, error } = await supabase
+        .from('tokens')
+        .select('value')
+        .eq('key', key)
+        .eq('created_by', userId)
+        .single();
 
       if (error) return null;
       return data?.value || null;
     } catch (err: any) {
-      if (err && err.message && err.message.includes('timed out')) {
-        throw err;
-      }
       console.error('Token fetch error:', err);
       return null;
     }
@@ -197,8 +183,6 @@ export const tokenService = {
 // User service functions
 export const userService = {
   async checkProfileSlugAvailability(profileSlug: string, currentUserId?: string): Promise<boolean> {
-    if (!supabase) throw new Error('Supabase not configured');
-
     const { data, error } = await supabase
       .from('users')
       .select('id')
@@ -218,8 +202,6 @@ export const userService = {
   },
 
   async updateProfileSlug(userId: string, profileSlug: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     const sanitized = profileSlug
       .toLowerCase()
       .trim()
@@ -248,7 +230,6 @@ export const userService = {
   },
 
   async getUserProfile(userId: string) {
-    if (!supabase) throw new Error('Supabase not configured');
     const { data, error } = await supabase
       .from('users')
       .select('email, profile_slug, role, active_bulletin_id') // Only select existing columns
@@ -258,7 +239,6 @@ export const userService = {
   },
 
   async updateUserDefault(userId: string, field: 'default_ward_name' | 'default_presiding' | 'default_music_director' | 'default_organist' | 'default_conducting' | 'default_chorister', value: string) {
-    if (!supabase) throw new Error('Supabase not configured');
     const { error } = await supabase
       .from('users')
       .update({ [field]: value })
@@ -267,8 +247,6 @@ export const userService = {
   },
 
   async updateActiveBulletinId(userId: string, bulletinId: string | null) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     const { error } = await supabase
       .from('users')
       .update({ active_bulletin_id: bulletinId })
@@ -291,8 +269,6 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise
 // Bulletin service functions
 export const bulletinService = {
   async saveBulletin(bulletinData: any, userId: string, bulletinId?: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
@@ -349,6 +325,9 @@ export const bulletinService = {
       leadership: bulletinData.leadership || {},
       wardLeadership: bulletinData.wardLeadership || [],
       missionaries: bulletinData.missionaries || [],
+      wardMissionaries: bulletinData.wardMissionaries || [],
+      imageId: bulletinData.imageId || 'none',
+      imagePosition: bulletinData.imagePosition || { x: 50, y: 50 },
     };
     console.log('[DEBUG] saveBulletin: prepared bulletin record', bulletinRecord);
 
@@ -368,6 +347,9 @@ export const bulletinService = {
         { key: `bulletin-${slug}-leadership`, value: JSON.stringify(bulletinData.leadership || {}), created_by: userId },
         { key: `bulletin-${slug}-wardLeadership`, value: JSON.stringify(bulletinData.wardLeadership || []), created_by: userId },
         { key: `bulletin-${slug}-missionaries`, value: JSON.stringify(bulletinData.missionaries || []), created_by: userId },
+        { key: `bulletin-${slug}-wardMissionaries`, value: JSON.stringify(bulletinData.wardMissionaries || []), created_by: userId },
+        { key: `bulletin-${slug}-image`, value: bulletinData.imageId || 'none', created_by: userId },
+        { key: `bulletin-${slug}-imagePosition`, value: JSON.stringify(bulletinData.imagePosition || { x: 50, y: 50 }), created_by: userId },
       ];
       // Security: Removed debug logging
       let data, error;
@@ -473,8 +455,6 @@ export const bulletinService = {
     }
   },
   async getUserBulletins(userId: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     // Always try to get bulletins from local storage first
     const localBulletins = this.getFromLocalStorage().filter(b => b.created_by === userId);
     console.log('Local bulletins for user:', userId, localBulletins);
@@ -593,8 +573,6 @@ export const bulletinService = {
   },
 
   async getBulletinById(bulletinId: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     // Try local storage first
     const localBulletins = this.getFromLocalStorage();
     const localBulletin = localBulletins.find(b => b.id === bulletinId);
@@ -613,10 +591,11 @@ export const bulletinService = {
     const userId = data.created_by;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
+    const [wardName, theme, image, imagePosition, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = await Promise.all([
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-image`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -627,6 +606,7 @@ export const bulletinService = {
       tokenService.getToken(userId, `bulletin-${data.slug}-leadership`),
       tokenService.getToken(userId, `bulletin-${data.slug}-wardLeadership`),
       tokenService.getToken(userId, `bulletin-${data.slug}-missionaries`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-wardMissionaries`),
     ]);
 
     return {
@@ -647,14 +627,15 @@ export const bulletinService = {
       leadership: leadership ? JSON.parse(leadership) : {},
       wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
       missionaries: missionaries ? JSON.parse(missionaries) : [],
+      wardMissionaries: wardMissionaries ? JSON.parse(wardMissionaries) : [],
+      imageId: image || 'none',
+      imagePosition: imagePosition ? JSON.parse(imagePosition) : { x: 50, y: 50 },
       created_at: data.created_at,
       updated_at: data.created_at
     };
   },
 
   async getLatestBulletinByProfileSlug(profileSlug: string) {
-    if (!supabase) throw new Error('Supabase not configured');
-
     // First get the user by profile_slug and their active bulletin
     let userData, userError;
     try {
@@ -715,10 +696,11 @@ export const bulletinService = {
     const userId = userData.id;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
+    const [wardName, theme, image, imagePosition, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-image`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -739,6 +721,8 @@ export const bulletinService = {
       date: data.meeting_date,
       meeting_type: data.meeting_type,
       theme: theme || '',
+      imageId: image || 'none',
+      imagePosition: imagePosition ? JSON.parse(imagePosition) : { x: 50, y: 50 },
       bishopric_message: bishopric || '',
       announcements: announcements ? JSON.parse(announcements) : [],
       meetings: meetings ? JSON.parse(meetings) : [],
@@ -771,7 +755,6 @@ export const bulletinService = {
     }
 
     // For database bulletins, proceed with database deletion
-    if (!supabase) throw new Error('Supabase not configured');
 
     try {
       // Get bulletin info first to clean up tokens
@@ -812,7 +795,6 @@ export const bulletinService = {
 // Robust service for connection/session health and draft protection
 export const robustService = {
   async testAndRecoverConnection(): Promise<boolean> {
-    if (!supabase) return false;
     try {
       const { data, error } = await supabase
         .from('users')
@@ -830,7 +812,6 @@ export const robustService = {
     }
   },
   async validateSession(): Promise<any> {
-    if (!supabase) return null;
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error || !session) {

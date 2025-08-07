@@ -1,7 +1,6 @@
-import React, { forwardRef, useEffect } from 'react';
-import QRCode from 'qrcode';
+import React, { forwardRef } from 'react';
 import { sanitizeHtml } from "../lib/sanitizeHtml";
-import { SHORT_DOMAIN, FULL_DOMAIN } from "../lib/config";
+import { LDS_IMAGES, getImageById } from '../data/images';
 
 // Function to format date from ISO format to natural format
 function formatDate(dateString: string): string {
@@ -33,31 +32,6 @@ function formatDate(dateString: string): string {
 }
 
 function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React.RefObject<HTMLDivElement>, page2?: React.RefObject<HTMLDivElement> } }) {
-  const profileSlug = data?.profileSlug || 'your-profile-slug';
-  const useShortDomain = true;
-  const qrUrl = `https://${useShortDomain ? SHORT_DOMAIN : FULL_DOMAIN}/${profileSlug}`;
-
-  useEffect(() => {
-    const canvas = document.getElementById('print-qr-code') as HTMLCanvasElement;
-    if (!canvas) return;
-
-    QRCode.toCanvas(
-      canvas,
-      qrUrl,
-      {
-        width: 200, // Increased size for better mobile scanning
-        margin: 2, // Increased margin for better contrast
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF',
-        },
-        errorCorrectionLevel: 'H' // Highest error correction for better mobile scanning
-      },
-      (err) => {
-        if (err) console.error('QR Code render error:', err);
-      }
-    );
-  }, [qrUrl]);
 
   // Add audienceLabels mapping at the top
   const audienceLabels = {
@@ -80,20 +54,90 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
         className="print-page landscape w-[11in] h-[8.5in] flex"
         style={{ pageBreakAfter: 'always' }}
       >
-        {/* Back Cover (left) */}
-        <div className="w-1/2 pr-16 py-8 flex flex-col justify-center items-center text-center border-r border-gray-300 print:!text-xl print:!text-black">
-          <p className="text-lg font-semibold mb-4 print:!text-2xl print:!text-black">Digital Version</p>
-          <canvas
-            id="print-qr-code"
-            width={160}
-            height={160}
-            className="mb-4"
-          />
-          <p className="text-xs font-semibold text-gray-600 break-all print:!text-lg print:!text-black">{qrUrl}</p>
-          <p className="mt-2 font-semibold text-xs text-gray-500 print:!text-lg print:!text-black">
-            <span className="font-semibold print:!text-black">Build your own at <span className="font-semibold print:!text-black">MyWardBulletin.com</span></span>
-          </p>
-        </div>
+                 {/* Back Cover (left) - Ward Information */}
+         <div className="w-1/2 pr-16 py-8 flex flex-col justify-start items-start text-left border-r border-gray-300 print:!text-xl print:!text-black overflow-y-auto">
+           <h2 className="text-2xl font-bold mb-4 print:!text-3xl print:!text-black w-full text-center">WARD LEADERSHIP</h2>
+           
+                       {/* Ward Leadership Table */}
+            {data.wardLeadership && data.wardLeadership.length > 0 && (
+              <div className="w-full mb-6">
+                <table className="w-full text-xs print:!text-sm print:!text-black">
+                  <tbody>
+                    {data.wardLeadership.map((leader: any, idx: number) => (
+                      <tr key={idx}>
+                        <td className="py-1 font-semibold w-1/3">{leader.title}</td>
+                        <td className="py-1 w-1/3">{leader.name}</td>
+                        <td className="py-1 w-1/3 text-right">
+                          {leader.phone && <span className="mr-1">📞</span>}
+                          {leader.phone || ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Missionaries Table */}
+            {data.missionaries && data.missionaries.length > 0 && (
+              <div className="w-full mb-6">
+                <h3 className="text-lg font-semibold mb-3 print:!text-xl print:!text-black">MISSIONARIES</h3>
+                <table className="w-full text-xs print:!text-sm print:!text-black">
+                  <tbody>
+                    {data.missionaries.map((missionary: any, idx: number) => (
+                      <tr key={idx}>
+                                                 <td className="py-1 font-semibold w-1/2">{missionary.name}</td>
+                         <td className="py-1 w-1/2 text-right">
+                          {missionary.phone && <span className="mr-1">📞</span>}
+                          {missionary.phone || ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Missionaries from our ward */}
+            {data.wardMissionaries && data.wardMissionaries.length > 0 && (
+              <div className="w-full mb-6">
+                <h3 className="text-lg font-semibold mb-3 print:!text-xl print:!text-black">MISSIONARIES FROM OUR WARD</h3>
+                <table className="w-full text-xs print:!text-xs print:!text-black">
+                  <tbody>
+                    {data.wardMissionaries.map((missionary: any, idx: number) => (
+                      <tr key={idx} className={data.wardMissionaries.length > 4 ? "py-1" : "border-b border-gray-200 py-1"}>
+                        <td className="py-1 font-semibold w-1/3">{missionary.name}</td>
+                        <td className="py-1 w-1/3 text-xs">
+                          {missionary.mission && <span>📍 {missionary.mission}</span>}
+                        </td>
+                        <td className="py-1 w-1/3 text-xs">
+                          {missionary.email && <span>✉️ {missionary.email}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+           {/* Fallback message when no ward info is available */}
+           {(!data.wardLeadership || data.wardLeadership.length === 0) && 
+            (!data.missionaries || data.missionaries.length === 0) && 
+            (!data.wardMissionaries || data.wardMissionaries.length === 0) && (
+             <div className="w-full text-center text-gray-500 print:!text-black">
+               <p className="text-sm print:!text-base print:!text-black italic">
+                 Add ward information in the "Ward Info" tab to display leadership and missionary details here.
+               </p>
+             </div>
+           )}
+
+           {/* Footer */}
+           <div className="w-full mt-auto pt-4 border-t border-gray-300 text-center">
+             <p className="text-xs print:!text-sm print:!text-black text-gray-500">
+               <span className="font-semibold print:!text-black">Build your own at <span className="font-semibold print:!text-black">MyWardBulletin.com</span></span>
+             </p>
+           </div>
+         </div>
 
         {/* Front Cover (right) */}
         <div className="w-1/2 pl-12 pr-2 py-8 flex flex-col justify-center items-center text-center print:!text-xl print:!text-black">
@@ -101,6 +145,25 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           <p className="text-lg mb-1 print:!text-2xl print:!text-black">{formatDate(data.date)}</p>
           <p className="text-base mb-1 print:!text-xl print:!text-black">The Church of Jesus Christ of Latter-day Saints</p>
           <p className="text-base mb-4 print:!text-xl print:!text-black">{data.meetingType === 'sacrament' ? 'Sacrament Meeting' : data.meetingType}</p>
+
+          {/* Image Display - moved below text, above theme */}
+          {data.imageId && data.imageId !== 'none' && (
+            <div className="mb-4">
+              {(() => {
+                const selectedImage = getImageById(data.imageId);
+                console.log('Selected image:', selectedImage); // Debug log
+                return selectedImage.url ? (
+                  <img
+                    src={selectedImage.url}
+                    alt={selectedImage.name}
+                    className="max-w-full max-h-80 object-contain print:!max-h-96"
+                    onLoad={() => console.log('Image loaded successfully:', selectedImage.name)} // Debug log
+                    onError={(e) => console.error('Image failed to load:', selectedImage.url, e)} // Debug log
+                  />
+                ) : null;
+              })()}
+            </div>
+          )}
 
           {data.theme && <p className="font-semibold italic text-sm text-gray-600 print:!text-lg print:!text-black">"{data.theme}"</p>}
         </div>
@@ -112,16 +175,27 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
         <div className="w-1/2 pl-8 pr-18 py-8 border-r border-gray-300 print:!text-xl print:!text-black">
           <h2 className="text-xl font-bold mb-4 print:!text-3xl print:!text-black">Announcements & Events</h2>
           <ul className="space-y-4">
-            {data.announcements?.map((a: any, idx: number) => (
-              <li key={idx}>
-                {/* Audience label */}
-                <div className="font-bold print:!text-lg print:!text-black mb-1">
-                  {audienceLabels[(a.audience as keyof typeof audienceLabels) || 'ward']}
-                </div>
-                <div className="font-semibold print:!text-2xl print:!text-black">{a.title}</div>
-                <div className="text-sm print:!text-lg print:!text-black" dangerouslySetInnerHTML={{ __html: sanitizeHtml(a.content) }} />
-              </li>
-            ))}
+            {data.announcements?.map((a: any, idx: number) => {
+              // Try to decode HTML entities if they're double-encoded
+              const decodedContent = a.content
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
+              
+              return (
+                <li key={idx}>
+                  {/* Audience and Category labels */}
+                  <div className="font-bold print:!text-lg print:!text-black mb-1">
+                    {audienceLabels[(a.audience as keyof typeof audienceLabels) || 'ward']}
+                    <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded ml-2">{a.category}</span>
+                  </div>
+                  <div className="font-semibold print:!text-2xl print:!text-black">{a.title}</div>
+                  <div className="text-sm print:!text-lg print:!text-black" dangerouslySetInnerHTML={{ __html: decodedContent }} />
+                </li>
+              );
+            })}
           </ul>
         </div>
 

@@ -173,7 +173,9 @@ function EditorApp() {
         { title: 'Temple & Family History', name: '', phone: '' }
       ]),
       missionaries: getDefault('missionaries', []),
-      wardMissionaries: getDefault('wardMissionaries', [])
+      wardMissionaries: getDefault('wardMissionaries', []),
+      imageId: 'none',
+      imagePosition: { x: 50, y: 50 }
     };
   }
 
@@ -194,7 +196,13 @@ function EditorApp() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as BulletinData;
-        setBulletinData(parsed);
+        // Ensure image fields are present
+        const draftWithImages = {
+          ...parsed,
+          imageId: parsed.imageId || 'none',
+          imagePosition: parsed.imagePosition || { x: 50, y: 50 }
+        };
+        setBulletinData(draftWithImages);
         setHasUnsavedChanges(true);
       } catch (e) {
         console.error('Failed to parse saved draft:', e);
@@ -297,7 +305,9 @@ function EditorApp() {
       { title: 'Temple & Family History', name: '', phone: '' }
     ],
     missionaries: bulletin.missionaries || [],
-    wardMissionaries: bulletin.wardMissionaries || []
+    wardMissionaries: bulletin.wardMissionaries || [],
+    imageId: bulletin.imageId || 'none',
+    imagePosition: bulletin.imagePosition || { x: 50, y: 50 }
   });
 
   const handleBulletinDataChange = (newData: BulletinData) => {
@@ -372,9 +382,15 @@ function EditorApp() {
           setBulletinData(data);
           setCurrentBulletinId(bulletin.id);
           setHasUnsavedChanges(false);
+          // Clear any draft since we're loading a saved bulletin
+          localStorage.removeItem(DRAFT_KEY);
         }
       } catch (err) {
         console.error('Failed to load initial bulletin:', err);
+        // If loading fails, clear the active bulletin ID to prevent infinite retries
+        if (activeBulletinId) {
+          await handleActiveBulletinSelect(null);
+        }
       }
     };
     fetchInitialBulletin();
@@ -439,6 +455,10 @@ function EditorApp() {
       if (didTimeout) return; // Already handled by catch
       setCurrentBulletinId(savedBulletin.id);
       setHasUnsavedChanges(false);
+      
+      // Update active bulletin ID to persist the selection
+      await handleActiveBulletinSelect(savedBulletin.id);
+      
       toast.success(currentBulletinId ? 'Bulletin updated successfully!' : 'Bulletin saved successfully!', {
         toastId: 'bulletin-save-success'
       });
@@ -532,7 +552,9 @@ function EditorApp() {
               { title: 'Temple & Family History', name: '', phone: '' }
             ],
             missionaries: bulletin.missionaries || [],
-            wardMissionaries: bulletin.wardMissionaries || []
+            wardMissionaries: bulletin.wardMissionaries || [],
+            imageId: bulletin.imageId || 'none',
+            imagePosition: bulletin.imagePosition || { x: 50, y: 50 }
           };
 
           setBulletinData(loadedData);
@@ -594,7 +616,9 @@ function EditorApp() {
         { title: 'Temple & Family History', name: '', phone: '' }
       ],
       missionaries: bulletin.missionaries || [],
-      wardMissionaries: bulletin.wardMissionaries || []
+      wardMissionaries: bulletin.wardMissionaries || [],
+      imageId: bulletin.imageId || 'none',
+      imagePosition: bulletin.imagePosition || { x: 50, y: 50 }
     };
 
     setBulletinData(loadedData);
@@ -1051,7 +1075,19 @@ function EditorApp() {
                 )}
               </div>
               <div ref={bulletinRef}>
-                <BulletinPreview data={bulletinData} />
+                <BulletinPreview 
+                  data={bulletinData} 
+                  onImagePositionChange={(position) => {
+                    // Only update if the position actually changed and is different from current
+                    const currentPosition = bulletinData.imagePosition || { x: 50, y: 50 };
+                    if (position.x !== currentPosition.x || position.y !== currentPosition.y) {
+                      setBulletinData(prev => ({
+                        ...prev,
+                        imagePosition: position
+                      }));
+                    }
+                  }}
+                />
               </div>
               {user && currentBulletinId && activeBulletinId !== currentBulletinId && (
                 <button

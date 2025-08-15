@@ -152,14 +152,11 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
             <div className="mb-4">
               {(() => {
                 const selectedImage = getImageById(data.imageId);
-                console.log('Selected image:', selectedImage); // Debug log
                 return selectedImage.url ? (
                   <img
                     src={selectedImage.url}
                     alt={selectedImage.name}
                     className="max-w-full max-h-80 object-contain print:!max-h-96"
-                    onLoad={() => console.log('Image loaded successfully:', selectedImage.name)} // Debug log
-                    onError={(e) => console.error('Image failed to load:', selectedImage.url, e)} // Debug log
                   />
                 ) : null;
               })()}
@@ -184,10 +181,12 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
                   {/* Audience and Category labels */}
                   <div className="font-bold print:!text-lg print:!text-black mb-1">
                     {audienceLabels[(a.audience as keyof typeof audienceLabels) || 'ward']}
-                    <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded ml-2">{a.category}</span>
+                    {a.category && a.category !== 'general' && (
+                      <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded ml-2">{a.category}</span>
+                    )}
                   </div>
-                  <div className="font-semibold print:!text-2xl print:!text-black">{a.title}</div>
-                  <div className="text-sm print:!text-lg print:!text-black" dangerouslySetInnerHTML={{ __html: decodedContent }} />
+                  <div className="font-semibold print:!text-base print:!text-black">{a.title}</div>
+                  <div className="text-sm print:!text-sm print:!text-black" dangerouslySetInnerHTML={{ __html: decodedContent }} />
                 </li>
               );
             })}
@@ -196,13 +195,13 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
 
         {/* Program (right) */}
         <div className="w-1/2 pl-20 pr-8 py-8 text-center print:!text-xl print:!text-black">
-          <h2 className="text-3xl font-bold mb-1 font-serif print:!text-4xl print:!text-black">{data.wardName || 'Ward Name'}</h2>
-          <h3 className="text-2xl font-bold mb-1 font-serif print:!text-3xl print:!text-black">
+          <h2 className="text-3xl font-bold mb-1 print:!text-4xl print:!text-black">{data.wardName || 'Ward Name'}</h2>
+          <h3 className="text-2xl font-bold mb-1 print:!text-3xl print:!text-black">
             {data.meetingType === 'sacrament' ? 'Sacrament Meeting' : 'Program'}
           </h3>
-          <p className="italic text-lg mb-6 font-serif print:!text-2xl print:!text-black">{formatDate(data.date)}</p>
+          <p className="italic text-lg mb-6 print:!text-2xl print:!text-black">{formatDate(data.date)}</p>
 
-          <table className="w-full text-[1.05rem] font-serif print:!text-lg print:!text-black" style={{ borderCollapse: 'separate', borderSpacing: '0 0.4em' }}>
+          <table className="w-full text-[1.05rem] print:!text-lg print:!text-black" style={{ borderCollapse: 'separate', borderSpacing: '0 0.4em' }}>
             <tbody>
               <ProgramTableRow label="Presiding" value={data.leadership?.presiding} />
               <ProgramTableRow label="Conducting" value={data.leadership?.conducting} />

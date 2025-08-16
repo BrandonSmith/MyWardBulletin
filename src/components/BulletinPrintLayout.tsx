@@ -158,14 +158,6 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
              </div>
            )}
            
-           {/* Fallback message when no ward info and no profile slug */}
-           {!hasWardInfo && !profile?.profile_slug && (
-             <div className="w-full text-center text-gray-500 print:!text-black">
-               <p className="text-sm print:!text-base print:!text-black italic">
-                 Add ward information in the "Ward Info" tab to display leadership and missionary details here.
-               </p>
-             </div>
-           )}
 
          </div>
 

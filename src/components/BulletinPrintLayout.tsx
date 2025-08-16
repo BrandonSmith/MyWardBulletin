@@ -128,7 +128,7 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
                 <table className="w-full text-xs print:!text-xs print:!text-black">
                   <tbody>
                     {filteredWardMissionaries.map((missionary: any, idx: number) => (
-                      <tr key={idx} className={filteredWardMissionaries.length > 4 ? "py-1" : "border-b border-gray-200 py-1 print:!border-b-0"}>
+                      <tr key={idx} className="py-1">
                         <td className="py-1 font-semibold w-1/3">{missionary.name}</td>
                         <td className="py-1 w-1/3 text-xs">
                           {missionary.mission && <span>📍 {missionary.mission}</span>}
@@ -240,19 +240,24 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
           </h3>
           <p className="italic text-lg mb-6 print:!text-2xl print:!text-black">{formatDate(data.date)}</p>
 
-          <table className="w-full text-[1.05rem] print:!text-lg print:!text-black" style={{ borderCollapse: 'separate', borderSpacing: '0 0.4em' }}>
+          <table className="w-full text-[1rem] print:!text-base print:!text-black" style={{ borderCollapse: 'separate', borderSpacing: '0 0.4em' }}>
             <tbody>
               <ProgramTableRow label="Presiding" value={data.leadership?.presiding} />
               <ProgramTableRow label="Conducting" value={data.leadership?.conducting} />
               <ProgramTableRow label="Chorister" value={data.leadership?.chorister} />
               <ProgramTableRow label={data.leadership?.organistLabel || 'Organist'} value={data.leadership?.organist} />
-              <ProgramTableRow label="Prelude Music" value={data.leadership?.preludeMusic} />
+              {data.leadership?.preludeMusic && (
+                <ProgramTableRow label="Prelude Music" value={data.leadership?.preludeMusic} />
+              )}
               <ProgramTableRow
                 label="Opening Hymn"
                 value={data.musicProgram?.openingHymnNumber}
                 extra={data.musicProgram?.openingHymnTitle}
               />
               <ProgramTableRow label="Invocation" value={data.prayers?.opening} />
+              <tr>
+                <td colSpan={3} className="text-center font-medium text-lg print:!text-xl print:!text-black">Ward Business</td>
+              </tr>
               {data.agenda?.map((item: any, idx: number) => (
                 item.type === 'speaker' ? (
                   <ProgramTableRow key={idx} label={item.speakerType === 'youth' ? 'Youth Speaker' : 'Speaker'} value={item.name} />
@@ -344,16 +349,16 @@ function ProgramTableRow({ label, value, extra }: { label: string, value?: strin
   return (
     <>
       <tr>
-        <td colSpan={3} className="py-[2px] print:!text-lg print:!text-black">
+        <td colSpan={3} className="py-[2px] print:!text-base print:!text-black">
           <div className="flex justify-between w-full">
-            <span className="text-left mr-2 whitespace-nowrap print:!text-lg print:!text-black">{label}</span>
-            <span className="text-right ml-2 whitespace-nowrap text-[0.95rem] print:!text-lg print:!text-black">{value}</span>
+            <span className="text-left mr-2 whitespace-nowrap print:!text-base print:!text-black">{label}</span>
+            <span className="text-right ml-2 whitespace-nowrap text-[0.9rem] print:!text-base print:!text-black">{value}</span>
           </div>
         </td>
       </tr>
       {extra && (
         <tr>
-          <td colSpan={3} className="pt-0 text-center italic text-black text-base print:!text-lg print:!text-black">{extra}</td>
+          <td colSpan={3} className="pt-0 text-center italic text-black text-sm print:!text-base print:!text-black">{extra}</td>
         </tr>
       )}
     </>

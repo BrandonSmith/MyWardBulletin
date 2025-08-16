@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare } from 'lucide-react';
+import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare, Repeat } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { supabase, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
+import { recurringAnnouncementsService } from '../lib/recurringAnnouncementsService';
 import BulletinForm from '../components/BulletinForm';
 import BulletinPreview from '../components/BulletinPreview';
 import QRCodeGenerator from '../components/QRCodeGenerator';
@@ -57,7 +58,11 @@ function EditorApp() {
   const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
   const [currentBulletinId, setCurrentBulletinId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(() => {
+    // If we loaded a draft during initialization, mark as having unsaved changes
+    const DRAFT_KEY = 'draft_bulletin';
+    return !!localStorage.getItem(DRAFT_KEY);
+  });
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Confirmation modal state
@@ -120,6 +125,34 @@ function EditorApp() {
     return agenda;
   }
 
+  async function populateWithRecurringAnnouncements(bulletin: BulletinData): Promise<BulletinData> {
+    try {
+      if (!profile?.profile_slug) return bulletin;
+      
+      const recurringAnnouncements = await recurringAnnouncementsService.getAnnouncementsForNewBulletin(profile.profile_slug);
+      
+      if (recurringAnnouncements.length > 0) {
+        const newAnnouncements = recurringAnnouncements.map(announcement => ({
+          id: Date.now().toString() + Math.random(),
+          title: announcement.title,
+          content: announcement.content,
+          category: announcement.category,
+          audience: announcement.audience
+        }));
+        
+        return {
+          ...bulletin,
+          announcements: [...bulletin.announcements, ...newAnnouncements]
+        };
+      }
+      
+      return bulletin;
+    } catch (error) {
+      console.error('Error populating with recurring announcements:', error);
+      return bulletin;
+    }
+  }
+
   function createBlankBulletin(): BulletinData {
     return {
       wardName: getDefault('wardName', ''),
@@ -180,7 +213,33 @@ function EditorApp() {
   }
 
   // Use a function to initialize bulletinData from localStorage defaults
-  const [bulletinData, setBulletinData] = useState<BulletinData>(() => createBlankBulletin());
+  const [bulletinData, setBulletinData] = useState<BulletinData>(() => {
+    // Check for draft first during initial state creation
+    const DRAFT_KEY = 'draft_bulletin';
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as BulletinData;
+        console.log('[DEBUG] Found draft during state initialization');
+        // Ensure all required fields exist for backward compatibility
+        const defaultBulletin = createBlankBulletin();
+        return {
+          ...defaultBulletin,
+          ...parsed,
+          imageId: parsed.imageId || 'none',
+          imagePosition: parsed.imagePosition || { x: 50, y: 50 },
+          wardMissionaries: parsed.wardMissionaries || [],
+          missionaries: parsed.missionaries || [],
+          wardLeadership: parsed.wardLeadership || defaultBulletin.wardLeadership
+        };
+      } catch (e) {
+        console.error('Failed to parse saved draft during initialization:', e);
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    }
+    console.log('[DEBUG] No draft found, creating blank bulletin');
+    return createBlankBulletin();
+  });
 
   const [showQRCode, setShowQRCode] = useState(false);
   const bulletinRef = useRef<HTMLDivElement>(null);
@@ -190,71 +249,127 @@ function EditorApp() {
   // Add a helper for draft key
   const DRAFT_KEY = 'draft_bulletin';
 
-  // Restore any saved draft on initial load
+  // Handle template loading only if no draft was loaded during initialization
   useEffect(() => {
-    const saved = localStorage.getItem(DRAFT_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as BulletinData;
-        // Ensure image fields are present
-        const draftWithImages = {
-          ...parsed,
-          imageId: parsed.imageId || 'none',
-          imagePosition: parsed.imagePosition || { x: 50, y: 50 }
-        };
-        setBulletinData(draftWithImages);
-        setHasUnsavedChanges(true);
-      } catch (e) {
-        console.error('Failed to parse saved draft:', e);
-      }
-    }
-  }, []);
-
-  // If no draft exists, load any active template on initial load
-  useEffect(() => {
-    const hasDraft = !!localStorage.getItem(DRAFT_KEY);
-    if (hasDraft) return;
-    const activeId = templateService.getActiveTemplateId();
-    if (activeId) {
-      const tmpl = templateService.getTemplate(activeId);
-      if (tmpl) {
-        setBulletinData(tmpl.data);
-        setHasUnsavedChanges(false);
+    const initializeApp = () => {
+      // Skip if we already loaded a draft during state initialization
+      const hasDraft = !!localStorage.getItem(DRAFT_KEY);
+      if (hasDraft) {
+        console.log('[DEBUG] Draft already loaded during state initialization');
         return;
       }
-    }
-    setBulletinData(createBlankBulletin());
-    setHasUnsavedChanges(false);
+
+      // Load template if no draft exists
+      const activeId = templateService.getActiveTemplateId();
+      if (activeId) {
+        const tmpl = templateService.getTemplate(activeId);
+        if (tmpl) {
+          console.log('[DEBUG] Loading template after initialization');
+          setBulletinData(tmpl.data);
+          setHasUnsavedChanges(false);
+          return;
+        }
+      }
+
+      // If no template and no draft, state initialization already set blank bulletin
+      console.log('[DEBUG] Using blank bulletin from state initialization');
+    };
+
+    initializeApp();
   }, []);
 
   // When returning to the page (e.g. after switching apps) re-check the session
   // and restore any draft from localStorage. This effect listens for focus,
   // visibilitychange, and pageshow so the draft is restored without needing
   // a manual refresh on mobile browsers like Safari.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        const savedDraft = localStorage.getItem(DRAFT_KEY);
-        if (savedDraft) {
-          try {
-            const parsed = JSON.parse(savedDraft) as BulletinData;
-            setBulletinData(parsed);
-            setHasUnsavedChanges(true);
-          } catch (err) {
-            console.error('Failed to restore draft:', err);
-          }
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', handleVisibility);
-    window.addEventListener('pageshow', handleVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('focus', handleVisibility);
-      window.removeEventListener('pageshow', handleVisibility);
-    };
-  }, []);
+  // Temporarily disabled visibility handler to test minimize issue
+  // useEffect(() => {
+  //   const handleVisibility = async () => {
+  //     if (document.visibilityState === 'visible') {
+  //       console.log('[DEBUG] Visibility handler triggered', {
+  //         hasUnsavedChanges,
+  //         currentBulletinId,
+  //         activeBulletinId,
+  //         user: !!user,
+  //         draftExists: !!localStorage.getItem(DRAFT_KEY)
+  //       });
+  //       
+  //       // First try to restore from draft
+  //       const savedDraft = localStorage.getItem(DRAFT_KEY);
+  //       if (savedDraft) {
+  //         try {
+  //           const parsed = JSON.parse(savedDraft) as BulletinData;
+  //           console.log('[DEBUG] Restoring from draft');
+  //           setBulletinData(parsed);
+  //           setHasUnsavedChanges(true);
+  //           return; // Draft restored, we're done
+  //         } catch (err) {
+  //           console.error('Failed to restore draft:', err);
+  //         }
+  //       }
+  //       
+  //       // If we have unsaved changes, don't overwrite - user is actively working
+  //       if (hasUnsavedChanges) {
+  //         console.log('[DEBUG] Has unsaved changes, keeping current state');
+  //         return; // Keep current state
+  //       }
+  //       
+  //       // If we have a current bulletin loaded, try to restore it
+  //       if (user && currentBulletinId) {
+  //         try {
+  //           console.log('[DEBUG] Restoring current bulletin:', currentBulletinId);
+  //           const bulletin = await bulletinService.getBulletinById(currentBulletinId);
+  //           const data = convertDbBulletinToData(bulletin);
+  //           setBulletinData(data);
+  //           setHasUnsavedChanges(false);
+  //           return; // Current bulletin restored
+  //         } catch (err) {
+  //           console.error('Failed to restore current bulletin on visibility change:', err);
+  //         }
+  //       }
+  //       
+  //       // No current bulletin, try to restore active bulletin if user is signed in
+  //       if (user && activeBulletinId) {
+  //         try {
+  //           console.log('[DEBUG] Restoring active bulletin:', activeBulletinId);
+  //           const bulletin = await bulletinService.getBulletinById(activeBulletinId);
+  //           const data = convertDbBulletinToData(bulletin);
+  //           setBulletinData(data);
+  //           setCurrentBulletinId(bulletin.id);
+  //           setHasUnsavedChanges(false);
+  //           return; // Active bulletin restored
+  //         } catch (err) {
+  //           console.error('Failed to restore active bulletin on visibility change:', err);
+  //         }
+  //       }
+  //       
+  //       // Fallback: restore template or blank bulletin only if nothing else worked
+  //       const activeTemplateId = templateService.getActiveTemplateId();
+  //       if (activeTemplateId) {
+  //         const tmpl = templateService.getTemplate(activeTemplateId);
+  //         if (tmpl) {
+  //           console.log('[DEBUG] Restoring template:', activeTemplateId);
+  //           setBulletinData(tmpl.data);
+  //           setHasUnsavedChanges(false);
+  //           return;
+  //         }
+  //       }
+  //       
+  //       // Final fallback: blank bulletin
+  //       console.log('[DEBUG] Falling back to blank bulletin');
+  //       setBulletinData(createBlankBulletin());
+  //       setHasUnsavedChanges(false);
+  //     }
+  //   };
+  //   document.addEventListener('visibilitychange', handleVisibility);
+  //   window.addEventListener('focus', handleVisibility);
+  //   window.addEventListener('pageshow', handleVisibility);
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', handleVisibility);
+  //     window.removeEventListener('focus', handleVisibility);
+  //     window.removeEventListener('pageshow', handleVisibility);
+  //   };
+  // }, [user, activeBulletinId, hasUnsavedChanges, currentBulletinId]);
 
   const convertDbBulletinToData = (bulletin: any): BulletinData => ({
     wardName: bulletin.ward_name,
@@ -369,20 +484,29 @@ function EditorApp() {
     }
   }, [user]);
 
-  // Load active bulletin on startup (do not automatically load latest)
+  // Load active bulletin on startup ONLY if no draft exists
   useEffect(() => {
     const fetchInitialBulletin = async () => {
       if (!user) return;
       if (currentBulletinId || hasUnsavedChanges) return;
+      
+      // CRITICAL: Don't load active bulletin if a draft exists
+      const hasDraft = !!localStorage.getItem(DRAFT_KEY);
+      if (hasDraft) {
+        console.log('[DEBUG] Skipping active bulletin load because draft exists');
+        return;
+      }
+      
       const bulletinId = activeBulletinId;
       try {
         if (bulletinId) {
+          console.log('[DEBUG] Loading active bulletin:', bulletinId);
           const bulletin = await bulletinService.getBulletinById(bulletinId);
           const data = convertDbBulletinToData(bulletin);
           setBulletinData(data);
           setCurrentBulletinId(bulletin.id);
           setHasUnsavedChanges(false);
-          // Clear any draft since we're loading a saved bulletin
+          // Only clear draft if we successfully loaded a bulletin
           localStorage.removeItem(DRAFT_KEY);
         }
       } catch (err) {
@@ -884,6 +1008,8 @@ function EditorApp() {
                 New Bulletin
               </button>
               
+              
+              
               <button
                 onClick={handleExportPDF}
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -969,6 +1095,8 @@ function EditorApp() {
                   New Bulletin
                 </button>
                 
+
+                
                 <button
                   onClick={() => {
                     handleExportPDF();
@@ -1050,7 +1178,11 @@ function EditorApp() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">Create Your Bulletin</h2>
-              <BulletinForm data={bulletinData} onChange={handleBulletinDataChange} />
+              <BulletinForm 
+                data={bulletinData} 
+                onChange={handleBulletinDataChange} 
+                profileSlug={profile?.profile_slug || undefined}
+              />
             </div>
           </div>
 
@@ -1081,10 +1213,10 @@ function EditorApp() {
                     // Only update if the position actually changed and is different from current
                     const currentPosition = bulletinData.imagePosition || { x: 50, y: 50 };
                     if (position.x !== currentPosition.x || position.y !== currentPosition.y) {
-                      setBulletinData(prev => ({
-                        ...prev,
+                      handleBulletinDataChange({
+                        ...bulletinData,
                         imagePosition: position
-                      }));
+                      });
                     }
                   }}
                 />

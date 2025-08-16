@@ -7,6 +7,8 @@ export interface Announcement {
   category: 'general' | 'baptism' | 'birthday' | 'calling' | 'activity' | 'service' | 'other';
   date?: string;
   audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake' | 'other';
+  imageId?: string; // Optional image for flyers/announcements
+  hideImageOnPrint?: boolean; // Hide image when printing
 }
 
 export interface Meeting {
@@ -104,6 +106,6 @@ export interface BulletinData {
   wardLeadership: WardLeadershipEntry[];
   missionaries: MissionaryEntry[];
   wardMissionaries: WardMissionaryEntry[];
-  imageId?: string; // ID of selected image from LDS_IMAGES
+  imageId?: string; // ID of selected image from LDS_IMAGES or custom images
   imagePosition?: { x: number; y: number }; // Image positioning coordinates
 }

@@ -492,7 +492,8 @@ export const bulletinService = {
       const bulletinsWithData = await Promise.all(
         data.map(async (bulletin) => {
           try {
-            const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
+            // Only fetch image tokens if they're not in the database record
+            const tokenPromises = [
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-ward_name`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-theme`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-bishopric`),
@@ -505,7 +506,19 @@ export const bulletinService = {
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-leadership`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-wardLeadership`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-missionaries`),
-            ]);
+              tokenService.getToken(userId, `bulletin-${bulletin.slug}-wardMissionaries`),
+            ];
+            
+            // Always fetch image tokens since they're not in database record
+            tokenPromises.push(tokenService.getToken(userId, `bulletin-${bulletin.slug}-image`));
+            tokenPromises.push(tokenService.getToken(userId, `bulletin-${bulletin.slug}-imagePosition`));
+            
+            const tokenResults = await Promise.all(tokenPromises);
+            const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+            
+            // Handle image tokens (always fetched)
+            const image = tokenResults[13];
+            const imagePosition = tokenResults[14];
 
             return {
               id: bulletin.id,
@@ -524,6 +537,9 @@ export const bulletinService = {
               leadership: leadership ? JSON.parse(leadership) : {},
               wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
               missionaries: missionaries ? JSON.parse(missionaries) : [],
+              wardMissionaries: wardMissionaries ? JSON.parse(wardMissionaries) : [],
+              imageId: image || 'none',
+              imagePosition: imagePosition ? JSON.parse(imagePosition) : { x: 50, y: 50 },
               created_at: bulletin.created_at,
               updated_at: bulletin.created_at
             };
@@ -547,6 +563,9 @@ export const bulletinService = {
                 leadership: {},
                 wardLeadership: [],
                 missionaries: [],
+                wardMissionaries: [],
+                imageId: bulletin.image_id || 'none',
+                imagePosition: bulletin.image_position || { x: 50, y: 50 },
                 created_at: bulletin.created_at,
                 updated_at: bulletin.created_at
               };
@@ -591,11 +610,9 @@ export const bulletinService = {
     const userId = data.created_by;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, imagePosition, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = await Promise.all([
+    const tokenPromises = [
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-image`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -607,7 +624,18 @@ export const bulletinService = {
       tokenService.getToken(userId, `bulletin-${data.slug}-wardLeadership`),
       tokenService.getToken(userId, `bulletin-${data.slug}-missionaries`),
       tokenService.getToken(userId, `bulletin-${data.slug}-wardMissionaries`),
-    ]);
+    ];
+    
+    // Always fetch image tokens since they're not in database record
+    tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-image`));
+    tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`));
+    
+    const tokenResults = await Promise.all(tokenPromises);
+    const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+    
+    // Handle image tokens (always fetched)
+    const image = tokenResults[13];
+    const imagePosition = tokenResults[14];
 
     return {
       id: data.id,
@@ -696,11 +724,9 @@ export const bulletinService = {
     const userId = userData.id;
     
     // Fetch bulletin data from tokens
-    const [wardName, theme, image, imagePosition, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries] = await Promise.all([
+    const tokenPromises = [
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-image`),
-      tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -711,9 +737,21 @@ export const bulletinService = {
       tokenService.getToken(userId, `bulletin-${data.slug}-leadership`),
       tokenService.getToken(userId, `bulletin-${data.slug}-wardLeadership`),
       tokenService.getToken(userId, `bulletin-${data.slug}-missionaries`),
-    ]);
+      tokenService.getToken(userId, `bulletin-${data.slug}-wardMissionaries`),
+    ];
+    
+    // Always fetch image tokens since they're not in database record
+    tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-image`));
+    tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`));
+    
+    const tokenResults = await Promise.all(tokenPromises);
+    const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+    
+    // Handle image tokens (always fetched)
+    const image = tokenResults[13];
+    const imagePosition = tokenResults[14];
 
-    return {
+    const result = {
       id: data.id,
       user_id: data.created_by,
       profile_slug: data.profile_slug,
@@ -733,9 +771,14 @@ export const bulletinService = {
       leadership: leadership ? JSON.parse(leadership) : {},
       wardLeadership: wardLeadership ? JSON.parse(wardLeadership) : [],
       missionaries: missionaries ? JSON.parse(missionaries) : [],
+      wardMissionaries: wardMissionaries ? JSON.parse(wardMissionaries) : [],
       created_at: data.created_at,
       updated_at: data.created_at
     };
+
+
+
+    return result;
   },
 
   async deleteBulletin(bulletinId: string, userId: string) {

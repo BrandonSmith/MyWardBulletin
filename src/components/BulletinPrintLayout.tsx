@@ -1,7 +1,10 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useEffect, useRef } from 'react';
 import { sanitizeHtml } from "../lib/sanitizeHtml";
 import { decodeHtml } from '../lib/decodeHtml';
 import { LDS_IMAGES, getImageById } from '../data/images';
+import { useSession } from '../lib/SessionContext';
+import QRCode from 'qrcode';
+import { SHORT_DOMAIN } from '../lib/config';
 
 // Function to format date from ISO format to natural format
 function formatDate(dateString: string): string {
@@ -33,6 +36,7 @@ function formatDate(dateString: string): string {
 }
 
 function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React.RefObject<HTMLDivElement>, page2?: React.RefObject<HTMLDivElement> } }) {
+  const { user, profile } = useSession();
 
   // Add audienceLabels mapping at the top
   const audienceLabels = {
@@ -47,6 +51,25 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
     other: 'Other',
   };
 
+  // Helper function to check if ward info entry has meaningful data
+  // For leadership, we only care about name/phone, not title (since titles are pre-populated)
+  const hasValidLeadershipInfo = (entry: any) => {
+    return entry && (entry.name?.trim() || entry.phone?.trim());
+  };
+  
+  // For missionaries, we care about name, phone, mission, or email
+  const hasValidMissionaryInfo = (entry: any) => {
+    return entry && (entry.name?.trim() || entry.phone?.trim() || entry.mission?.trim() || entry.email?.trim());
+  };
+
+  // Filter out empty ward info entries
+  const filteredWardLeadership = data.wardLeadership?.filter(hasValidLeadershipInfo) || [];
+  const filteredMissionaries = data.missionaries?.filter(hasValidMissionaryInfo) || [];
+  const filteredWardMissionaries = data.wardMissionaries?.filter(hasValidMissionaryInfo) || [];
+
+  // Check if there's any meaningful ward info to display
+  const hasWardInfo = filteredWardLeadership.length > 0 || filteredMissionaries.length > 0 || filteredWardMissionaries.length > 0;
+
   return (
     <div className="print-layout font-sans">
       {/* Page 1: Outside (landscape) */}
@@ -57,17 +80,16 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
       >
                  {/* Back Cover (left) - Ward Information */}
          <div className="w-1/2 pr-16 py-8 flex flex-col justify-start items-start text-left border-r border-gray-300 print:!text-xl print:!text-black overflow-y-auto">
-           <h2 className="text-2xl font-bold mb-4 print:!text-3xl print:!text-black w-full text-center">WARD LEADERSHIP</h2>
-           
-                       {/* Ward Leadership Table */}
-            {data.wardLeadership && data.wardLeadership.length > 0 && (
+           {/* Ward Leadership Table */}
+            {filteredWardLeadership.length > 0 && (
               <div className="w-full mb-6">
+                <h2 className="text-2xl font-bold mb-4 print:!text-3xl print:!text-black w-full text-center">WARD LEADERSHIP</h2>
                 <table className="w-full text-xs print:!text-sm print:!text-black">
                   <tbody>
-                    {data.wardLeadership.map((leader: any, idx: number) => (
+                    {filteredWardLeadership.map((leader: any, idx: number) => (
                       <tr key={idx}>
                         <td className="py-1 font-semibold w-1/3">{leader.title}</td>
-                        <td className="py-1 w-1/3">{leader.name}</td>
+                        <td className="py-1 px-6 w-1/3">{leader.name}</td>
                         <td className="py-1 w-1/3 text-right">
                           {leader.phone && <span className="mr-1">📞</span>}
                           {leader.phone || ''}
@@ -80,12 +102,12 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
             )}
 
             {/* Missionaries Table */}
-            {data.missionaries && data.missionaries.length > 0 && (
+            {filteredMissionaries.length > 0 && (
               <div className="w-full mb-6">
                 <h3 className="text-lg font-semibold mb-3 print:!text-xl print:!text-black">MISSIONARIES</h3>
                 <table className="w-full text-xs print:!text-sm print:!text-black">
                   <tbody>
-                    {data.missionaries.map((missionary: any, idx: number) => (
+                    {filteredMissionaries.map((missionary: any, idx: number) => (
                       <tr key={idx}>
                                                  <td className="py-1 font-semibold w-1/2">{missionary.name}</td>
                          <td className="py-1 w-1/2 text-right">
@@ -100,13 +122,13 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
             )}
 
             {/* Missionaries from our ward */}
-            {data.wardMissionaries && data.wardMissionaries.length > 0 && (
+            {filteredWardMissionaries.length > 0 && (
               <div className="w-full mb-6">
                 <h3 className="text-lg font-semibold mb-3 print:!text-xl print:!text-black">MISSIONARIES FROM OUR WARD</h3>
                 <table className="w-full text-xs print:!text-xs print:!text-black">
                   <tbody>
-                    {data.wardMissionaries.map((missionary: any, idx: number) => (
-                      <tr key={idx} className={data.wardMissionaries.length > 4 ? "py-1" : "border-b border-gray-200 py-1"}>
+                    {filteredWardMissionaries.map((missionary: any, idx: number) => (
+                      <tr key={idx} className={filteredWardMissionaries.length > 4 ? "py-1" : "border-b border-gray-200 py-1 print:!border-b-0"}>
                         <td className="py-1 font-semibold w-1/3">{missionary.name}</td>
                         <td className="py-1 w-1/3 text-xs">
                           {missionary.mission && <span>📍 {missionary.mission}</span>}
@@ -121,10 +143,23 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
               </div>
             )}
 
-           {/* Fallback message when no ward info is available */}
-           {(!data.wardLeadership || data.wardLeadership.length === 0) && 
-            (!data.missionaries || data.missionaries.length === 0) && 
-            (!data.wardMissionaries || data.wardMissionaries.length === 0) && (
+           {/* QR Code fallback when no ward info is available */}
+           {!hasWardInfo && profile?.profile_slug && (
+             <div className="w-full flex flex-col items-center justify-center text-center">
+               <div className="mb-4">
+                 <PrintQRCode profileSlug={profile.profile_slug} />
+               </div>
+               <p className="text-sm print:!text-base print:!text-black font-medium">
+                 Scan to view the latest digital bulletin
+               </p>
+               <p className="text-xs print:!text-sm print:!text-black text-gray-600 mt-2">
+                 Visit: mywardbulletin.com/{profile.profile_slug}
+               </p>
+             </div>
+           )}
+           
+           {/* Fallback message when no ward info and no profile slug */}
+           {!hasWardInfo && !profile?.profile_slug && (
              <div className="w-full text-center text-gray-500 print:!text-black">
                <p className="text-sm print:!text-base print:!text-black italic">
                  Add ward information in the "Ward Info" tab to display leadership and missionary details here.
@@ -185,8 +220,26 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
                       <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded ml-2">{a.category}</span>
                     )}
                   </div>
-                  <div className="font-semibold print:!text-base print:!text-black">{a.title}</div>
-                  <div className="text-sm print:!text-sm print:!text-black" dangerouslySetInnerHTML={{ __html: decodedContent }} />
+                                      <div className="font-semibold print:!text-base print:!text-black">{a.title}</div>
+                    
+                    <div className="text-sm print:!text-sm print:!text-black mb-2" dangerouslySetInnerHTML={{ __html: decodedContent }} />
+                    
+                    {/* Announcement Image */}
+                    {a.imageId && a.imageId !== 'none' && !a.hideImageOnPrint && (
+                      <div className="mb-2">
+                        {(() => {
+                          const selectedImage = getImageById(a.imageId);
+                          return selectedImage?.url ? (
+                            <img
+                              src={selectedImage.url}
+                              alt={selectedImage.name}
+                              className="max-w-full h-auto rounded shadow-sm"
+                              style={{ maxHeight: '120px' }}
+                            />
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
                 </li>
               );
             })}
@@ -243,6 +296,59 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
         </div>
       </div>
     </div>
+  );
+}
+
+// PrintQRCode component for generating QR codes specifically for printing
+function PrintQRCode({ profileSlug }: { profileSlug: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const generateQRCode = async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const qrUrl = `https://${SHORT_DOMAIN}/${profileSlug}`;
+      
+      try {
+        await QRCode.toCanvas(canvas, qrUrl, {
+          width: 192, // 48 * 4 for high DPI
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          },
+          errorCorrectionLevel: 'H' // Highest error correction for print
+        });
+      } catch (error) {
+        console.error('QR Code generation error:', error);
+        // Fallback to text display
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, 192, 192);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, 192, 192);
+          ctx.strokeStyle = 'black';
+          ctx.strokeRect(0, 0, 192, 192);
+          ctx.fillStyle = 'black';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('QR Code', 96, 90);
+          ctx.fillText('Error', 96, 110);
+        }
+      }
+    };
+
+    generateQRCode();
+  }, [profileSlug]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={192}
+      height={192}
+      className="w-48 h-48 bg-white border-2 border-gray-300 rounded-lg mx-auto"
+    />
   );
 }
 

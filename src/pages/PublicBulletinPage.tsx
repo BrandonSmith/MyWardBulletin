@@ -80,8 +80,11 @@ export default function PublicBulletinPage() {
     },
     leadership: publicBulletin.leadership || { presiding: '', conducting: '', chorister: '', organist: '' },
     wardLeadership: publicBulletin.wardLeadership || (publicBulletin.leadership && publicBulletin.leadership.wardLeadership) || [],
-    missionaries: publicBulletin.missionaries || (publicBulletin.leadership && publicBulletin.leadership.missionaries) || []
+    missionaries: publicBulletin.missionaries || (publicBulletin.leadership && publicBulletin.leadership.missionaries) || [],
+    wardMissionaries: publicBulletin.wardMissionaries || []
   } : null;
+
+
 
   return (
     <>

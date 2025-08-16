@@ -1,18 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Repeat, RotateCcw } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getSongTitle, isValidSongNumber, searchSongsByTitle, SongType } from '../lib/songService';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { LDS_IMAGES, getImageById } from '../data/images';
+import { LDS_IMAGES, getImageById, getAllImages, deleteCustomImage } from '../data/images';
+import ImageUpload from './ImageUpload';
+import RecurringAnnouncementsModal from './RecurringAnnouncementsModal';
+import { recurringAnnouncementsService } from '../lib/recurringAnnouncementsService';
 
 interface BulletinFormProps {
   data: BulletinData;
   onChange: (data: BulletinData) => void;
+  profileSlug?: string;
 }
 
-export default function BulletinForm({ data, onChange }: BulletinFormProps) {
+export default function BulletinForm({ data, onChange, profileSlug }: BulletinFormProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
   const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: string, title: string, type: SongType}>>([]);
   const [activeHymnSearch, setActiveHymnSearch] = useState<string | null>(null);
@@ -22,6 +26,9 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     closingHymn: 'hymn'
   });
   const [organistLabel, setOrganistLabel] = useState<'Organist' | 'Pianist'>(data.leadership.organistLabel || 'Organist');
+  const [allImages, setAllImages] = useState(getAllImages());
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [showRecurringAnnouncements, setShowRecurringAnnouncements] = useState(false);
   
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -46,6 +53,38 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
 
   const removeAnnouncement = (id: string) => {
     updateField('announcements', data.announcements.filter(ann => ann.id !== id));
+  };
+
+          const handleRecurringAnnouncementSelected = (announcement: any) => {
+                  const newAnnouncement: Announcement = {
+          id: Date.now().toString(),
+          title: announcement.title,
+          content: announcement.content,
+          category: 'general',
+          audience: announcement.audience
+        };
+          updateField('announcements', [...data.announcements, newAnnouncement]);
+        };
+
+  const convertToRecurring = async (announcement: Announcement) => {
+    try {
+      const actualProfileSlug = profileSlug || 'default';
+      
+      console.log('Converting announcement to recurring:', announcement);
+      console.log('Profile slug:', actualProfileSlug);
+      
+      const result = await recurringAnnouncementsService.convertToRecurring(announcement, actualProfileSlug);
+      console.log('Conversion result:', result);
+      
+      if (result) {
+        toast.success(`"${announcement.title}" converted to recurring announcement`);
+      } else {
+        toast.error('Failed to convert to recurring announcement');
+      }
+    } catch (error) {
+      console.error('Error converting to recurring:', error);
+      toast.error('Failed to convert to recurring announcement');
+    }
   };
 
   const handleHymnNumberChange = (field: string, value: string) => {
@@ -256,6 +295,33 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showAddSection]);
+
+  // Image handlers
+  const handleImageUploaded = (imageId: string) => {
+    updateField('imageId', imageId);
+    setAllImages(getAllImages()); // Refresh the images list
+    setImageError(null);
+    toast.success('Image uploaded successfully!');
+  };
+
+  const handleImageError = (error: string) => {
+    setImageError(error);
+    toast.error(error);
+  };
+
+  const handleDeleteCustomImage = (imageId: string) => {
+    if (confirm('Are you sure you want to delete this custom image?')) {
+      deleteCustomImage(imageId);
+      setAllImages(getAllImages()); // Refresh the images list
+      
+      // If the deleted image was selected, reset to 'none'
+      if (data.imageId === imageId) {
+        updateField('imageId', 'none');
+      }
+      
+      toast.success('Custom image deleted.');
+    }
+  };
 
   // Default value keys
   const DEFAULT_KEYS = {
@@ -531,36 +597,114 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             {/* Image Selection */}
             <div>
               <label className="block text-base font-medium text-gray-700 mb-2">Bulletin Image</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {LDS_IMAGES.map((image) => (
-                  <div
-                    key={image.id}
-                    onClick={() => updateField('imageId', image.id)}
-                    className={`relative cursor-pointer rounded-lg border-2 transition-all hover:scale-105 ${
-                      data.imageId === image.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {image.url ? (
-                      <img
-                        src={image.url}
-                        alt={image.name}
-                        className="w-full h-20 object-cover rounded-t-lg"
+              <div className="space-y-3">
+                {/* Selected Image Display */}
+                <div className="p-3 border border-gray-300 rounded-lg bg-white">
+                  {data.imageId && data.imageId !== 'none' ? (
+                    (() => {
+                      const selectedImage = getImageById(data.imageId);
+                      return selectedImage.url ? (
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={selectedImage.url}
+                            alt={selectedImage.name}
+                            className="w-12 h-12 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{selectedImage.name}</p>
+                            {selectedImage.description && (
+                              <p className="text-xs text-gray-600">{selectedImage.description}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateField('imageId', 'none')}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">No valid image selected</div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-gray-500">No image selected</div>
+                  )}
+                </div>
+
+                {/* Collapsible Image Gallery */}
+                <details className="group">
+                  <summary className="cursor-pointer p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                    <span className="text-sm font-medium text-gray-700">
+                      Choose Image ({allImages.length} available)
+                    </span>
+                    <span className="float-right text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  
+                  <div className="mt-2 p-3 border border-gray-200 rounded-lg bg-white max-h-96 overflow-y-auto">
+                    {/* Upload Section */}
+                    <div className="mb-4">
+                      <ImageUpload 
+                        onImageUploaded={handleImageUploaded}
+                        onError={handleImageError}
                       />
-                    ) : (
-                      <div className="w-full h-20 bg-gray-100 flex items-center justify-center rounded-t-lg">
-                        <span className="text-gray-500 text-sm">No Image</span>
-                      </div>
-                    )}
-                    <div className="p-2">
-                      <p className="text-xs font-medium text-gray-700 truncate">{image.name}</p>
-                      {image.description && (
-                        <p className="text-xs text-gray-500 truncate">{image.description}</p>
+                      {imageError && (
+                        <p className="text-red-600 text-sm mt-2">{imageError}</p>
                       )}
                     </div>
+                    
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                      {/* Image Options */}
+                      {allImages.map((image) => (
+                        <div
+                          key={image.id}
+                          className={`relative cursor-pointer rounded-lg border-2 transition-all hover:scale-105 ${
+                            data.imageId === image.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          title={image.description || image.name}
+                        >
+                          <div
+                            onClick={() => updateField('imageId', image.id)}
+                            className="w-full h-full"
+                          >
+                            {image.url ? (
+                              <img
+                                src={image.url}
+                                alt={image.name}
+                                className="w-full h-12 object-cover rounded-t"
+                              />
+                            ) : (
+                              <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded-t">
+                                <span className="text-gray-500 text-xs">No Img</span>
+                              </div>
+                            )}
+                            <div className="p-1">
+                              <p className="text-xs text-gray-700 truncate">{image.name}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Delete button for custom images */}
+                          {'isCustom' in image && image.isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCustomImage(image.id);
+                              }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                              title="Delete custom image"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                </details>
               </div>
             </div>
           </section>
@@ -1248,6 +1392,91 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       ]
                     }}
                   />
+                  
+                  {/* Announcement Image Section */}
+                  <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Announcement Image (Optional)</label>
+                    
+                    {announcement.imageId && announcement.imageId !== 'none' ? (
+                      // Show selected image
+                      <div className="flex items-center gap-3 mb-3">
+                        {(() => {
+                          const selectedImage = getImageById(announcement.imageId);
+                          return selectedImage.url ? (
+                            <img
+                              src={selectedImage.url}
+                              alt={selectedImage.name}
+                              className="w-16 h-16 object-cover rounded border"
+                            />
+                          ) : null;
+                        })()}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{getImageById(announcement.imageId).name}</p>
+                          <button
+                            type="button"
+                            onClick={() => updateAnnouncement(announcement.id, 'imageId', 'none')}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Show upload option
+                      <div className="mb-3">
+                        <ImageUpload 
+                          onImageUploaded={(imageId) => updateAnnouncement(announcement.id, 'imageId', imageId)}
+                          onError={handleImageError}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Quick select from existing images */}
+                    {(!announcement.imageId || announcement.imageId === 'none') && (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                          Or choose from existing images ({allImages.length - 1} available)
+                        </summary>
+                        <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-32 overflow-y-auto">
+                          {allImages.filter(img => img.id !== 'none').map((image) => (
+                            <div
+                              key={image.id}
+                              onClick={() => updateAnnouncement(announcement.id, 'imageId', image.id)}
+                              className="relative cursor-pointer rounded border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                              title={image.description || image.name}
+                            >
+                              {image.url ? (
+                                <img
+                                  src={image.url}
+                                  alt={image.name}
+                                  className="w-full h-12 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded">
+                                  <span className="text-gray-500 text-xs">No Img</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                    
+                    {/* Hide Image on Print option */}
+                    {announcement.imageId && announcement.imageId !== 'none' && (
+                      <div className="mt-3">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={announcement.hideImageOnPrint || false}
+                            onChange={(e) => updateAnnouncement(announcement.id, 'hideImageOnPrint', e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">Hide image when printing</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col items-end space-y-2 sm:space-y-0 sm:ml-4 sm:flex-row sm:items-center sm:space-x-2">
                   <div className="flex flex-row items-center space-x-2">
@@ -1256,21 +1485,39 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   </div>
                   <button
                     type="button"
+                    onClick={() => convertToRecurring(announcement)}
+                    className="ml-2 p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                    title="Convert to recurring announcement"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removeAnnouncement(announcement.id)}
-                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                    className="ml-2 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ))}
-            <button
-              onClick={addAnnouncement}
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base mt-2"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Announcement
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button
+                onClick={addAnnouncement}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Announcement
+              </button>
+              
+              <button
+                onClick={() => setShowRecurringAnnouncements(true)}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-base"
+              >
+                <Repeat className="w-4 h-4 mr-1" />
+                Recurring Announcements
+              </button>
+            </div>
           </section>
         </>
       )}
@@ -1757,6 +2004,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
           </section>
         </>
       )}
+
+      {/* Recurring Announcements Modal */}
+      <RecurringAnnouncementsModal
+        isOpen={showRecurringAnnouncements}
+        onClose={() => setShowRecurringAnnouncements(false)}
+        profileSlug={profileSlug || 'default'}
+        onAnnouncementSelected={handleRecurringAnnouncementSelected}
+      />
     </div>
   );
 }

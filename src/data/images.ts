@@ -116,6 +116,63 @@ export const LDS_IMAGES = [
   }
 ];
 
-export const getImageById = (id: string) => {
-  return LDS_IMAGES.find(img => img.id === id) || LDS_IMAGES[0];
+// Custom image interface
+export interface CustomImage {
+  id: string;
+  name: string;
+  url: string;
+  description?: string;
+  isCustom: true;
+  uploadDate: string;
+}
+
+// Combined image type
+export type ImageData = typeof LDS_IMAGES[0] | CustomImage;
+
+// Storage key for custom images
+const CUSTOM_IMAGES_KEY = 'custom_bulletin_images';
+
+// Get custom images from localStorage
+export const getCustomImages = (): CustomImage[] => {
+  try {
+    const stored = localStorage.getItem(CUSTOM_IMAGES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error loading custom images:', error);
+    return [];
+  }
+};
+
+// Save custom image to localStorage
+export const saveCustomImage = (image: CustomImage): void => {
+  try {
+    const existing = getCustomImages();
+    const updated = [...existing, image];
+    localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error saving custom image:', error);
+    throw new Error('Failed to save custom image. File may be too large.');
+  }
+};
+
+// Delete custom image from localStorage
+export const deleteCustomImage = (imageId: string): void => {
+  try {
+    const existing = getCustomImages();
+    const updated = existing.filter(img => img.id !== imageId);
+    localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error deleting custom image:', error);
+  }
+};
+
+// Get all images (preset + custom)
+export const getAllImages = (): ImageData[] => {
+  const customImages = getCustomImages();
+  return [...LDS_IMAGES, ...customImages];
+};
+
+export const getImageById = (id: string): ImageData => {
+  const allImages = getAllImages();
+  return allImages.find(img => img.id === id) || LDS_IMAGES[0];
 };

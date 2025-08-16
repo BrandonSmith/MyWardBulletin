@@ -165,12 +165,16 @@ function AnnouncementItem({
   audience,
   category,
   title,
-  html // sanitized html string
+  html, // sanitized html string
+  imageId,
+  hideImageOnPrint = false
 }: {
   audience: string;
   category?: string | null;
   title: string;
   html: string;
+  imageId?: string;
+  hideImageOnPrint?: boolean;
 }) {
   // H1 audience, H2 title, content styled as "H3-ish"
   return (
@@ -193,6 +197,23 @@ function AnnouncementItem({
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>
+
+      {/* Announcement Image */}
+      {imageId && imageId !== 'none' && (
+        <div className={`mt-3 ${hideImageOnPrint ? 'print:hidden' : ''}`}>
+          {(() => {
+            const selectedImage = getImageById(imageId);
+            return selectedImage?.url ? (
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.name}
+                className="max-w-full h-auto rounded-lg shadow-sm"
+                style={{ maxHeight: '200px' }}
+              />
+            ) : null;
+          })()}
+        </div>
+      )}
     </article>
   );
 }
@@ -206,6 +227,19 @@ export default function BulletinPreview({
   onImagePositionChange
 }: BulletinPreviewProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
+
+  // Handle mobile viewport - switch away from wardinfo if on mobile and that tab is active and there's no ward info
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640 && activeTab === 'wardinfo' && !hasWardInfo(data)) { // 640px is sm breakpoint
+        setActiveTab('program');
+      }
+    };
+
+    handleResize(); // Check on mount
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeTab, data]);
   const initialPosRef = useRef<{ x: number; y: number }>(
     data.imagePosition &&
     typeof data.imagePosition.x === 'number' &&
@@ -277,7 +311,7 @@ export default function BulletinPreview({
         <nav className="flex justify-center print:hidden mb-4 mt-4" aria-label="Main tabs">
           <ul className="flex flex-col gap-3 sm:flex-row sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
             {(['program', 'announcements', 'wardinfo'] as const).map(tab => (
-              <li key={tab} role="presentation" className="w-full sm:w-auto">
+              <li key={tab} role="presentation" className={`w-full sm:w-auto ${tab === 'wardinfo' && !hasWardInfo(data) ? 'hidden sm:block' : ''}`}>
                 <button
                   type="button"
                   role="tab"
@@ -522,6 +556,8 @@ export default function BulletinPreview({
                   category={a.category}
                   title={a.title}
                   html={a.html}
+                  imageId={a.imageId}
+                  hideImageOnPrint={a.hideImageOnPrint}
                 />
               ))}
             </div>
@@ -584,7 +620,8 @@ export default function BulletinPreview({
       {/* ------------------------------- Ward Info ---------------------------- */}
       {activeTab === 'wardinfo' && (
         <div className="p-6 space-y-4 text-sm leading-relaxed">
-          {hasWardInfo(data) ? (
+          {/* Ward Leadership Section */}
+          {Array.isArray(data.wardLeadership) && data.wardLeadership.some(e => e && (e.title || e.name || e.phone)) && (
             <>
               <h3 className="text-base font-bold mb-3 text-center">Ward Leadership</h3>
               <div className="overflow-x-auto">
@@ -607,7 +644,12 @@ export default function BulletinPreview({
                   </tbody>
                 </table>
               </div>
+            </>
+          )}
 
+          {/* Missionaries Section */}
+          {Array.isArray(data.missionaries) && data.missionaries.some(e => e && (e.name || e.phone)) && (
+            <>
               <h3 className="text-base font-bold mb-3 text-center mt-8">Missionaries</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full border text-sm">
@@ -627,7 +669,12 @@ export default function BulletinPreview({
                   </tbody>
                 </table>
               </div>
+            </>
+          )}
 
+          {/* Ward Missionaries Section */}
+          {Array.isArray(data.wardMissionaries) && data.wardMissionaries.some(e => e && (e.name || e.mission || e.missionAddress || e.email)) && (
+            <>
               <h3 className="text-base font-bold mb-3 text-center mt-8">Missionaries from our ward</h3>
               {(data?.wardMissionaries || []).length > 2 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -665,7 +712,10 @@ export default function BulletinPreview({
                 </div>
               )}
             </>
-          ) : (
+          )}
+
+          {/* No Ward Info Message */}
+          {!hasWardInfo(data) && (
             <div className="text-center py-8">
               <div className="mb-4">
                 <svg className="w-16 h-16 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -855,7 +905,25 @@ export default function BulletinPreview({
                 <div className="flex items-center mb-1">
                   <h4 className="font-semibold mr-2 text-gray-900">{a.title}</h4>
                 </div>
-                <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: a.html }} />
+                
+                <div className="text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: a.html }} />
+                
+                {/* Announcement Image (print) */}
+                {a.imageId && a.imageId !== 'none' && !a.hideImageOnPrint && (
+                  <div className="mb-2">
+                    {(() => {
+                      const selectedImage = getImageById(a.imageId);
+                      return selectedImage?.url ? (
+                        <img
+                          src={selectedImage.url}
+                          alt={selectedImage.name}
+                          className="max-w-full h-auto rounded shadow-sm"
+                          style={{ maxHeight: '150px' }}
+                        />
+                      ) : null;
+                    })()}
+                  </div>
+                )}
               </div>
             ))}
           </div>

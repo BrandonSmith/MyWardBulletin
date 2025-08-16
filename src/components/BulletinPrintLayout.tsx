@@ -143,9 +143,9 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
               </div>
             )}
 
-           {/* QR Code fallback when no ward info is available */}
-           {!hasWardInfo && profile?.profile_slug && (
-             <div className="w-full flex flex-col items-center justify-center text-center">
+           {/* QR Code - always show if profile slug is available */}
+           {profile?.profile_slug && (
+             <div className="w-full flex flex-col items-center justify-center text-center mt-6">
                <div className="mb-4">
                  <PrintQRCode profileSlug={profile.profile_slug} />
                </div>
@@ -167,12 +167,6 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
              </div>
            )}
 
-           {/* Footer */}
-           <div className="w-full mt-auto pt-4 border-t border-gray-300 text-center">
-             <p className="text-xs print:!text-sm print:!text-black text-gray-500">
-               <span className="font-semibold print:!text-black">Build your own at <span className="font-semibold print:!text-black">MyWardBulletin.com</span></span>
-             </p>
-           </div>
          </div>
 
         {/* Front Cover (right) */}
@@ -312,7 +306,7 @@ function PrintQRCode({ profileSlug }: { profileSlug: string }) {
       
       try {
         await QRCode.toCanvas(canvas, qrUrl, {
-          width: 192, // 48 * 4 for high DPI
+          width: 128, // Reduced from 192
           margin: 2,
           color: {
             dark: '#000000',
@@ -325,16 +319,16 @@ function PrintQRCode({ profileSlug }: { profileSlug: string }) {
         // Fallback to text display
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.clearRect(0, 0, 192, 192);
+          ctx.clearRect(0, 0, 128, 128);
           ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, 192, 192);
+          ctx.fillRect(0, 0, 128, 128);
           ctx.strokeStyle = 'black';
-          ctx.strokeRect(0, 0, 192, 192);
+          ctx.strokeRect(0, 0, 128, 128);
           ctx.fillStyle = 'black';
-          ctx.font = '14px Arial';
+          ctx.font = '12px Arial';
           ctx.textAlign = 'center';
-          ctx.fillText('QR Code', 96, 90);
-          ctx.fillText('Error', 96, 110);
+          ctx.fillText('QR Code', 64, 60);
+          ctx.fillText('Error', 64, 75);
         }
       }
     };
@@ -345,9 +339,9 @@ function PrintQRCode({ profileSlug }: { profileSlug: string }) {
   return (
     <canvas
       ref={canvasRef}
-      width={192}
-      height={192}
-      className="w-48 h-48 bg-white border-2 border-gray-300 rounded-lg mx-auto"
+      width={128}
+      height={128}
+      className="w-32 h-32 bg-white mx-auto"
     />
   );
 }

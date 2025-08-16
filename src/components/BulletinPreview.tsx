@@ -461,9 +461,32 @@ export default function BulletinPreview({
                     </DottedLine>
                   )}
                   {item.type === 'musical' && (
-                    <DottedLine rightAlign={item.performers}>
-                      <span>{item.label || 'Musical Number'}</span>
-                    </DottedLine>
+                    <>
+                      <DottedLine rightAlign={item.hymnNumber || item.songName}>
+                        <span>{item.label || 'Musical Number'}</span>
+                      </DottedLine>
+                      {(item.hymnNumber || item.hymnTitle) && (
+                        <div className="text-center py-1">
+                          <p className="italic">
+                            {item.hymnNumber ? (
+                              <a
+                                href={getSongUrl(item.hymnNumber, item.hymnType || 'hymn')}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 underline hover:text-blue-900"
+                              >
+                                {item.hymnTitle || getSongTitle(item.hymnNumber, item.hymnType || 'hymn')}
+                              </a>
+                            ) : item.songName}
+                          </p>
+                        </div>
+                      )}
+                      {item.performers && (
+                        <div className="text-center py-1">
+                          <p className="text-sm">{item.performers}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                   {item.type === 'testimony' && (
                     <DottedLine rightAlign={item.note}>
@@ -839,9 +862,32 @@ export default function BulletinPreview({
                   </DottedLine>
                 )}
                 {item.type === 'musical' && (
-                  <DottedLine rightAlign={item.performers}>
-                    <span>{item.label || 'Musical Number'}</span>
-                  </DottedLine>
+                  <>
+                    <DottedLine rightAlign={item.hymnNumber || item.songName}>
+                      <span>{item.label || 'Musical Number'}</span>
+                    </DottedLine>
+                    {(item.hymnNumber || item.hymnTitle) && (
+                      <div className="text-center py-1">
+                        <p className="italic">
+                          {item.hymnNumber ? (
+                            <a
+                              href={getSongUrl(item.hymnNumber, item.hymnType || 'hymn')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-700 underline hover:text-blue-900"
+                            >
+                              {item.hymnTitle || getSongTitle(item.hymnNumber, item.hymnType || 'hymn')}
+                            </a>
+                          ) : item.songName}
+                        </p>
+                      </div>
+                    )}
+                    {item.performers && (
+                      <div className="text-center py-1">
+                        <p className="text-sm">{item.performers}</p>
+                      </div>
+                    )}
+                  </>
                 )}
                 {item.type === 'testimony' && (
                   <DottedLine rightAlign={item.note}>

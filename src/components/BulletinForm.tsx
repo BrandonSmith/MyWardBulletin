@@ -1,17 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Repeat, RotateCcw } from 'lucide-react';
 import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getSongTitle, isValidSongNumber, searchSongsByTitle, SongType } from '../lib/songService';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { LDS_IMAGES, getImageById, getAllImages, deleteCustomImage } from '../data/images';
+import ImageUpload from './ImageUpload';
+import RecurringAnnouncementsModal from './RecurringAnnouncementsModal';
+import { recurringAnnouncementsService } from '../lib/recurringAnnouncementsService';
 
 interface BulletinFormProps {
   data: BulletinData;
   onChange: (data: BulletinData) => void;
+  profileSlug?: string;
 }
 
-export default function BulletinForm({ data, onChange }: BulletinFormProps) {
+export default function BulletinForm({ data, onChange, profileSlug }: BulletinFormProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
   const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: string, title: string, type: SongType}>>([]);
   const [activeHymnSearch, setActiveHymnSearch] = useState<string | null>(null);
@@ -21,6 +26,9 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     closingHymn: 'hymn'
   });
   const [organistLabel, setOrganistLabel] = useState<'Organist' | 'Pianist'>(data.leadership.organistLabel || 'Organist');
+  const [allImages, setAllImages] = useState(getAllImages());
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [showRecurringAnnouncements, setShowRecurringAnnouncements] = useState(false);
   
   const updateField = (field: keyof BulletinData, value: any) => {
     onChange({ ...data, [field]: value });
@@ -45,6 +53,38 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
 
   const removeAnnouncement = (id: string) => {
     updateField('announcements', data.announcements.filter(ann => ann.id !== id));
+  };
+
+          const handleRecurringAnnouncementSelected = (announcement: any) => {
+                  const newAnnouncement: Announcement = {
+          id: Date.now().toString(),
+          title: announcement.title,
+          content: announcement.content,
+          category: 'general',
+          audience: announcement.audience
+        };
+          updateField('announcements', [...data.announcements, newAnnouncement]);
+        };
+
+  const convertToRecurring = async (announcement: Announcement) => {
+    try {
+      const actualProfileSlug = profileSlug || 'default';
+      
+      console.log('Converting announcement to recurring:', announcement);
+      console.log('Profile slug:', actualProfileSlug);
+      
+      const result = await recurringAnnouncementsService.convertToRecurring(announcement, actualProfileSlug);
+      console.log('Conversion result:', result);
+      
+      if (result) {
+        toast.success(`"${announcement.title}" converted to recurring announcement`);
+      } else {
+        toast.error('Failed to convert to recurring announcement');
+      }
+    } catch (error) {
+      console.error('Error converting to recurring:', error);
+      toast.error('Failed to convert to recurring announcement');
+    }
   };
 
   const handleHymnNumberChange = (field: string, value: string) => {
@@ -256,6 +296,33 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     };
   }, [showAddSection]);
 
+  // Image handlers
+  const handleImageUploaded = (imageId: string) => {
+    updateField('imageId', imageId);
+    setAllImages(getAllImages()); // Refresh the images list
+    setImageError(null);
+    toast.success('Image uploaded successfully!');
+  };
+
+  const handleImageError = (error: string) => {
+    setImageError(error);
+    toast.error(error);
+  };
+
+  const handleDeleteCustomImage = (imageId: string) => {
+    if (confirm('Are you sure you want to delete this custom image?')) {
+      deleteCustomImage(imageId);
+      setAllImages(getAllImages()); // Refresh the images list
+      
+      // If the deleted image was selected, reset to 'none'
+      if (data.imageId === imageId) {
+        updateField('imageId', 'none');
+      }
+      
+      toast.success('Custom image deleted.');
+    }
+  };
+
   // Default value keys
   const DEFAULT_KEYS = {
     wardName: 'default_wardName',
@@ -266,6 +333,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
     preludeMusic: 'default_preludeMusic',
     wardLeadership: 'default_wardLeadership',
     missionaries: 'default_missionaries',
+    wardMissionaries: 'default_wardMissionaries',
   };
 
   // Load defaults from localStorage on mount
@@ -310,6 +378,13 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
         changed = true;
       } catch {}
     }
+    // Missionaries from our ward
+    if ((!data.wardMissionaries || data.wardMissionaries.length === 0) && localStorage.getItem(DEFAULT_KEYS.wardMissionaries)) {
+      try {
+        newData.wardMissionaries = JSON.parse(localStorage.getItem(DEFAULT_KEYS.wardMissionaries) || '[]');
+        changed = true;
+      } catch {}
+    }
     if (changed) onChange(newData);
     // eslint-disable-next-line
   }, []);
@@ -333,7 +408,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
 
   // Save default handlers (to localStorage)
   const saveDefault = (key: keyof typeof DEFAULT_KEYS, value: any) => {
-    if (key === 'wardLeadership' || key === 'missionaries') {
+    if (key === 'wardLeadership' || key === 'missionaries' || key === 'wardMissionaries') {
       localStorage.setItem(DEFAULT_KEYS[key], JSON.stringify(value));
     } else {
       localStorage.setItem(DEFAULT_KEYS[key], value);
@@ -446,21 +521,21 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
       {/* Tab Navigation */}
       <nav className="flex justify-center mb-4" aria-label="Main tabs">
         <ul className="flex flex-col gap-3 sm:flex-row sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
-          {['program', 'announcements'].map(tab => (
+          {['program', 'announcements', 'wardinfo'].map(tab => (
             <li key={tab} role="presentation" className="w-full sm:w-auto">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab}
                 aria-controls={`tab-panel-${tab}`}
-                className={`w-full sm:w-auto px-6 sm:px-8 py-3 rounded-full font-semibold focus:outline-none border-2 transition-all duration-200 text-base
+                className={`w-full sm:w-auto px-6 sm:px-8 py-4 rounded-full font-semibold focus:outline-none border-2 transition-all duration-200 text-lg
                   ${activeTab === tab
                     ? 'bg-blue-600 text-white border-blue-600'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900'}
                 `}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
               >
-                {tab === 'program' ? 'Program' : 'Announcements'}
+                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
               </button>
             </li>
           ))}
@@ -471,20 +546,20 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
         <>
           {/* Basic Information */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2 flex items-center justify-between">
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">
               Basic Information
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Name</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Ward Name</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
                     value={data.wardName}
                     onChange={(e) => updateField('wardName', e.target.value)}
                     placeholder="e.g., Sunset Hills Ward"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
@@ -497,43 +572,157 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Date</label>
                 <input
                   type="date"
                   value={data.date}
                   onChange={(e) => updateField('date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
             <div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Theme/Scripture</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Theme/Scripture</label>
                 <input
                   type="text"
                   value={data.theme}
                   onChange={(e) => updateField('theme', e.target.value)}
                   placeholder="Weekly theme or scripture reference"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+            </div>
+
+            {/* Image Selection */}
+            <div>
+              <label className="block text-base font-medium text-gray-700 mb-2">Bulletin Image</label>
+              <div className="space-y-3">
+                {/* Selected Image Display */}
+                <div className="p-3 border border-gray-300 rounded-lg bg-white">
+                  {data.imageId && data.imageId !== 'none' ? (
+                    (() => {
+                      const selectedImage = getImageById(data.imageId);
+                      return selectedImage.url ? (
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={selectedImage.url}
+                            alt={selectedImage.name}
+                            className="w-12 h-12 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{selectedImage.name}</p>
+                            {selectedImage.description && (
+                              <p className="text-xs text-gray-600">{selectedImage.description}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateField('imageId', 'none')}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">No valid image selected</div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-gray-500">No image selected</div>
+                  )}
+                </div>
+
+                {/* Collapsible Image Gallery */}
+                <details className="group">
+                  <summary className="cursor-pointer p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                    <span className="text-sm font-medium text-gray-700">
+                      Choose Image ({allImages.length} available)
+                    </span>
+                    <span className="float-right text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  
+                  <div className="mt-2 p-3 border border-gray-200 rounded-lg bg-white max-h-96 overflow-y-auto">
+                    {/* Upload Section */}
+                    <div className="mb-4">
+                      <ImageUpload 
+                        onImageUploaded={handleImageUploaded}
+                        onError={handleImageError}
+                      />
+                      {imageError && (
+                        <p className="text-red-600 text-sm mt-2">{imageError}</p>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                      {/* Image Options */}
+                      {allImages.map((image) => (
+                        <div
+                          key={image.id}
+                          className={`relative cursor-pointer rounded-lg border-2 transition-all hover:scale-105 ${
+                            data.imageId === image.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          title={image.description || image.name}
+                        >
+                          <div
+                            onClick={() => updateField('imageId', image.id)}
+                            className="w-full h-full"
+                          >
+                            {image.url ? (
+                              <img
+                                src={image.url}
+                                alt={image.name}
+                                className="w-full h-12 object-cover rounded-t"
+                              />
+                            ) : (
+                              <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded-t">
+                                <span className="text-gray-500 text-xs">No Img</span>
+                              </div>
+                            )}
+                            <div className="p-1">
+                              <p className="text-xs text-gray-700 truncate">{image.name}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Delete button for custom images */}
+                          {'isCustom' in image && image.isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCustomImage(image.id);
+                              }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                              title="Delete custom image"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
           </section>
 
           {/* Leadership */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Leadership</h3>
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2">Leadership</h3>
             {/* First Row: 2 fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Presiding</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Presiding</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
                     value={data.leadership.presiding}
                     onChange={(e) => updateField('leadership', { ...data.leadership, presiding: e.target.value })}
                     placeholder="e.g., Bishop Dave Stratham"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
@@ -546,14 +735,14 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Conducting</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Conducting</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
                     value={data.leadership.conducting || ''}
                     onChange={(e) => updateField('leadership', { ...data.leadership, conducting: e.target.value })}
                     placeholder="e.g., 1st Counselor John Smith"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
@@ -570,7 +759,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             {/* Second Row: 3 fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chorister</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">Chorister</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
@@ -617,7 +806,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
               value={data.leadership.organist}
               onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
               placeholder="e.g., Tom Webster"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
               type="button"
@@ -637,7 +826,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                     value={data.leadership.preludeMusic || ''}
                     onChange={(e) => updateField('leadership', { ...data.leadership, preludeMusic: e.target.value })}
                     placeholder="e.g., Hymn 1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
                     type="button"
@@ -654,7 +843,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
 
           {/* Music Program */}
           <section className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Music Program</h3>
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2">Music Program</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Opening Hymn Number</label>
@@ -687,7 +876,7 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   value={data.musicProgram.openingHymnNumber}
                   onChange={(e) => handleHymnNumberChange('openingHymnNumber', e.target.value)}
                   placeholder={getPlaceholderForField('openingHymnNumber')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 py-3 text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     Boolean(data.musicProgram.openingHymnNumber) && isValidSongNumber(data.musicProgram.openingHymnNumber, getSongTypeForField('openingHymnNumber')) === false
                       ? 'border-red-300 bg-red-50'
                       : 'border-gray-300'
@@ -1203,6 +1392,91 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                       ]
                     }}
                   />
+                  
+                  {/* Announcement Image Section */}
+                  <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Announcement Image (Optional)</label>
+                    
+                    {announcement.imageId && announcement.imageId !== 'none' ? (
+                      // Show selected image
+                      <div className="flex items-center gap-3 mb-3">
+                        {(() => {
+                          const selectedImage = getImageById(announcement.imageId);
+                          return selectedImage.url ? (
+                            <img
+                              src={selectedImage.url}
+                              alt={selectedImage.name}
+                              className="w-16 h-16 object-cover rounded border"
+                            />
+                          ) : null;
+                        })()}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{getImageById(announcement.imageId).name}</p>
+                          <button
+                            type="button"
+                            onClick={() => updateAnnouncement(announcement.id, 'imageId', 'none')}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove Image
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Show upload option
+                      <div className="mb-3">
+                        <ImageUpload 
+                          onImageUploaded={(imageId) => updateAnnouncement(announcement.id, 'imageId', imageId)}
+                          onError={handleImageError}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Quick select from existing images */}
+                    {(!announcement.imageId || announcement.imageId === 'none') && (
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                          Or choose from existing images ({allImages.length - 1} available)
+                        </summary>
+                        <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-32 overflow-y-auto">
+                          {allImages.filter(img => img.id !== 'none').map((image) => (
+                            <div
+                              key={image.id}
+                              onClick={() => updateAnnouncement(announcement.id, 'imageId', image.id)}
+                              className="relative cursor-pointer rounded border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                              title={image.description || image.name}
+                            >
+                              {image.url ? (
+                                <img
+                                  src={image.url}
+                                  alt={image.name}
+                                  className="w-full h-12 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded">
+                                  <span className="text-gray-500 text-xs">No Img</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                    
+                    {/* Hide Image on Print option */}
+                    {announcement.imageId && announcement.imageId !== 'none' && (
+                      <div className="mt-3">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={announcement.hideImageOnPrint || false}
+                            onChange={(e) => updateAnnouncement(announcement.id, 'hideImageOnPrint', e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">Hide image when printing</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col items-end space-y-2 sm:space-y-0 sm:ml-4 sm:flex-row sm:items-center sm:space-x-2">
                   <div className="flex flex-row items-center space-x-2">
@@ -1211,53 +1485,136 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                   </div>
                   <button
                     type="button"
+                    onClick={() => convertToRecurring(announcement)}
+                    className="ml-2 p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                    title="Convert to recurring announcement"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removeAnnouncement(announcement.id)}
-                    className="ml-3 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                    className="ml-2 p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ))}
-            <button
-              onClick={addAnnouncement}
-              className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base mt-2"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Announcement
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button
+                onClick={addAnnouncement}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Announcement
+              </button>
+              
+              <button
+                onClick={() => setShowRecurringAnnouncements(true)}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-base"
+              >
+                <Repeat className="w-4 h-4 mr-1" />
+                Recurring Announcements
+              </button>
+            </div>
           </section>
         </>
       )}
-      {/* {activeTab === 'wardinfo' && (
-        <section className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Ward Leadership
-            <div className="flex flex-col items-end ml-2">
-              <button
-                type="button"
-                onClick={() => saveDefault('wardLeadership', data.wardLeadership)}
-                className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-              <span className="text-sm text-gray-500 mt-1">Saves title, name, and phone for each row as your template.</span>
+      {activeTab === 'wardinfo' && (
+        <>
+          {/* Ward Leadership Section */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Ward Leadership
+              <div className="flex flex-col items-end ml-2">
+                <button
+                  type="button"
+                  onClick={() => saveDefault('wardLeadership', data.wardLeadership)}
+                  className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                  title="Save as default"
+                >
+                  Save as default
+                </button>
+                <span className="text-sm text-gray-500 mt-1">Saves title, name, and phone for each row as your template.</span>
+              </div>
+            </h3>
+            
+            {/* Desktop view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 border-b text-sm">Title</th>
+                    <th className="px-3 py-2 border-b text-sm">Name</th>
+                    <th className="px-3 py-2 border-b text-sm">Phone</th>
+                    <th className="px-3 py-2 border-b text-sm"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.wardLeadership.map((entry, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50 transition">
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.title}
+                          onChange={e => {
+                            const updated = [...data.wardLeadership];
+                            updated[idx] = { ...updated[idx], title: e.target.value };
+                            updateField('wardLeadership', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.name}
+                          onChange={e => {
+                            const updated = [...data.wardLeadership];
+                            updated[idx] = { ...updated[idx], name: e.target.value };
+                            updateField('wardLeadership', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.phone || ''}
+                          onChange={e => {
+                            const updated = [...data.wardLeadership];
+                            updated[idx] = { ...updated[idx], phone: e.target.value };
+                            updateField('wardLeadership', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = data.wardLeadership.filter((_, i) => i !== idx);
+                            updateField('wardLeadership', updated);
+                          }}
+                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          title="Remove"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                                  <th className="px-3 py-2 border-b text-sm">Title</th>
-                <th className="px-3 py-2 border-b text-sm">Name</th>
-                <th className="px-3 py-2 border-b text-sm">Phone</th>
-                <th className="px-3 py-2 border-b text-sm"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.wardLeadership.map((entry, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50 transition">
-                    <td className="border-b px-3 py-2">
+            
+            {/* Mobile view */}
+            <div className="md:hidden space-y-4">
+              {data.wardLeadership.map((entry, idx) => (
+                <div key={idx} className="bg-white border rounded-lg p-4 shadow-sm">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Title</label>
                       <input
                         type="text"
                         value={entry.title}
@@ -1266,10 +1623,11 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], title: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                    </td>
-                    <td className="border-b px-3 py-2">
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Name</label>
                       <input
                         type="text"
                         value={entry.name}
@@ -1278,10 +1636,11 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], name: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                    </td>
-                    <td className="border-b px-3 py-2">
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1290,26 +1649,27 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], phone: e.target.value };
                           updateField('wardLeadership', updated);
                         }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                    </td>
-                    <td className="border-b px-3 py-2 text-center">
+                    </div>
+                    <div className="pt-2">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = data.wardLeadership.filter((_, i) => i !== idx);
                           updateField('wardLeadership', updated);
                         }}
-                        className="text-red-600 hover:underline"
+                        className="w-full px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
                         title="Remove"
                       >
                         Remove
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
             <button
               type="button"
               onClick={() => updateField('wardLeadership', [...data.wardLeadership, { title: '', name: '', phone: '' }])}
@@ -1317,35 +1677,89 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
             >
               Add Leadership Position
             </button>
-          </div>
+          </section>
 
-          <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mt-8 flex items-center justify-between">Missionaries
-            <div className="flex flex-col items-end ml-2">
-              <button
-                type="button"
-                onClick={() => saveDefault('missionaries', data.missionaries)}
-                className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
-                title="Save as default"
-              >
-                Save as default
-              </button>
-              <span className="text-sm text-gray-500 mt-1">Saves name, phone, and email for each missionary as your template.</span>
+          {/* Missionaries Section */}
+          <section className="space-y-4 mt-8">
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Missionaries
+              <div className="flex flex-col items-end ml-2">
+                <button
+                  type="button"
+                  onClick={() => saveDefault('missionaries', data.missionaries)}
+                  className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                  title="Save as default"
+                >
+                  Save as default
+                </button>
+                <span className="text-sm text-gray-500 mt-1">Saves all missionary information as your template.</span>
+              </div>
+            </h3>
+            
+            {/* Desktop view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 border-b text-sm">Name</th>
+                    <th className="px-3 py-2 border-b text-sm">Phone</th>
+                    <th className="px-3 py-2 border-b text-sm"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.missionaries.map((entry, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50 transition">
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.name}
+                          onChange={e => {
+                            const updated = [...data.missionaries];
+                            updated[idx] = { ...updated[idx], name: e.target.value };
+                            updateField('missionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Missionary name"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.phone || ''}
+                          onChange={e => {
+                            const updated = [...data.missionaries];
+                            updated[idx] = { ...updated[idx], phone: e.target.value };
+                            updateField('missionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Phone number"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = data.missionaries.filter((_, i) => i !== idx);
+                            updateField('missionaries', updated);
+                          }}
+                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          title="Remove"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-3 py-2 border-b text-sm">Name</th>
-                  <th className="px-3 py-2 border-b text-sm">Phone</th>
-                  <th className="px-3 py-2 border-b text-sm">Email</th>
-                  <th className="px-3 py-2 border-b text-sm"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.missionaries.map((entry, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50 transition">
-                    <td className="border-b px-3 py-2">
+            
+            {/* Mobile view */}
+            <div className="md:hidden space-y-4">
+              {data.missionaries.map((entry, idx) => (
+                <div key={idx} className="bg-white border rounded-lg p-4 shadow-sm">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Name</label>
                       <input
                         type="text"
                         value={entry.name}
@@ -1354,10 +1768,12 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], name: e.target.value };
                           updateField('missionaries', updated);
                         }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Missionary name"
                       />
-                    </td>
-                    <td className="border-b px-3 py-2">
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1366,48 +1782,236 @@ export default function BulletinForm({ data, onChange }: BulletinFormProps) {
                           updated[idx] = { ...updated[idx], phone: e.target.value };
                           updateField('missionaries', updated);
                         }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Phone number"
                       />
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <input
-                        type="email"
-                        value={entry.email || ''}
-                        onChange={e => {
-                          const updated = [...data.missionaries];
-                          updated[idx] = { ...updated[idx], email: e.target.value };
-                          updateField('missionaries', updated);
-                        }}
-                        className="w-full px-2 py-2 border rounded bg-gray-50 focus:bg-white"
-                      />
-                    </td>
-                    <td className="border-b px-3 py-2 text-center">
+                    </div>
+                    <div className="pt-2">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = data.missionaries.filter((_, i) => i !== idx);
                           updateField('missionaries', updated);
                         }}
-                        className="text-red-600 hover:underline"
+                        className="w-full px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
                         title="Remove"
                       >
                         Remove
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
             <button
               type="button"
-              onClick={() => updateField('missionaries', [...data.missionaries, { name: '', phone: '', email: '' }])}
+              onClick={() => updateField('missionaries', [...data.missionaries, { name: '', phone: '' }])}
               className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-base"
             >
               Add Missionary
             </button>
-          </div>
-        </section>
-      )} */}
+          </section>
+
+          {/* Missionaries from our ward Section */}
+          <section className="space-y-4 mt-8">
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Missionaries from our ward
+              <div className="flex flex-col items-end ml-2">
+                <button
+                  type="button"
+                  onClick={() => saveDefault('wardMissionaries', data.wardMissionaries)}
+                  className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300"
+                  title="Save as default"
+                >
+                  Save as default
+                </button>
+                <span className="text-sm text-gray-500 mt-1">Saves all ward missionary information as your template.</span>
+              </div>
+            </h3>
+            
+            {/* Desktop view */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full border text-sm rounded-lg overflow-hidden bg-white shadow-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-3 py-2 border-b text-sm">Name</th>
+                    <th className="px-3 py-2 border-b text-sm">Mission</th>
+                    <th className="px-3 py-2 border-b text-sm">Mission Address</th>
+                    <th className="px-3 py-2 border-b text-sm">Email</th>
+                    <th className="px-3 py-2 border-b text-sm"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.wardMissionaries.map((entry, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50 transition">
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.name}
+                          onChange={e => {
+                            const updated = [...data.wardMissionaries];
+                            updated[idx] = { ...updated[idx], name: e.target.value };
+                            updateField('wardMissionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Missionary name"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.mission || ''}
+                          onChange={e => {
+                            const updated = [...data.wardMissionaries];
+                            updated[idx] = { ...updated[idx], mission: e.target.value };
+                            updateField('wardMissionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Mission name"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="text"
+                          value={entry.missionAddress || ''}
+                          onChange={e => {
+                            const updated = [...data.wardMissionaries];
+                            updated[idx] = { ...updated[idx], missionAddress: e.target.value };
+                            updateField('wardMissionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Mission address"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2">
+                        <input
+                          type="email"
+                          value={entry.email || ''}
+                          onChange={e => {
+                            const updated = [...data.wardMissionaries];
+                            updated[idx] = { ...updated[idx], email: e.target.value };
+                            updateField('wardMissionaries', updated);
+                          }}
+                          className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Email address"
+                        />
+                      </td>
+                      <td className="border-b px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = data.wardMissionaries.filter((_, i) => i !== idx);
+                            updateField('wardMissionaries', updated);
+                          }}
+                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                          title="Remove"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Mobile view */}
+            <div className="md:hidden space-y-4">
+              {data.wardMissionaries.map((entry, idx) => (
+                <div key={idx} className="bg-white border rounded-lg p-4 shadow-sm">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Name</label>
+                      <input
+                        type="text"
+                        value={entry.name}
+                        onChange={e => {
+                          const updated = [...data.wardMissionaries];
+                          updated[idx] = { ...updated[idx], name: e.target.value };
+                          updateField('wardMissionaries', updated);
+                        }}
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Missionary name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Mission</label>
+                      <input
+                        type="text"
+                        value={entry.mission || ''}
+                        onChange={e => {
+                          const updated = [...data.wardMissionaries];
+                          updated[idx] = { ...updated[idx], mission: e.target.value };
+                          updateField('wardMissionaries', updated);
+                        }}
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Mission name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Mission Address</label>
+                      <input
+                        type="text"
+                        value={entry.missionAddress || ''}
+                        onChange={e => {
+                          const updated = [...data.wardMissionaries];
+                          updated[idx] = { ...updated[idx], missionAddress: e.target.value };
+                          updateField('wardMissionaries', updated);
+                        }}
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Mission address"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={entry.email || ''}
+                        onChange={e => {
+                          const updated = [...data.wardMissionaries];
+                          updated[idx] = { ...updated[idx], email: e.target.value };
+                          updateField('wardMissionaries', updated);
+                        }}
+                        className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Email address"
+                      />
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = data.wardMissionaries.filter((_, i) => i !== idx);
+                          updateField('wardMissionaries', updated);
+                        }}
+                        className="w-full px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
+                        title="Remove"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => updateField('wardMissionaries', [...data.wardMissionaries, { name: '', mission: '', missionAddress: '', email: '' }])}
+              className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-base"
+            >
+              Add Ward Missionary
+            </button>
+          </section>
+        </>
+      )}
+
+      {/* Recurring Announcements Modal */}
+      <RecurringAnnouncementsModal
+        isOpen={showRecurringAnnouncements}
+        onClose={() => setShowRecurringAnnouncements(false)}
+        profileSlug={profileSlug || 'default'}
+        onAnnouncementSelected={handleRecurringAnnouncementSelected}
+      />
     </div>
   );
 }

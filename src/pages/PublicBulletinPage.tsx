@@ -48,6 +48,19 @@ export default function PublicBulletinPage() {
     date: publicBulletin.date || '',
     meetingType: publicBulletin.meeting_type || '',
     theme: publicBulletin.theme || '',
+    imageId: publicBulletin.imageId || 'none',
+    imagePosition: (() => {
+      const pos = publicBulletin.imagePosition;
+      if (!pos) return { x: 50, y: 50 };
+      if (typeof pos === 'string') {
+        try {
+          return JSON.parse(pos);
+        } catch {
+          return { x: 50, y: 50 };
+        }
+      }
+      return pos;
+    })(),
     bishopricMessage: publicBulletin.bishopric_message || '',
     announcements: publicBulletin.announcements || [],
     meetings: publicBulletin.meetings || [],
@@ -67,8 +80,11 @@ export default function PublicBulletinPage() {
     },
     leadership: publicBulletin.leadership || { presiding: '', conducting: '', chorister: '', organist: '' },
     wardLeadership: publicBulletin.wardLeadership || (publicBulletin.leadership && publicBulletin.leadership.wardLeadership) || [],
-    missionaries: publicBulletin.missionaries || (publicBulletin.leadership && publicBulletin.leadership.missionaries) || []
+    missionaries: publicBulletin.missionaries || (publicBulletin.leadership && publicBulletin.leadership.missionaries) || [],
+    wardMissionaries: publicBulletin.wardMissionaries || []
   } : null;
+
+
 
   return (
     <>

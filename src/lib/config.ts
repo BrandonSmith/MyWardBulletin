@@ -1,3 +1,4 @@
-export const FULL_DOMAIN = import.meta.env.VITE_FULL_DOMAIN || 'mywardbulletin.com';
-export const SHORT_DOMAIN = import.meta.env.VITE_SHORT_DOMAIN || 'mwbltn.com';
+// Hardcoded domain configuration - revert from environment variables
+export const FULL_DOMAIN = 'mywardbulletin.com';
+export const SHORT_DOMAIN = 'mwbltn.com';
 

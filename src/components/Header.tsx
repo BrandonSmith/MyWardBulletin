@@ -19,7 +19,6 @@ export default function Header({
   setShowProfile,
   showMobileMenu,
   setShowMobileMenu,
-  isSupabaseConfigured,
   hideExportPDF = false,
   hideQRCode = false,
   onlyNewBulletin = false
@@ -193,11 +192,10 @@ export default function Header({
                     setShowAuthModal(true);
                     setShowMobileMenu(false);
                   }}
-                  disabled={!isSupabaseConfigured()}
                   className="w-full flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 >
                   <LogIn className="w-4 h-4 mr-2" />
-                  {isSupabaseConfigured() ? 'Sign In' : 'Sign In (Setup Required)'}
+                  Sign In
                 </button>
               ))}
             </div>

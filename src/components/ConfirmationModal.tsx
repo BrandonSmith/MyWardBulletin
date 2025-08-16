@@ -18,14 +18,18 @@ export default function ConfirmationModal({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  variant = 'warning'
+  confirmText,
+  cancelText,
+  variant
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
+  
+  const finalConfirmText = confirmText || 'Confirm';
+  const finalCancelText = cancelText || 'Cancel';
+  const finalVariant = variant || 'warning';
 
   const getVariantStyles = () => {
-    switch (variant) {
+    switch (finalVariant) {
       case 'danger':
         return {
           icon: 'text-red-600',
@@ -112,13 +116,13 @@ export default function ConfirmationModal({
             onClick={handleCancel}
             className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
-            {cancelText}
+            {finalCancelText}
           </button>
           <button
             onClick={handleConfirm}
             className={`px-4 py-2 rounded-lg transition-colors ${styles.button}`}
           >
-            {confirmText}
+            {finalConfirmText}
           </button>
         </div>
       </div>

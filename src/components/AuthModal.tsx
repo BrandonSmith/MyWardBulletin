@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,7 +16,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isSupabaseConfigured() || !supabase) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         onAuthSuccess();
@@ -29,10 +28,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isSupabaseConfigured() || !supabase) {
-      setError('Supabase is not configured. Please connect to Supabase first.');
-      return;
-    }
+    // Supabase is always configured with hardcoded values
     
     console.log('Starting authentication process...', { isSignUp, email });
 

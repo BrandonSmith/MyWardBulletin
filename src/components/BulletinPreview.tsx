@@ -419,39 +419,16 @@ export default function BulletinPreview({
             </DottedLine>
           )}
 
-          {/* Sacrament Hymn */}
-          {(data?.musicProgram?.sacramentHymnNumber || data?.musicProgram?.sacramentHymnTitle) && (
-            <div className="space-y-1">
-              <DottedLine rightAlign={data?.musicProgram?.sacramentHymnNumber}>
-                <span>Sacrament Hymn</span>
-              </DottedLine>
-              <div className="text-center py-1">
-                <p className="italic">
-                  <a
-                    href={getSongUrl(
-                      data?.musicProgram?.sacramentHymnNumber,
-                      data?.musicProgram?.sacramentHymnType || 'hymn'
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-700 underline hover:text-blue-900"
-                  >
-                    {data?.musicProgram?.sacramentHymnTitle ||
-                      getSongTitle(
-                        data?.musicProgram?.sacramentHymnNumber,
-                        data?.musicProgram?.sacramentHymnType || 'hymn'
-                      )}
-                  </a>
-                </p>
-              </div>
-            </div>
-          )}
+          {/* Ward Business */}
+          <div className="text-center">
+            <p className="font-medium text-gray-900">Ward Business</p>
+          </div>
+
 
           {/* Agenda */}
           {Array.isArray(data?.agenda) && data.agenda.length > 0 && (
             <div className="space-y-1">
               <div className="text-center py-2">
-                <h3 className="font-bold text-gray-900">Program</h3>
               </div>
               {data.agenda.map((item, idx) => (
                 <div key={idx} className="space-y-1">
@@ -494,9 +471,37 @@ export default function BulletinPreview({
                     </DottedLine>
                   )}
                   {item.type === 'sacrament' && (
-                    <DottedLine>
-                      <span>Administration of the Sacrament</span>
-                    </DottedLine>
+                    <>
+                      {(data?.musicProgram?.sacramentHymnNumber || data?.musicProgram?.sacramentHymnTitle) && (
+                        <div className="space-y-1">
+                          <DottedLine rightAlign={data?.musicProgram?.sacramentHymnNumber}>
+                            <span>Sacrament Hymn</span>
+                          </DottedLine>
+                          <div className="text-center py-1">
+                            <p className="italic">
+                              <a
+                                href={getSongUrl(
+                                  data?.musicProgram?.sacramentHymnNumber,
+                                  data?.musicProgram?.sacramentHymnType || 'hymn'
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 underline hover:text-blue-900"
+                              >
+                                {data?.musicProgram?.sacramentHymnTitle ||
+                                  getSongTitle(
+                                    data?.musicProgram?.sacramentHymnNumber,
+                                    data?.musicProgram?.sacramentHymnType || 'hymn'
+                                  )}
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-gray-900">Administration of the Sacrament</p>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -825,31 +830,11 @@ export default function BulletinPreview({
           <DottedLine rightAlign={data.prayers.opening}><span>Invocation</span></DottedLine>
         )}
 
-        {/* Sacrament Hymn */}
-        {(data?.musicProgram?.sacramentHymnNumber || data?.musicProgram?.sacramentHymnTitle) && (
-          <div className="space-y-1">
-            <DottedLine rightAlign={data?.musicProgram?.sacramentHymnNumber}><span>Sacrament Hymn</span></DottedLine>
-            <div className="text-center py-1">
-              <p className="italic">
-                <a
-                  href={getSongUrl(
-                    data?.musicProgram?.sacramentHymnNumber,
-                    data?.musicProgram?.sacramentHymnType || 'hymn'
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 underline hover:text-blue-900"
-                >
-                  {data?.musicProgram?.sacramentHymnTitle ||
-                    getSongTitle(
-                      data?.musicProgram?.sacramentHymnNumber,
-                      data?.musicProgram?.sacramentHymnType || 'hymn'
-                    )}
-                </a>
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Ward Business */}
+        <div className="text-center">
+          <p className="font-medium text-gray-900">Ward Business</p>
+        </div>
+
 
         {/* Agenda */}
         {Array.isArray(data?.agenda) && data.agenda.length > 0 && (
@@ -895,9 +880,35 @@ export default function BulletinPreview({
                   </DottedLine>
                 )}
                 {item.type === 'sacrament' && (
-                  <DottedLine>
-                    <span>Administration of the Sacrament</span>
-                  </DottedLine>
+                  <>
+                    {(data?.musicProgram?.sacramentHymnNumber || data?.musicProgram?.sacramentHymnTitle) && (
+                      <div className="space-y-1">
+                        <DottedLine rightAlign={data?.musicProgram?.sacramentHymnNumber}><span>Sacrament Hymn</span></DottedLine>
+                        <div className="text-center py-1">
+                          <p className="italic">
+                            <a
+                              href={getSongUrl(
+                                data?.musicProgram?.sacramentHymnNumber,
+                                data?.musicProgram?.sacramentHymnType || 'hymn'
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-700 underline hover:text-blue-900"
+                            >
+                              {data?.musicProgram?.sacramentHymnTitle ||
+                                getSongTitle(
+                                  data?.musicProgram?.sacramentHymnNumber,
+                                  data?.musicProgram?.sacramentHymnType || 'hymn'
+                                )}
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <p className="font-medium text-gray-900">Administration of the Sacrament</p>
+                    </div>
+                  </>
                 )}
               </div>
             ))}

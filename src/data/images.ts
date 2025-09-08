@@ -143,15 +143,75 @@ export const getCustomImages = (): CustomImage[] => {
   }
 };
 
-// Save custom image to localStorage
-export const saveCustomImage = (image: CustomImage): void => {
+// Compress image data to reduce storage size
+const compressImage = (base64: string, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Calculate new dimensions (max 800px width/height)
+      const maxSize = 800;
+      let { width, height } = img;
+      
+      if (width > height && width > maxSize) {
+        height = (height * maxSize) / width;
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = (width * maxSize) / height;
+        height = maxSize;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      ctx?.drawImage(img, 0, 0, width, height);
+      const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedBase64);
+    };
+    img.src = base64;
+  });
+};
+
+// Save custom image to localStorage with compression and quota management
+export const saveCustomImage = async (image: CustomImage): Promise<void> => {
   try {
+    // Compress the image first
+    const compressedBase64 = await compressImage(image.url);
+    const compressedImage = { ...image, url: compressedBase64 };
+    
     const existing = getCustomImages();
-    const updated = [...existing, image];
-    localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(updated));
+    const updated = [...existing, compressedImage];
+    
+    // Try to save with compression
+    try {
+      localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(updated));
+      return;
+    } catch (quotaError) {
+      console.warn('Quota exceeded, attempting to clear old images');
+      
+      // If still too large, remove oldest images (keep last 10)
+      const recentImages = existing.slice(-10);
+      const finalUpdated = [...recentImages, compressedImage];
+      
+      try {
+        localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(finalUpdated));
+        console.log('Cleared old images to make space');
+        return;
+      } catch (finalError) {
+        // If still too large, try with even more compression
+        const highlyCompressedBase64 = await compressImage(image.url, 0.5);
+        const highlyCompressedImage = { ...image, url: highlyCompressedBase64 };
+        const minimalUpdated = [...recentImages.slice(-5), highlyCompressedImage];
+        
+        localStorage.setItem(CUSTOM_IMAGES_KEY, JSON.stringify(minimalUpdated));
+        console.log('Used high compression to fit in storage');
+      }
+    }
   } catch (error) {
     console.error('Error saving custom image:', error);
-    throw new Error('Failed to save custom image. File may be too large.');
+    throw new Error('Failed to save custom image. File may be too large or storage quota exceeded.');
   }
 };
 

@@ -24,13 +24,15 @@ interface RecurringAnnouncement {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Image support
+  images?: Array<{ imageId: string; hideImageOnPrint?: boolean }>;
 }
 
 interface RecurringAnnouncementsModalProps {
   isOpen: boolean;
   onClose: () => void;
   profileSlug: string;
-  onAnnouncementSelected: (announcement: { title: string; content: string; audience: string; is_active: boolean }) => void;
+  onAnnouncementSelected: (announcement: { title: string; content: string; audience: string; is_active: boolean; images?: Array<{ imageId: string; hideImageOnPrint?: boolean }> }) => void;
 }
 
 export default function RecurringAnnouncementsModal({ isOpen, onClose, profileSlug, onAnnouncementSelected }: RecurringAnnouncementsModalProps) {
@@ -163,7 +165,8 @@ export default function RecurringAnnouncementsModal({ isOpen, onClose, profileSl
       title: announcement.title,
       content: announcement.content,
       audience: announcement.audience,
-      is_active: announcement.is_active
+      is_active: announcement.is_active,
+      images: announcement.images
     });
     toast.success(`"${announcement.title}" added to current bulletin`);
   };
@@ -306,6 +309,18 @@ export default function RecurringAnnouncementsModal({ isOpen, onClose, profileSl
                               <p className="text-gray-600 text-sm mb-2 line-clamp-2">
                                 {stripHtmlTags(announcement.content)}
                               </p>
+                              
+                              {/* Display images if they exist */}
+                              {(announcement.images && announcement.images.length > 0) && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {/* Multiple images */}
+                                  {announcement.images && announcement.images.length > 0 && (
+                                    <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                      📷 {announcement.images.length} image{announcement.images.length > 1 ? 's' : ''} attached
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex flex-wrap gap-2 text-xs">
                                 <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800">
                                   {announcement.audience.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

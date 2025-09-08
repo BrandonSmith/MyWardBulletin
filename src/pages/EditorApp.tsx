@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare, Repeat } from 'lucide-react';
+import UnitTypeSelector from '../components/TerminologyToggle';
+import { getCurrentUnitType } from '../lib/config';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { supabase, userService, bulletinService, robustService, retryOperation } from '../lib/supabase';
@@ -112,8 +114,13 @@ function EditorApp() {
     }
   }
 
-  // Helper function to ensure sacrament item exists at the top of agenda
-  function ensureSacramentItem(agenda: any[]): any[] {
+  // Helper function to ensure sacrament item exists at the top of agenda (only for sacrament meetings)
+  function ensureSacramentItem(agenda: any[], meetingType: string = 'sacrament'): any[] {
+    // Only add sacrament item for sacrament meetings
+    if (meetingType !== 'sacrament') {
+      return agenda;
+    }
+    
     // Check if sacrament item already exists
     const hasSacramentItem = agenda.some(item => item.type === 'sacrament');
     
@@ -136,8 +143,10 @@ function EditorApp() {
           id: Date.now().toString() + Math.random(),
           title: announcement.title,
           content: announcement.content,
-          category: announcement.category,
-          audience: announcement.audience
+          category: announcement.category || 'general',
+          audience: announcement.audience,
+          // Preserve image data from recurring announcement
+          images: announcement.images
         }));
         
         return {
@@ -153,19 +162,26 @@ function EditorApp() {
     }
   }
 
+  // Helper function to get appropriate meeting type based on unit type
+  const getMeetingTypeForUnit = (unitType: string): string => {
+    // Both ward and branch use sacrament meetings
+    return 'sacrament';
+  };
+
   function createBlankBulletin(): BulletinData {
+    const currentUnitType = getCurrentUnitType();
     return {
       wardName: getDefault('wardName', ''),
       date: new Date().toISOString().split('T')[0],
-      meetingType: 'sacrament',
+      meetingType: getMeetingTypeForUnit(currentUnitType),
       theme: '',
       bishopricMessage: '',
       announcements: [],
       meetings: [],
       specialEvents: [],
-      agenda: [
+      agenda: getMeetingTypeForUnit(currentUnitType) === 'sacrament' ? [
         { type: 'sacrament', id: crypto.randomUUID() }
-      ],
+      ] : [],
       prayers: {
         opening: '',
         closing: '',
@@ -188,7 +204,8 @@ function EditorApp() {
         conducting: getDefault('conducting', ''),
         chorister: getDefault('chorister', ''),
         organist: getDefault('organist', ''),
-        organistLabel: 'Organist'
+        organistLabel: 'Organist',
+        choristerLabel: 'Chorister'
       },
       wardLeadership: getDefault('wardLeadership', [
         { title: 'Bishop', name: '', phone: '' },
@@ -380,7 +397,7 @@ function EditorApp() {
     announcements: bulletin.announcements || [],
     meetings: bulletin.meetings || [],
     specialEvents: bulletin.special_events || [],
-    agenda: ensureSacramentItem(bulletin.agenda || []),
+    agenda: ensureSacramentItem(bulletin.agenda || [], bulletin.meeting_type),
     prayers: bulletin.prayers || {
       opening: '',
       closing: '',
@@ -402,7 +419,8 @@ function EditorApp() {
       presiding: '',
       chorister: '',
       organist: '',
-      organistLabel: 'Organist'
+      organistLabel: 'Organist',
+      choristerLabel: 'Chorister'
     },
     wardLeadership: bulletin.wardLeadership || [
       { title: 'Bishop', name: '', phone: '' },
@@ -427,8 +445,67 @@ function EditorApp() {
 
   const handleBulletinDataChange = (newData: BulletinData) => {
     setBulletinData(newData);
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
-    setHasUnsavedChanges(true);
+    
+    // Try to save to localStorage with error handling and quota management
+    try {
+      const dataToSave = JSON.stringify(newData);
+      
+      // Check if data is too large (localStorage typically has 5-10MB limit)
+      if (dataToSave.length > 3 * 1024 * 1024) { // 3MB threshold for safety
+        console.warn('Draft data too large for localStorage, attempting to clear old data');
+        
+        // Try to clear old bulletin data to make space
+        try {
+          const keys = Object.keys(localStorage);
+          keys.forEach(key => {
+            if (key.startsWith('mywardbulletin_') && key !== DRAFT_KEY) {
+              localStorage.removeItem(key);
+            }
+          });
+          
+          // Try again after clearing
+          if (dataToSave.length < 4 * 1024 * 1024) {
+            localStorage.setItem(DRAFT_KEY, dataToSave);
+            setHasUnsavedChanges(true);
+            return;
+          }
+        } catch (clearError) {
+          console.warn('Failed to clear old data:', clearError);
+        }
+        
+        console.warn('Draft data still too large after cleanup, skipping save');
+        setHasUnsavedChanges(true);
+        return;
+      }
+      
+      localStorage.setItem(DRAFT_KEY, dataToSave);
+      setHasUnsavedChanges(true);
+    } catch (error) {
+      console.warn('Failed to save draft to localStorage:', error);
+      
+      // If it's a quota exceeded error, try to clear old data
+      if (error instanceof DOMException && error.code === DOMException.QUOTA_EXCEEDED_ERR) {
+        try {
+          console.log('Quota exceeded, attempting to clear old data');
+          const keys = Object.keys(localStorage);
+          keys.forEach(key => {
+            if (key.startsWith('mywardbulletin_') && key !== DRAFT_KEY) {
+              localStorage.removeItem(key);
+            }
+          });
+          
+          // Try one more time
+          localStorage.setItem(DRAFT_KEY, JSON.stringify(newData));
+          setHasUnsavedChanges(true);
+          return;
+        } catch (retryError) {
+          console.warn('Failed to save even after clearing old data:', retryError);
+        }
+      }
+      
+      // Still mark as having changes, but don't save to localStorage
+      setHasUnsavedChanges(true);
+    }
   };
 
 
@@ -637,7 +714,7 @@ function EditorApp() {
             announcements: bulletin.announcements || [],
             meetings: bulletin.meetings || [],
             specialEvents: bulletin.special_events || [],
-            agenda: ensureSacramentItem(bulletin.agenda || []),
+            agenda: ensureSacramentItem(bulletin.agenda || [], bulletin.meeting_type),
             prayers: bulletin.prayers || {
               opening: '',
               closing: '',
@@ -701,7 +778,7 @@ function EditorApp() {
       announcements: bulletin.announcements || [],
       meetings: bulletin.meetings || [],
       specialEvents: bulletin.special_events || [],
-      agenda: ensureSacramentItem(bulletin.agenda || []),
+      agenda: ensureSacramentItem(bulletin.agenda || [], bulletin.meeting_type),
       prayers: bulletin.prayers || {
         opening: '',
         closing: '',
@@ -1000,6 +1077,7 @@ function EditorApp() {
             
             {/* Desktop Menu */}
             <div className="hidden lg:flex items-center space-x-3">
+              <UnitTypeSelector />
               <button
                 onClick={handleNewBulletin}
                 className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -1084,6 +1162,9 @@ function EditorApp() {
           {showMobileMenu && (
             <div className="lg:hidden mt-4 pt-4 border-t border-gray-200">
               <div className="space-y-3">
+                <div className="flex justify-center">
+                  <UnitTypeSelector />
+                </div>
                 <button
                   onClick={() => {
                     handleNewBulletin();

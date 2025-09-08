@@ -1,14 +1,20 @@
 import { SongType } from '../lib/songService';
 
+export interface AnnouncementImage {
+  imageId: string;
+  hideImageOnPrint?: boolean;
+}
+
 export interface Announcement {
   id: string;
   title: string;
   content: string;
   category: 'general' | 'baptism' | 'birthday' | 'calling' | 'activity' | 'service' | 'other';
   date?: string;
-  audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake' | 'other';
-  imageId?: string; // Optional image for flyers/announcements
-  hideImageOnPrint?: boolean; // Hide image when printing
+  audience?: 'ward' | 'relief_society' | 'elders_quorum' | 'youth' | 'primary' | 'stake' | 'branch' | 'district' | 'other';
+  imageId?: string; // Optional image for flyers/announcements (legacy support)
+  hideImageOnPrint?: boolean; // Hide image when printing (legacy support)
+  images?: AnnouncementImage[]; // Multiple images support
 }
 
 export interface Meeting {
@@ -55,6 +61,7 @@ export interface Leadership {
   presiding: string;
   conducting?: string;
   chorister: string;
+  choristerLabel?: 'Chorister' | 'Music Leader';
   organist: string;
   organistLabel?: 'Organist' | 'Pianist';
   preludeMusic?: string;
@@ -72,30 +79,36 @@ export type AgendaItem =
   | { type: 'testimony'; id: string; note?: string }
   | { type: 'sacrament'; id: string };
 
-export interface WardLeadershipEntry {
+export interface UnitLeadershipEntry {
   title: string;
   name: string;
   phone?: string;
 }
+
+// Legacy type alias for backward compatibility
+export type WardLeadershipEntry = UnitLeadershipEntry;
 
 export interface MissionaryEntry {
   name: string;
   phone?: string;
 }
 
-export interface WardMissionaryEntry {
+export interface UnitMissionaryEntry {
   name: string;
   mission?: string;
   missionAddress?: string;
   email?: string;
 }
 
+// Legacy type alias for backward compatibility
+export type WardMissionaryEntry = UnitMissionaryEntry;
+
 export interface BulletinData {
-  wardName: string;
+  wardName: string; // Will display as appropriate unit name based on terminology
   date: string;
   meetingType: string;
   theme: string;
-  bishopricMessage: string;
+  bishopricMessage: string; // Will display as appropriate leadership message based on terminology
   announcements: Announcement[];
   meetings: Meeting[];
   specialEvents: SpecialEvent[];
@@ -103,9 +116,9 @@ export interface BulletinData {
   prayers: Prayers;
   musicProgram: MusicProgram;
   leadership: Leadership;
-  wardLeadership: WardLeadershipEntry[];
+  wardLeadership: UnitLeadershipEntry[]; // Using new interface
   missionaries: MissionaryEntry[];
-  wardMissionaries: WardMissionaryEntry[];
+  wardMissionaries: UnitMissionaryEntry[]; // Using new interface
   imageId?: string; // ID of selected image from LDS_IMAGES or custom images
   imagePosition?: { x: number; y: number }; // Image positioning coordinates
 }

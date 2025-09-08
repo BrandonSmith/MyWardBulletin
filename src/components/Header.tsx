@@ -1,7 +1,9 @@
 import React from 'react';
 import Logo from './Logo';
 import UserMenu from './UserMenu';
+import TerminologyToggle from './TerminologyToggle';
 import { Plus, Download, QrCode, LogIn, Menu, X } from 'lucide-react';
+import { getUnitLabel } from '../lib/terminology';
 
 export default function Header({
   user,
@@ -31,11 +33,12 @@ export default function Header({
             <Logo size={40} />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">MyWardBulletin</h1>
-              <p className="text-sm text-gray-600">Ward Bulletin Creator</p>
+              <p className="text-sm text-gray-600">{getUnitLabel()} Bulletin Creator</p>
             </div>
           </a>
           {/* Desktop Menu */}
-          <div className="hidden lg:flex items-center space-x-3">
+          <div className="hidden lg:flex items-center space-x-4">
+            <TerminologyToggle />
             <button
               onClick={handleNewBulletin}
               className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
@@ -114,6 +117,9 @@ export default function Header({
         {showMobileMenu && (
           <div className="lg:hidden mt-4 pt-4 border-t border-gray-200">
             <div className="space-y-3">
+              <div className="flex justify-center">
+                <TerminologyToggle />
+              </div>
               <button
                 onClick={() => {
                   handleNewBulletin();

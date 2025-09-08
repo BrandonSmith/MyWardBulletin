@@ -43,8 +43,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUploaded, onError }) =
         uploadDate: new Date().toISOString()
       };
 
-      // Save to localStorage
-      saveCustomImage(customImage);
+      // Save to localStorage (now async)
+      await saveCustomImage(customImage);
       
       // Notify parent component
       onImageUploaded(customImage.id);

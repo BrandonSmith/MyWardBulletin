@@ -143,8 +143,10 @@ function EditorApp() {
           id: Date.now().toString() + Math.random(),
           title: announcement.title,
           content: announcement.content,
-          category: announcement.category,
-          audience: announcement.audience
+          category: announcement.category || 'general',
+          audience: announcement.audience,
+          // Preserve image data from recurring announcement
+          images: announcement.images
         }));
         
         return {

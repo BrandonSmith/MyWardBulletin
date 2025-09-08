@@ -73,7 +73,9 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
           title: announcement.title,
           content: announcement.content,
           category: 'general',
-          audience: announcement.audience
+          audience: announcement.audience,
+          // Preserve image data from recurring announcement
+          images: announcement.images
         };
           updateField('announcements', [...data.announcements, newAnnouncement]);
         };
@@ -842,7 +844,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                     Chorister
                   </span>
                   <span 
-                    className={`text-sm font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${choristerLabel === 'Music Leader' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
+                    className={`text-xs font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${choristerLabel === 'Music Leader' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
                     onClick={() => {
                       setChoristerLabel('Music Leader');
                       updateField('leadership', { ...data.leadership, choristerLabel: 'Music Leader' });

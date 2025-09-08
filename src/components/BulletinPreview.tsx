@@ -5,6 +5,16 @@ import { decodeHtml } from '../lib/decodeHtml';
 import { getSongUrl, getSongTitle } from '../lib/songService';
 import { getImageById } from '../data/images';
 
+
+import {
+  getUnitLabel,
+  getUnitLowercase,
+  getHigherUnitLabel,
+  getUnitLeadershipLabel,
+  getUnitMissionariesLabel,
+  getAudienceDisplayName
+} from '../lib/terminology';
+
 interface BulletinPreviewProps {
   data: BulletinData;
   hideTabs?: boolean;
@@ -14,17 +24,10 @@ interface BulletinPreviewProps {
 
 /* ---------------------------------- Consts --------------------------------- */
 
-const audienceLabels = {
-  ward: 'Ward',
-  relief_society: 'Relief Society',
-  elders_quorum: 'Elders Quorum',
-  young_women: 'Young Women',
-  young_men: 'Young Men',
-  youth: 'Youth',
-  primary: 'Primary',
-  stake: 'Stake',
-  other: 'Other',
-} as const;
+// Dynamic audience labels based on terminology
+const getAudienceLabel = (audience: string): string => {
+  return getAudienceDisplayName(audience);
+};
 
 const imagePositions = {
   top: { x: 50, y: 25 },
@@ -34,9 +37,9 @@ const imagePositions = {
 
 /* ------------------------------- Pure helpers ------------------------------ */
 
-const hasWardInfo = (data?: BulletinData): boolean => {
+const hasUnitInfo = (data?: BulletinData): boolean => {
   if (!data) return false;
-  const hasWardLeadership =
+  const hasUnitLeadership =
     Array.isArray(data.wardLeadership) &&
     data.wardLeadership.some(e => e && (e.title || e.name || e.phone));
 
@@ -44,12 +47,15 @@ const hasWardInfo = (data?: BulletinData): boolean => {
     Array.isArray(data.missionaries) &&
     data.missionaries.some(e => e && (e.name || e.phone));
 
-  const hasWardMissionaries =
+  const hasUnitMissionaries =
     Array.isArray(data.wardMissionaries) &&
     data.wardMissionaries.some(e => e && (e.name || e.mission || e.missionAddress || e.email));
 
-  return hasWardLeadership || hasMissionaries || hasWardMissionaries;
+  return hasUnitLeadership || hasMissionaries || hasUnitMissionaries;
 };
+
+// Legacy alias for compatibility
+const hasWardInfo = hasUnitInfo;
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return 'Date';
@@ -167,7 +173,8 @@ function AnnouncementItem({
   title,
   html, // sanitized html string
   imageId,
-  hideImageOnPrint = false
+  hideImageOnPrint = false,
+  images
 }: {
   audience: string;
   category?: string | null;
@@ -175,6 +182,7 @@ function AnnouncementItem({
   html: string;
   imageId?: string;
   hideImageOnPrint?: boolean;
+  images?: Array<{ imageId: string; hideImageOnPrint?: boolean }>;
 }) {
   // H1 audience, H2 title, content styled as "H3-ish"
   return (
@@ -194,12 +202,28 @@ function AnnouncementItem({
       <div className="mt-2 text-gray-800 text-base leading-relaxed">
         <div
           className="mt-1"
-          dangerouslySetInnerHTML={{ __html: html }}
+          style={{
+            '--tw-prose-bullets': 'disc',
+            '--tw-prose-list-style': 'disc'
+          } as React.CSSProperties}
+          dangerouslySetInnerHTML={{ 
+            __html: html.replace(
+              /<ul>/g, 
+              '<ul style="list-style-type: disc; list-style-position: inside; margin-left: 1rem;">'
+            ).replace(
+              /<ol>/g, 
+              '<ol style="list-style-type: decimal; list-style-position: inside; margin-left: 1rem;">'
+            ).replace(
+              /<li>/g, 
+              '<li style="margin-left: 0.5rem; display: list-item;">'
+            )
+          }}
         />
       </div>
 
-      {/* Announcement Image */}
-      {imageId && imageId !== 'none' && (
+      {/* Announcement Images */}
+      {/* Legacy single image support */}
+      {imageId && imageId !== 'none' && !images && (
         <div className={`mt-3 ${hideImageOnPrint ? 'print:hidden' : ''}`}>
           {(() => {
             const selectedImage = getImageById(imageId);
@@ -207,11 +231,32 @@ function AnnouncementItem({
               <img
                 src={selectedImage.url}
                 alt={selectedImage.name}
-                className="max-w-full h-auto rounded-lg shadow-sm"
-                style={{ maxHeight: '200px' }}
+                className="max-w-full h-auto rounded-lg shadow-sm w-full"
+                style={{ maxHeight: '200px', objectFit: 'contain' }}
+                loading="lazy"
               />
             ) : null;
           })()}
+        </div>
+      )}
+      
+      {/* Multiple images support */}
+      {images && images.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {images.map((img: any, index: number) => {
+            const selectedImage = getImageById(img.imageId);
+            return selectedImage?.url ? (
+              <div key={index} className={`${img.hideImageOnPrint ? 'print:hidden' : ''}`}>
+                <img
+                  src={selectedImage.url}
+                  alt={selectedImage.name}
+                  className="max-w-full h-auto rounded-lg shadow-sm w-full"
+                  style={{ maxHeight: '200px', objectFit: 'contain' }}
+                  loading="lazy"
+                />
+              </div>
+            ) : null;
+          })}
         </div>
       )}
     </article>
@@ -226,12 +271,12 @@ export default function BulletinPreview({
   hideImageControls = false,
   onImagePositionChange
 }: BulletinPreviewProps) {
-  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
+  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'unitinfo'>('program');
 
   // Handle mobile viewport - switch away from wardinfo if on mobile and that tab is active and there's no ward info
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 640 && activeTab === 'wardinfo' && !hasWardInfo(data)) { // 640px is sm breakpoint
+      if (window.innerWidth < 640 && activeTab === 'unitinfo' && !hasWardInfo(data)) { // 640px is sm breakpoint
         setActiveTab('program');
       }
     };
@@ -285,7 +330,7 @@ export default function BulletinPreview({
     const arr = data?.announcements ?? [];
     return arr.map(a => ({
       ...a,
-      audienceLabel: audienceLabels[(a.audience || 'ward') as keyof typeof audienceLabels],
+      audienceLabel: getAudienceLabel(a.audience || getUnitLowercase()),
       html: sanitizeHtml(decodeHtml(a.content ?? "")),
     }));
   }, [data?.announcements]);
@@ -310,8 +355,8 @@ export default function BulletinPreview({
       {!hideTabs && (
         <nav className="flex justify-center print:hidden mb-4 mt-4" aria-label="Main tabs">
           <ul className="flex flex-col gap-3 sm:flex-row sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
-            {(['program', 'announcements', 'wardinfo'] as const).map(tab => (
-              <li key={tab} role="presentation" className={`w-full sm:w-auto ${tab === 'wardinfo' && !hasWardInfo(data) ? 'hidden sm:block' : ''}`}>
+            {(['program', 'announcements', 'unitinfo'] as const).map(tab => (
+              <li key={tab} role="presentation" className={`w-full sm:w-auto ${tab === 'unitinfo' && !hasWardInfo(data) ? 'hidden sm:block' : ''}`}>
                 <button
                   type="button"
                   role="tab"
@@ -324,7 +369,7 @@ export default function BulletinPreview({
                   `}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+                  {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : `${getUnitLabel()} Info`}
                 </button>
               </li>
             ))}
@@ -365,7 +410,7 @@ export default function BulletinPreview({
               </DottedLine>
             )}
             <DottedLine rightAlign={data?.leadership?.chorister}>
-              <span>Chorister</span>
+              <span>{data?.leadership?.choristerLabel || 'Chorister'}</span>
             </DottedLine>
             <DottedLine rightAlign={data?.leadership?.organist}>
               <span>{data?.leadership?.organistLabel || 'Organist'}</span>
@@ -419,9 +464,9 @@ export default function BulletinPreview({
             </DottedLine>
           )}
 
-          {/* Ward Business */}
+          {/* Unit Business */}
           <div className="text-center">
-            <p className="font-medium text-gray-900">Ward Business</p>
+            <p className="font-medium text-gray-900">{getUnitLabel()} Business</p>
           </div>
 
 
@@ -470,7 +515,7 @@ export default function BulletinPreview({
                       <span>Testimony Meeting</span>
                     </DottedLine>
                   )}
-                  {item.type === 'sacrament' && (
+                  {item.type === 'sacrament' && data.meetingType === 'sacrament' && (
                     <>
                       {(data?.musicProgram?.sacramentHymnNumber || data?.musicProgram?.sacramentHymnTitle) && (
                         <div className="space-y-1">
@@ -586,6 +631,7 @@ export default function BulletinPreview({
                   html={a.html}
                   imageId={a.imageId}
                   hideImageOnPrint={a.hideImageOnPrint}
+                  images={a.images}
                 />
               ))}
             </div>
@@ -646,19 +692,19 @@ export default function BulletinPreview({
       )}
 
       {/* ------------------------------- Ward Info ---------------------------- */}
-      {activeTab === 'wardinfo' && (
+      {activeTab === 'unitinfo' && (
         <div className="p-6 space-y-4 text-sm leading-relaxed">
           {/* Ward Leadership Section */}
           {Array.isArray(data.wardLeadership) && data.wardLeadership.some(e => e && (e.title || e.name || e.phone)) && (
             <>
-              <h3 className="text-base font-bold mb-3 text-center">Ward Leadership</h3>
+              <h3 className="text-base font-bold mb-3 text-center">{getUnitLeadershipLabel()}</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full border text-sm">
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="px-3 py-2 border">Title</th>
                       <th className="px-3 py-2 border text-center">Name</th>
-                      <th className="px-3 py-2 border">Phone</th>
+                      <th className="px-3 py-2 border">Contact</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -684,7 +730,7 @@ export default function BulletinPreview({
                   <thead>
                     <tr className="bg-gray-100">
                       <th className="px-3 py-2 border text-center">Name</th>
-                      <th className="px-3 py-2 border">Phone</th>
+                      <th className="px-3 py-2 border">Contact</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -703,7 +749,7 @@ export default function BulletinPreview({
           {/* Ward Missionaries Section */}
           {Array.isArray(data.wardMissionaries) && data.wardMissionaries.some(e => e && (e.name || e.mission || e.missionAddress || e.email)) && (
             <>
-              <h3 className="text-base font-bold mb-3 text-center mt-8">Missionaries from our ward</h3>
+              <h3 className="text-base font-bold mb-3 text-center mt-8">{getUnitMissionariesLabel()}</h3>
               {(data?.wardMissionaries || []).length > 2 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(data?.wardMissionaries || []).map((e, idx) => (
@@ -785,7 +831,7 @@ export default function BulletinPreview({
           {data?.leadership?.conducting && (
             <DottedLine rightAlign={data.leadership.conducting}><span>Conducting</span></DottedLine>
           )}
-          <DottedLine rightAlign={data?.leadership?.chorister}><span>Chorister</span></DottedLine>
+          <DottedLine rightAlign={data?.leadership?.chorister}><span>{data?.leadership?.choristerLabel || 'Chorister'}</span></DottedLine>
           <DottedLine rightAlign={data?.leadership?.organist}><span>{data?.leadership?.organistLabel || 'Organist'}</span></DottedLine>
           {data?.leadership?.preludeMusic && (
             <DottedLine rightAlign={data.leadership.preludeMusic}><span>Prelude Music</span></DottedLine>
@@ -830,9 +876,9 @@ export default function BulletinPreview({
           <DottedLine rightAlign={data.prayers.opening}><span>Invocation</span></DottedLine>
         )}
 
-        {/* Ward Business */}
+        {/* Unit Business */}
         <div className="text-center">
-          <p className="font-medium text-gray-900">Ward Business</p>
+          <p className="font-medium text-gray-900">{getUnitLabel()} Business</p>
         </div>
 
 
@@ -963,7 +1009,25 @@ export default function BulletinPreview({
                   <h4 className="font-semibold mr-2 text-gray-900">{a.title}</h4>
                 </div>
                 
-                <div className="text-gray-900 mb-2" dangerouslySetInnerHTML={{ __html: a.html }} />
+                <div 
+                  className="text-gray-900 mb-2" 
+                  style={{
+                    '--tw-prose-bullets': 'disc',
+                    '--tw-prose-list-style': 'disc'
+                  } as React.CSSProperties}
+                  dangerouslySetInnerHTML={{ 
+                    __html: a.html.replace(
+                      /<ul>/g, 
+                      '<ul style="list-style-type: disc; list-style-position: inside; margin-left: 1rem;">'
+                    ).replace(
+                      /<ol>/g, 
+                      '<ol style="list-style-type: decimal; list-style-position: inside; margin-left: 1rem;">'
+                    ).replace(
+                      /<li>/g, 
+                      '<li style="margin-left: 0.5rem; display: list-item;">'
+                    )
+                  }} 
+                />
                 
                 {/* Announcement Image (print) */}
                 {a.imageId && a.imageId !== 'none' && !a.hideImageOnPrint && (

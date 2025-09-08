@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Plus, Trash2, Repeat, RotateCcw } from 'lucide-react';
-import { BulletinData, Announcement, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
+import { Plus, Trash2, Repeat, RotateCcw, GripVertical } from 'lucide-react';
+import { BulletinData, Announcement, AnnouncementImage, Meeting, SpecialEvent, AgendaItem } from '../types/bulletin';
 import { getSongTitle, isValidSongNumber, searchSongsByTitle, SongType } from '../lib/songService';
 import { toast } from 'react-toastify';
 import ReactQuill from 'react-quill';
@@ -9,6 +9,17 @@ import { LDS_IMAGES, getImageById, getAllImages, deleteCustomImage } from '../da
 import ImageUpload from './ImageUpload';
 import RecurringAnnouncementsModal from './RecurringAnnouncementsModal';
 import { recurringAnnouncementsService } from '../lib/recurringAnnouncementsService';
+import {
+  getUnitLabel,
+  getUnitLowercase,
+  getHigherUnitLabel,
+  getHigherUnitLowercase,
+  getUnitNameLabel,
+  getUnitLeadershipLabel,
+  getUnitMissionariesLabel,
+  getAudienceDisplayName,
+  getAudienceValue
+} from '../lib/terminology';
 
 interface BulletinFormProps {
   data: BulletinData;
@@ -17,7 +28,7 @@ interface BulletinFormProps {
 }
 
 export default function BulletinForm({ data, onChange, profileSlug }: BulletinFormProps) {
-  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'wardinfo'>('program');
+  const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'unitinfo'>('program');
   const [hymnSearchResults, setHymnSearchResults] = useState<Array<{number: string, title: string, type: SongType}>>([]);
   const [activeHymnSearch, setActiveHymnSearch] = useState<string | null>(null);
   const [songTypes, setSongTypes] = useState<Record<string, SongType>>({
@@ -26,6 +37,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
     closingHymn: 'hymn'
   });
   const [organistLabel, setOrganistLabel] = useState<'Organist' | 'Pianist'>(data.leadership.organistLabel || 'Organist');
+  const [choristerLabel, setChoristerLabel] = useState<'Chorister' | 'Music Leader'>(data.leadership.choristerLabel || 'Chorister');
   const [allImages, setAllImages] = useState(getAllImages());
   const [imageError, setImageError] = useState<string | null>(null);
   const [showRecurringAnnouncements, setShowRecurringAnnouncements] = useState(false);
@@ -444,14 +456,14 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
 
   // Add audience options at the top of the file
   const audienceOptions = [
-    { value: 'ward', label: 'Ward' },
+    { value: getAudienceValue('unit'), label: getUnitLabel() },
     { value: 'relief_society', label: 'Relief Society' },
     { value: 'elders_quorum', label: 'Elders Quorum' },
     { value: 'young_women', label: 'Young Women' },
     { value: 'young_men', label: 'Young Men' },
     { value: 'youth', label: 'Youth' },
     { value: 'primary', label: 'Primary' },
-    { value: 'stake', label: 'Stake' },
+    { value: getAudienceValue('higher_unit'), label: getHigherUnitLabel() },
     { value: 'other', label: 'Other' }
   ];
 
@@ -462,6 +474,18 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
     if (targetIdx < 0 || targetIdx >= newAnnouncements.length) return;
     [newAnnouncements[idx], newAnnouncements[targetIdx]] = [newAnnouncements[targetIdx], newAnnouncements[idx]];
     updateField('announcements', newAnnouncements);
+  };
+
+  const moveImage = (announcementId: string, imageIndex: number, direction: -1 | 1) => {
+    const announcement = data.announcements.find(a => a.id === announcementId);
+    if (!announcement || !announcement.images) return;
+    
+    const newImages = [...announcement.images];
+    const targetIndex = imageIndex + direction;
+    if (targetIndex < 0 || targetIndex >= newImages.length) return;
+    
+    [newImages[imageIndex], newImages[targetIndex]] = [newImages[targetIndex], newImages[imageIndex]];
+    updateAnnouncement(announcementId, 'images', newImages);
   };
 
   const consolidateAnnouncements = () => {
@@ -476,40 +500,87 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
     }, {} as Record<string, Announcement[]>);
 
     // Create consolidated announcements
-    const consolidated: Announcement[] = Object.entries(grouped).map(([audience, announcements]) => {
+    const consolidated: Announcement[] = [];
+    
+    Object.entries(grouped).forEach(([audience, announcements]) => {
       if (announcements.length === 1) {
-        return announcements[0];
+        consolidated.push(announcements[0]);
+        return;
       }
 
       // Merge multiple announcements for the same audience
       const titles = announcements.map(a => a.title).filter(t => t.trim());
       const contents = announcements.map(a => a.content).filter(c => c.trim());
       
-      // Create content with original titles as headers
+      // Create content with original titles as headers and inline images
       const contentWithHeaders = announcements
         .filter(a => a.title.trim() || a.content.trim())
         .map(a => {
           const title = a.title.trim();
           const content = a.content.trim();
-          if (title && content) {
-            return `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>${content}`;
-          } else if (title) {
-            return `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>`;
-          } else if (content) {
-            return content;
+          
+          // Collect images for this specific announcement
+          const announcementImages: AnnouncementImage[] = [];
+          if (a.imageId && a.imageId !== 'none') {
+            announcementImages.push({
+              imageId: a.imageId,
+              hideImageOnPrint: a.hideImageOnPrint || false
+            });
           }
-          return '';
+          if (a.images && a.images.length > 0) {
+            announcementImages.push(...a.images);
+          }
+          
+          let result = '';
+          if (title && content) {
+            result = `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>${content}`;
+          } else if (title) {
+            result = `<h4 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #111827; margin-top: 16px;">${title}</h4>`;
+          } else if (content) {
+            result = content;
+          }
+          return result;
         })
         .filter(item => item)
         .join('<br><br>');
+
+      // Collect all images from all announcements with deduplication
+      const allImages: AnnouncementImage[] = [];
+      const seenImageIds = new Set<string>();
       
-      return {
+      announcements.forEach(a => {
+        // Add legacy single image if it exists
+        if (a.imageId && a.imageId !== 'none' && !seenImageIds.has(a.imageId)) {
+          allImages.push({
+            imageId: a.imageId,
+            hideImageOnPrint: a.hideImageOnPrint || false
+          });
+          seenImageIds.add(a.imageId);
+        }
+        // Add multiple images if they exist
+        if (a.images && a.images.length > 0) {
+          a.images.forEach(img => {
+            if (!seenImageIds.has(img.imageId)) {
+              allImages.push(img);
+              seenImageIds.add(img.imageId);
+            }
+          });
+        }
+      });
+
+      // Create a single consolidated announcement with both inline images and images array
+      consolidated.push({
         id: Date.now().toString() + Math.random(),
         title: '', // Remove main title when consolidating
-        content: contentWithHeaders,
+        content: contentWithHeaders, // Images are embedded inline in the content
         category: 'general',
-        audience: audience as any
-      };
+        audience: audience as any,
+        // Keep images array for form management (even though they're also inline)
+        images: allImages,
+        imageId: 'none',
+        hideImageOnPrint: false,
+        date: announcements[0].date || '',
+      });
     });
 
     updateField('announcements', consolidated);
@@ -521,7 +592,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
       {/* Tab Navigation */}
       <nav className="flex justify-center mb-4" aria-label="Main tabs">
         <ul className="flex flex-col gap-3 sm:flex-row sm:gap-3 w-full max-w-xs sm:max-w-none mx-auto justify-center items-center">
-          {['program', 'announcements', 'wardinfo'].map(tab => (
+          {['program', 'announcements', 'unitinfo'].map(tab => (
             <li key={tab} role="presentation" className="w-full sm:w-auto">
               <button
                 type="button"
@@ -535,7 +606,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                 `}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
               >
-                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : 'Ward Info'}
+                {tab === 'program' ? 'Program' : tab === 'announcements' ? 'Announcements' : `${getUnitLabel()} Info`}
               </button>
             </li>
           ))}
@@ -552,13 +623,13 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-base font-medium text-gray-700 mb-2">Ward Name</label>
+                <label className="block text-base font-medium text-gray-700 mb-2">{getUnitNameLabel()}</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
                     value={data.wardName}
                     onChange={(e) => updateField('wardName', e.target.value)}
-                    placeholder="e.g., Sunset Hills Ward"
+                    placeholder={`e.g., Sunset Hills ${getUnitLabel()}`}
                     className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
@@ -760,12 +831,32 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-base font-medium text-gray-700 mb-2">Chorister</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <span 
+                    className={`text-sm font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${choristerLabel === 'Chorister' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
+                    onClick={() => {
+                      setChoristerLabel('Chorister');
+                      updateField('leadership', { ...data.leadership, choristerLabel: 'Chorister' });
+                    }}
+                  >
+                    Chorister
+                  </span>
+                  <span 
+                    className={`text-sm font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${choristerLabel === 'Music Leader' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
+                    onClick={() => {
+                      setChoristerLabel('Music Leader');
+                      updateField('leadership', { ...data.leadership, choristerLabel: 'Music Leader' });
+                    }}
+                  >
+                    Music Leader
+                  </span>
+                </div>
                 <div className="flex gap-2 md:flex-col md:gap-0">
                   <input
                     type="text"
                     value={data.leadership.chorister}
                     onChange={(e) => updateField('leadership', { ...data.leadership, chorister: e.target.value })}
-                    placeholder="e.g., Debbie Hanes (Chorister)"
+                    placeholder={`e.g., Debbie Hanes (${choristerLabel})`}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <button
@@ -778,46 +869,46 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                   </button>
                 </div>
               </div>
-                      <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span 
-              className={`text-base font-medium cursor-pointer px-2 py-1 rounded ${organistLabel === 'Organist' ? 'text-gray-700 bg-gray-100' : 'text-gray-400'}`}
-              onClick={() => {
-                setOrganistLabel('Organist');
-                updateField('leadership', { ...data.leadership, organistLabel: 'Organist' });
-              }}
-            >
-              Organist
-            </span>
-            <span className="text-gray-400">-</span>
-            <span 
-              className={`text-base font-medium cursor-pointer px-2 py-1 rounded ${organistLabel === 'Pianist' ? 'text-gray-700 bg-gray-100' : 'text-gray-400'}`}
-              onClick={() => {
-                setOrganistLabel('Pianist');
-                updateField('leadership', { ...data.leadership, organistLabel: 'Pianist' });
-              }}
-            >
-              Pianist
-            </span>
-          </div>
-          <div className="flex gap-2 md:flex-col md:gap-0">
-            <input
-              type="text"
-              value={data.leadership.organist}
-              onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
-              placeholder="e.g., Tom Webster"
-              className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => saveDefault('organist', data.leadership.organist)}
-              className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
-              title="Save as default"
-            >
-              Save as default
-            </button>
-          </div>
-        </div>
+              <div>
+                <label className="block text-base font-medium text-gray-700 mb-2">Organist</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <span 
+                    className={`text-sm font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${organistLabel === 'Organist' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
+                    onClick={() => {
+                      setOrganistLabel('Organist');
+                      updateField('leadership', { ...data.leadership, organistLabel: 'Organist' });
+                    }}
+                  >
+                    Organist
+                  </span>
+                  <span 
+                    className={`text-sm font-medium cursor-pointer px-3 py-1 rounded-full border transition-colors ${organistLabel === 'Pianist' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
+                    onClick={() => {
+                      setOrganistLabel('Pianist');
+                      updateField('leadership', { ...data.leadership, organistLabel: 'Pianist' });
+                    }}
+                  >
+                    Pianist
+                  </span>
+                </div>
+                <div className="flex gap-2 md:flex-col md:gap-0">
+                  <input
+                    type="text"
+                    value={data.leadership.organist}
+                    onChange={(e) => updateField('leadership', { ...data.leadership, organist: e.target.value })}
+                    placeholder={`e.g., Tom Webster (${organistLabel})`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => saveDefault('organist', data.leadership.organist)}
+                    className="px-3 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 border border-gray-300 md:mt-2"
+                    title="Save as default"
+                  >
+                    Save as default
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Prelude Music</label>
                 <div className="flex gap-2 md:flex-col md:gap-0">
@@ -1344,9 +1435,9 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-900 mb-1">💡 New: Ward Member Submissions</h4>
+                  <h4 className="text-sm font-medium text-blue-900 mb-1">💡 New: {getUnitLabel()} Member Submissions</h4>
                   <p className="text-sm text-blue-800 mb-2">
-                    Ward members can now submit announcements directly! Share your submissions link with the ward to let them add announcements that you can review and approve.
+                    {getUnitLabel()} members can now submit announcements directly! Share your submissions link with the {getUnitLowercase()} to let them add announcements that you can review and approve.
                   </p>
                   <div className="flex items-center space-x-2 text-sm text-blue-700">
                     <span>📋 Get your submissions link from the QR Code modal</span>
@@ -1395,87 +1486,161 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                   
                   {/* Announcement Image Section */}
                   <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Announcement Image (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Announcement Images (Optional)</label>
                     
-                    {announcement.imageId && announcement.imageId !== 'none' ? (
-                      // Show selected image
-                      <div className="flex items-center gap-3 mb-3">
-                        {(() => {
-                          const selectedImage = getImageById(announcement.imageId);
-                          return selectedImage.url ? (
-                            <img
-                              src={selectedImage.url}
-                              alt={selectedImage.name}
-                              className="w-16 h-16 object-cover rounded border"
-                            />
+                    {/* Display current images */}
+                    {(announcement.images && announcement.images.length > 0) || (announcement.imageId && announcement.imageId !== 'none') ? (
+                      <div className="space-y-3 mb-4">
+                        {/* Legacy single image - only show if no multiple images */}
+                        {announcement.imageId && announcement.imageId !== 'none' && (!announcement.images || announcement.images.length === 0) && (
+                          <div className="flex items-center gap-3 p-2 bg-white rounded border">
+                            {(() => {
+                              const selectedImage = getImageById(announcement.imageId);
+                              return selectedImage.url ? (
+                                <img
+                                  src={selectedImage.url}
+                                  alt={selectedImage.name}
+                                  className="w-16 h-16 object-cover rounded border"
+                                />
+                              ) : null;
+                            })()}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{getImageById(announcement.imageId).name}</p>
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center text-xs">
+                                  <input
+                                    type="checkbox"
+                                    checked={announcement.hideImageOnPrint || false}
+                                    onChange={(e) => updateAnnouncement(announcement.id, 'hideImageOnPrint', e.target.checked)}
+                                    className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  />
+                                  <span className="ml-1">Hide from print</span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => updateAnnouncement(announcement.id, 'imageId', 'none')}
+                                  className="text-red-600 hover:text-red-800 text-xs"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Multiple images */}
+                        {announcement.images && announcement.images.map((img, index) => {
+                          const selectedImage = getImageById(img.imageId);
+                          return selectedImage?.url ? (
+                            <div key={index} className="flex items-center gap-3 p-2 bg-white rounded border">
+                              {/* Drag handle and reorder buttons */}
+                              <div className="flex flex-col items-center gap-1">
+                                <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+                                <div className="flex flex-col gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => moveImage(announcement.id, index, -1)}
+                                    disabled={index === 0}
+                                    className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Move up"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveImage(announcement.id, index, 1)}
+                                    disabled={index === (announcement.images?.length || 0) - 1}
+                                    className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    title="Move down"
+                                  >
+                                    ↓
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <img
+                                src={selectedImage.url}
+                                alt={selectedImage.name}
+                                className="w-16 h-16 object-cover rounded border"
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{selectedImage.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <label className="flex items-center text-xs">
+                                    <input
+                                      type="checkbox"
+                                      checked={img.hideImageOnPrint || false}
+                                      onChange={(e) => {
+                                        const updatedImages = [...(announcement.images || [])];
+                                        updatedImages[index] = { ...updatedImages[index], hideImageOnPrint: e.target.checked };
+                                        updateAnnouncement(announcement.id, 'images', updatedImages);
+                                      }}
+                                      className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    />
+                                    <span className="ml-1">Hide from print</span>
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updatedImages = (announcement.images || []).filter((_, i) => i !== index);
+                                      updateAnnouncement(announcement.id, 'images', updatedImages);
+                                    }}
+                                    className="text-red-600 hover:text-red-800 text-xs"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           ) : null;
-                        })()}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{getImageById(announcement.imageId).name}</p>
-                          <button
-                            type="button"
-                            onClick={() => updateAnnouncement(announcement.id, 'imageId', 'none')}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove Image
-                          </button>
-                        </div>
+                        })}
                       </div>
-                    ) : (
-                      // Show upload option
-                      <div className="mb-3">
-                        <ImageUpload 
-                          onImageUploaded={(imageId) => updateAnnouncement(announcement.id, 'imageId', imageId)}
-                          onError={handleImageError}
-                        />
-                      </div>
-                    )}
+                    ) : null}
+                    
+                    {/* Add new image */}
+                    <div className="mb-3">
+                      <ImageUpload 
+                        onImageUploaded={(imageId) => {
+                          const newImage = { imageId, hideImageOnPrint: false };
+                          const currentImages = announcement.images || [];
+                          updateAnnouncement(announcement.id, 'images', [...currentImages, newImage]);
+                        }}
+                        onError={handleImageError}
+                      />
+                    </div>
                     
                     {/* Quick select from existing images */}
-                    {(!announcement.imageId || announcement.imageId === 'none') && (
-                      <details className="mt-3">
-                        <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
-                          Or choose from existing images ({allImages.length - 1} available)
-                        </summary>
-                        <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-32 overflow-y-auto">
-                          {allImages.filter(img => img.id !== 'none').map((image) => (
-                            <div
-                              key={image.id}
-                              onClick={() => updateAnnouncement(announcement.id, 'imageId', image.id)}
-                              className="relative cursor-pointer rounded border-2 border-gray-200 hover:border-blue-300 transition-colors"
-                              title={image.description || image.name}
-                            >
-                              {image.url ? (
-                                <img
-                                  src={image.url}
-                                  alt={image.name}
-                                  className="w-full h-12 object-cover rounded"
-                                />
-                              ) : (
-                                <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded">
-                                  <span className="text-gray-500 text-xs">No Img</span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                    
-                    {/* Hide Image on Print option */}
-                    {announcement.imageId && announcement.imageId !== 'none' && (
-                      <div className="mt-3">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={announcement.hideImageOnPrint || false}
-                            onChange={(e) => updateAnnouncement(announcement.id, 'hideImageOnPrint', e.target.checked)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">Hide image when printing</span>
-                        </label>
+                    <details className="mt-3">
+                      <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                        Or choose from existing images ({allImages.length - 1} available)
+                      </summary>
+                      <div className="mt-2 grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-32 overflow-y-auto">
+                        {allImages.filter(img => img.id !== 'none').map((image) => (
+                          <div
+                            key={image.id}
+                            onClick={() => {
+                              const newImage = { imageId: image.id, hideImageOnPrint: false };
+                              const currentImages = announcement.images || [];
+                              updateAnnouncement(announcement.id, 'images', [...currentImages, newImage]);
+                            }}
+                            className="relative cursor-pointer rounded border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                            title={image.description || image.name}
+                          >
+                            {image.url ? (
+                              <img
+                                src={image.url}
+                                alt={image.name}
+                                className="w-full h-12 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="w-full h-12 bg-gray-100 flex items-center justify-center rounded">
+                                <span className="text-gray-500 text-xs">No Img</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    )}
+                    </details>
                   </div>
                 </div>
                 <div className="flex flex-col items-end space-y-2 sm:space-y-0 sm:ml-4 sm:flex-row sm:items-center sm:space-x-2">
@@ -1521,11 +1686,11 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
           </section>
         </>
       )}
-      {activeTab === 'wardinfo' && (
+      {activeTab === 'unitinfo' && (
         <>
           {/* Ward Leadership Section */}
           <section className="space-y-4">
-            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Ward Leadership
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">{getUnitLeadershipLabel()}
               <div className="flex flex-col items-end ml-2">
                 <button
                   type="button"
@@ -1546,7 +1711,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                   <tr className="bg-gray-50">
                     <th className="px-3 py-2 border-b text-sm">Title</th>
                     <th className="px-3 py-2 border-b text-sm">Name</th>
-                    <th className="px-3 py-2 border-b text-sm">Phone</th>
+                    <th className="px-3 py-2 border-b text-sm">Contact</th>
                     <th className="px-3 py-2 border-b text-sm"></th>
                   </tr>
                 </thead>
@@ -1640,7 +1805,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                       />
                     </div>
                     <div>
-                      <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Contact</label>
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1701,7 +1866,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-3 py-2 border-b text-sm">Name</th>
-                    <th className="px-3 py-2 border-b text-sm">Phone</th>
+                    <th className="px-3 py-2 border-b text-sm">Contact</th>
                     <th className="px-3 py-2 border-b text-sm"></th>
                   </tr>
                 </thead>
@@ -1731,7 +1896,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                             updateField('missionaries', updated);
                           }}
                           className="w-full px-3 py-3 text-base border rounded bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Phone number"
+                          placeholder="Contact info (phone, email, etc.)"
                         />
                       </td>
                       <td className="border-b px-3 py-2 text-center">
@@ -1773,7 +1938,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                       />
                     </div>
                     <div>
-                      <label className="block text-base font-medium text-gray-700 mb-2">Phone</label>
+                      <label className="block text-base font-medium text-gray-700 mb-2">Contact</label>
                       <input
                         type="text"
                         value={entry.phone || ''}
@@ -1815,7 +1980,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
 
           {/* Missionaries from our ward Section */}
           <section className="space-y-4 mt-8">
-            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">Missionaries from our ward
+            <h3 className="text-xl font-medium text-gray-900 border-b pb-2 flex items-center justify-between">{getUnitMissionariesLabel()}
               <div className="flex flex-col items-end ml-2">
                 <button
                   type="button"
@@ -1825,7 +1990,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
                 >
                   Save as default
                 </button>
-                <span className="text-sm text-gray-500 mt-1">Saves all ward missionary information as your template.</span>
+                <span className="text-sm text-gray-500 mt-1">Saves all {getUnitLowercase()} missionary information as your template.</span>
               </div>
             </h3>
             
@@ -1999,7 +2164,7 @@ export default function BulletinForm({ data, onChange, profileSlug }: BulletinFo
               onClick={() => updateField('wardMissionaries', [...data.wardMissionaries, { name: '', mission: '', missionAddress: '', email: '' }])}
               className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-base"
             >
-              Add Ward Missionary
+              Add {getUnitLabel()} Missionary
             </button>
           </section>
         </>

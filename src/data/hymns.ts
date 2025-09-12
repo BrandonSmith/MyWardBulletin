@@ -271,7 +271,7 @@ export const LDS_HYMNS: Record<number, string> = {
   269: "Jehovah, Lord of Heaven and Earth",
   270: "I'll Go Where You Want Me to Go",
   271: "Oh, Holy Words of Truth and Love",
-  272: "Oh, What Songs of the Heart",
+  272: "Oh Say, What Is Truth?",
   273: "Truth Reflects upon Our Senses",
   274: "The Iron Rod",
   275: "Men Are That They Might Have Joy",

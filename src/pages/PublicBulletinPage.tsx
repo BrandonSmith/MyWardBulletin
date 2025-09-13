@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import PublicBulletinView from '../components/PublicBulletinView';
 import DynamicMetaTags from '../components/DynamicMetaTags';
+import { bulletinService } from '../lib/supabase';
 import { SkeletonBulletin } from '../components/SkeletonLoader';
 
 // Helper function to ensure sacrament item exists at the top of agenda
@@ -28,27 +29,7 @@ export default function PublicBulletinPage() {
     error
   } = useQuery({
     queryKey: ['public-bulletin', slug],
-    queryFn: async () => {
-      if (!slug) return null;
-      
-      // Use the server-side API instead of direct Supabase calls
-      // This prevents Safari/privacy blockers from blocking Supabase requests
-      const response = await fetch(`/api/public-bulletin?profileSlug=${encodeURIComponent(slug)}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error(`Failed to fetch bulletin: ${response.status}`);
-      }
-      
-      return await response.json();
-    },
+    queryFn: () => slug ? bulletinService.getLatestBulletinByProfileSlug(slug) : Promise.resolve(null),
     enabled: !!slug
   });
 

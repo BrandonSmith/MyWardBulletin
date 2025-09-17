@@ -1,15 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Hardcoded Supabase configuration - replace with your actual values
-const supabaseUrl = 'https://mbhllitfppuhosjzirgh.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaGxsaXRmcHB1aG9zanppcmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MzA5MjUsImV4cCI6MjA2ODAwNjkyNX0.XUwI_bOzyBRDGHWtkUeRhoWffDesg3KFqHQbaXdM71Y'
+// Get Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Validate that required environment variables are set
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase configuration missing. Please check your environment variables.')
+}
 
 // Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
 
-// Always return true since we're using hardcoded configuration
+// Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return true
+  return !!(supabaseUrl && supabaseAnonKey)
 }
 // Database types
 export interface Database {

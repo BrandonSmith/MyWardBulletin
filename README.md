@@ -1,42 +1,40 @@
 # MyWardBulletin
 
-A modern, customizable bulletin creation tool for LDS wards and branches.
+A modern, customizable bulletin creation tool for LDS wards and branches. Create beautiful, professional bulletins with ease.
+
+## ✨ Features
+
+- **Beautiful Templates**: Professional, customizable bulletin layouts
+- **Real-time Editing**: See changes as you type
+- **Print & Share**: High-quality PDF export and shareable links
+- **Hymn Integration**: Built-in LDS hymn database
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Secure**: User authentication and data protection
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Supabase account (free tier works great!)
+### For Users
 
-### Local Development Setup
+Visit the live application to start creating bulletins immediately - no setup required!
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### For Contributors
 
-2. **Configure Supabase**
-   - Create a new project at [supabase.com](https://supabase.com)
-   - Go to Settings → API to get your URL and anon key
-   - Replace the hardcoded values in `src/lib/supabase.ts` and `api/public-bulletin.ts` with your actual credentials:
-   ```typescript
-   // In src/lib/supabase.ts
-   const supabaseUrl = 'https://your-project.supabase.co'
-   const supabaseAnonKey = 'your-anon-key'
-   
-   // In api/public-bulletin.ts
-   const supabaseUrl = 'https://your-project.supabase.co';
-   const supabaseAnonKey = 'your-anon-key';
-   ```
+Want to contribute to the project? See our [Contributing Guide](CONTRIBUTING.md) for complete setup instructions.
 
-3. **Start development server**
-   ```bash
-   npm run dev
-   ```
+**Quick setup for contributors:**
 
-4. **Open your browser**
-   Navigate to `http://localhost:5173`
+1. Fork the repository and clone it
+2. Create your own Supabase project (required for development)
+3. Set up environment variables from `.env.example`
+4. Run the database schema from `docs/database-schema.sql`
+5. Start developing!
+
+```bash
+npm install
+cp .env.example .env
+# Edit .env with your Supabase credentials
+npm run dev
+```
 
 ## 📁 Project Structure
 
@@ -65,6 +63,31 @@ src/
 - **Authentication**: Supabase Auth
 - **Deployment**: Vercel
 
+## 📖 Documentation
+
+- [Contributing Guide](CONTRIBUTING.md) - How to set up and contribute to the project
+- [Database Schema](docs/database-schema.sql) - Complete database setup for contributors
+
+## 🔒 Security & Privacy
+
+- User data is encrypted and secure
+- Contributors work with their own isolated database instances
+- No production data is shared with contributors
+- Environment variables are never committed to version control
+
+## 🤝 Contributing
+
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) to get started.
+
+## 📞 Support
+
+- [GitHub Issues](https://github.com/madofuller/MyWardBulletin/issues) - Bug reports and feature requests
+- [Discussions](https://github.com/madofuller/MyWardBulletin/discussions) - Questions and community discussion
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Made with ❤️ for LDS wards and branches worldwide

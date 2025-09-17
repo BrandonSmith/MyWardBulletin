@@ -139,8 +139,6 @@ async function getUserProfileSlug(userId: string): Promise<string | null> {
 // Token service functions
 export const tokenService = {
   async saveToken(userId: string, key: string, value: string) {
-    // Security: Removed debug logging of sensitive data
-
     let data, error;
     try {
       const { data, error } = await supabase
@@ -163,7 +161,6 @@ export const tokenService = {
       console.error('Token save error:', error);
       throw error;
     }
-    // Security: Removed debug logging of sensitive data
     return data;
   },
 
@@ -277,18 +274,14 @@ export const bulletinService = {
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.error('[DEBUG] saveBulletin: session refresh error', refreshError);
         throw refreshError;
       }
     } catch (refreshErr) {
-      console.error('[DEBUG] saveBulletin: failed to refresh session', refreshErr);
       throw refreshErr;
     }
 
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    console.log('[DEBUG] saveBulletin: session check', { session: sessionData?.session, error: sessionError });
     if (sessionError || !sessionData?.session) {
-      console.error('[DEBUG] saveBulletin: No valid Supabase session, aborting save');
       throw new Error('No valid Supabase session. Please sign in again.');
     }
 
@@ -334,11 +327,9 @@ export const bulletinService = {
       imageId: bulletinData.imageId || 'none',
       imagePosition: bulletinData.imagePosition || { x: 50, y: 50 },
     };
-    console.log('[DEBUG] saveBulletin: prepared bulletin record', bulletinRecord);
 
     // Save tokens (batch upsert)
     try {
-      // Security: Removed debug logging
       const tokens = [
         { key: `bulletin-${slug}-ward_name`, value: bulletinData.wardName || '', created_by: userId },
         { key: `bulletin-${slug}-theme`, value: bulletinData.theme || '', created_by: userId },
@@ -356,7 +347,6 @@ export const bulletinService = {
         { key: `bulletin-${slug}-image`, value: bulletinData.imageId || 'none', created_by: userId },
         { key: `bulletin-${slug}-imagePosition`, value: JSON.stringify(bulletinData.imagePosition || { x: 50, y: 50 }), created_by: userId },
       ];
-      // Security: Removed debug logging
       let data, error;
       try {
         ({ data, error } = await withTimeout(
@@ -365,18 +355,13 @@ export const bulletinService = {
             .upsert(tokens, { onConflict: 'key,created_by' }),
           20000
         ));
-        // Security: Removed debug logging
       } catch (timeoutError) {
-        console.error('[DEBUG] saveBulletin: token batch upsert timed out or failed', timeoutError);
         throw timeoutError;
       }
       if (error) {
-        console.error('[DEBUG] saveBulletin: token upsert error', error);
         throw error;
       }
-      // Security: Removed debug logging
     } catch (tokenError) {
-      console.error('[DEBUG] saveBulletin: error saving tokens (batch upsert)', tokenError);
     }
 
     const dbBulletinRecord = {
@@ -385,7 +370,6 @@ export const bulletinService = {
       meeting_type: bulletinData.meetingType,
       created_by: userId
     };
-    console.log('[DEBUG] saveBulletin: saving bulletin to database', dbBulletinRecord);
 
     try {
       if (bulletinId) {
@@ -401,9 +385,7 @@ export const bulletinService = {
               .single(),
             20000
           ));
-          console.log('[DEBUG] saveBulletin: bulletin update result', { data, error });
         } catch (timeoutError) {
-          console.error('[DEBUG] saveBulletin: bulletin update timed out or failed', timeoutError);
           throw timeoutError;
         }
         if (error) throw error;
@@ -420,9 +402,7 @@ export const bulletinService = {
               .single(),
             20000
           ));
-          console.log('[DEBUG] saveBulletin: bulletin insert result', { data, error });
         } catch (timeoutError) {
-          console.error('[DEBUG] saveBulletin: bulletin insert timed out or failed', timeoutError);
           throw timeoutError;
         }
         if (error) throw error;
@@ -467,11 +447,9 @@ export const bulletinService = {
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.error('[DEBUG] getUserBulletins: session refresh error', refreshError);
         throw refreshError;
       }
     } catch (refreshErr) {
-      console.error('[DEBUG] getUserBulletins: failed to refresh session', refreshErr);
       throw refreshErr;
     }
     try {

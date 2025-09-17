@@ -33,7 +33,7 @@ function decodeJwtExp(token: string) {
     const decoded = jwtDecode<JwtPayload & { exp?: number }>(token);
     return decoded.exp ? decoded.exp * 1000 : null;
   } catch (e) {
-    console.error('[DEBUG] Failed to decode JWT:', e);
+    console.error('Failed to decode JWT:', e);
     return null;
   }
 }
@@ -237,7 +237,6 @@ function EditorApp() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as BulletinData;
-        console.log('[DEBUG] Found draft during state initialization');
         // Ensure all required fields exist for backward compatibility
         const defaultBulletin = createBlankBulletin();
         return {
@@ -254,7 +253,6 @@ function EditorApp() {
         localStorage.removeItem(DRAFT_KEY);
       }
     }
-    console.log('[DEBUG] No draft found, creating blank bulletin');
     return createBlankBulletin();
   });
 
@@ -272,7 +270,6 @@ function EditorApp() {
       // Skip if we already loaded a draft during state initialization
       const hasDraft = !!localStorage.getItem(DRAFT_KEY);
       if (hasDraft) {
-        console.log('[DEBUG] Draft already loaded during state initialization');
         return;
       }
 
@@ -281,7 +278,6 @@ function EditorApp() {
       if (activeId) {
         const tmpl = templateService.getTemplate(activeId);
         if (tmpl) {
-          console.log('[DEBUG] Loading template after initialization');
           setBulletinData(tmpl.data);
           setHasUnsavedChanges(false);
           return;
@@ -289,7 +285,6 @@ function EditorApp() {
       }
 
       // If no template and no draft, state initialization already set blank bulletin
-      console.log('[DEBUG] Using blank bulletin from state initialization');
     };
 
     initializeApp();
@@ -303,20 +298,14 @@ function EditorApp() {
   // useEffect(() => {
   //   const handleVisibility = async () => {
   //     if (document.visibilityState === 'visible') {
-  //       console.log('[DEBUG] Visibility handler triggered', {
-  //         hasUnsavedChanges,
-  //         currentBulletinId,
-  //         activeBulletinId,
-  //         user: !!user,
-  //         draftExists: !!localStorage.getItem(DRAFT_KEY)
-  //       });
+  //       // Check visibility state change
   //       
   //       // First try to restore from draft
   //       const savedDraft = localStorage.getItem(DRAFT_KEY);
   //       if (savedDraft) {
   //         try {
   //           const parsed = JSON.parse(savedDraft) as BulletinData;
-  //           console.log('[DEBUG] Restoring from draft');
+  //           // Restoring from draft
   //           setBulletinData(parsed);
   //           setHasUnsavedChanges(true);
   //           return; // Draft restored, we're done
@@ -327,14 +316,14 @@ function EditorApp() {
   //       
   //       // If we have unsaved changes, don't overwrite - user is actively working
   //       if (hasUnsavedChanges) {
-  //         console.log('[DEBUG] Has unsaved changes, keeping current state');
+  //         // Has unsaved changes, keeping current state
   //         return; // Keep current state
   //       }
   //       
   //       // If we have a current bulletin loaded, try to restore it
   //       if (user && currentBulletinId) {
   //         try {
-  //           console.log('[DEBUG] Restoring current bulletin:', currentBulletinId);
+  //           // Restoring current bulletin
   //           const bulletin = await bulletinService.getBulletinById(currentBulletinId);
   //           const data = convertDbBulletinToData(bulletin);
   //           setBulletinData(data);
@@ -348,7 +337,7 @@ function EditorApp() {
   //       // No current bulletin, try to restore active bulletin if user is signed in
   //       if (user && activeBulletinId) {
   //         try {
-  //           console.log('[DEBUG] Restoring active bulletin:', activeBulletinId);
+  //           // Restoring active bulletin
   //           const bulletin = await bulletinService.getBulletinById(activeBulletinId);
   //           const data = convertDbBulletinToData(bulletin);
   //           setBulletinData(data);
@@ -365,7 +354,7 @@ function EditorApp() {
   //       if (activeTemplateId) {
   //         const tmpl = templateService.getTemplate(activeTemplateId);
   //         if (tmpl) {
-  //           console.log('[DEBUG] Restoring template:', activeTemplateId);
+  //           // Restoring template
   //           setBulletinData(tmpl.data);
   //           setHasUnsavedChanges(false);
   //           return;
@@ -373,7 +362,7 @@ function EditorApp() {
   //       }
   //       
   //       // Final fallback: blank bulletin
-  //       console.log('[DEBUG] Falling back to blank bulletin');
+  //       // Falling back to blank bulletin
   //       setBulletinData(createBlankBulletin());
   //       setHasUnsavedChanges(false);
   //     }
@@ -513,16 +502,13 @@ function EditorApp() {
   useEffect(() => {
     (async () => {
       if (!supabase) {
-        console.error('[DEBUG] Supabase is null!');
+        console.error('Supabase is null!');
         return;
       }
       const { data, error } = await supabase.auth.getSession();
-      console.log('[DEBUG] On app load: Supabase session:', data?.session);
-      console.log('[DEBUG] On app load: Supabase user:', data?.session?.user);
       if (error) {
-        console.error('[DEBUG] On app load: Supabase session error:', error);
+        console.error('On app load: Supabase session error:', error);
       }
-      // Security: Removed debug logging of localStorage contents
     })();
   }, []);
 
@@ -537,7 +523,6 @@ function EditorApp() {
       if (!exp) return;
       const now = Date.now();
       const msLeft = exp - now;
-      console.log('[DEBUG] JWT expiration check:', { exp: new Date(exp).toISOString(), msLeft });
       if (msLeft < 2 * 60 * 1000) { // less than 2 minutes left
         toast.warning('Session expired or about to expire. Please sign in again.');
         await supabase.auth.signOut();
@@ -570,14 +555,12 @@ function EditorApp() {
       // CRITICAL: Don't load active bulletin if a draft exists
       const hasDraft = !!localStorage.getItem(DRAFT_KEY);
       if (hasDraft) {
-        console.log('[DEBUG] Skipping active bulletin load because draft exists');
         return;
       }
       
       const bulletinId = activeBulletinId;
       try {
         if (bulletinId) {
-          console.log('[DEBUG] Loading active bulletin:', bulletinId);
           const bulletin = await bulletinService.getBulletinById(bulletinId);
           const data = convertDbBulletinToData(bulletin);
           setBulletinData(data);
@@ -627,16 +610,13 @@ function EditorApp() {
       return;
     }
     setLoading(true);
-    console.log('[DEBUG] Save attempt started');
     const SAVE_TIMEOUT_MS = 10000;
     let timeoutHandle: NodeJS.Timeout | null = null;
     let didTimeout = false;
     try {
       const savePromise = (async () => {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        console.log('[DEBUG] On save: Supabase session:', sessionData?.session);
         if (sessionError) {
-          console.error('[DEBUG] On save: Supabase session error:', sessionError);
         }
         const savedBulletin = await retryOperation(() => bulletinService.saveBulletin(
           bulletinData,
@@ -663,14 +643,11 @@ function EditorApp() {
       toast.success(currentBulletinId ? 'Bulletin updated successfully!' : 'Bulletin saved successfully!', {
         toastId: 'bulletin-save-success'
       });
-      console.log('[DEBUG] Save attempt finished successfully');
     } catch (error) {
       if (timeoutHandle) clearTimeout(timeoutHandle);
       if (didTimeout) {
-        console.error('[DEBUG] Save attempt timed out');
         toast.error('Saving took too long. Please check your connection or try again.');
       } else {
-        console.error('[DEBUG] On save: error:', error);
         toast.error('Error saving bulletin: ' + (error as Error).message);
       }
       // Try to save to localStorage as fallback
@@ -688,7 +665,6 @@ function EditorApp() {
       }
     } finally {
       setLoading(false);
-      console.log('[DEBUG] Save attempt ended');
     }
   };
 

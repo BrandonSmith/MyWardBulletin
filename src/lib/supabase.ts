@@ -1,15 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Hardcoded Supabase configuration - replace with your actual values
-const supabaseUrl = 'https://mbhllitfppuhosjzirgh.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iaGxsaXRmcHB1aG9zanppcmdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MzA5MjUsImV4cCI6MjA2ODAwNjkyNX0.XUwI_bOzyBRDGHWtkUeRhoWffDesg3KFqHQbaXdM71Y'
+// Get Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// Validate that required environment variables are set
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase configuration missing. Please check your environment variables.')
+}
 
 // Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '')
 
-// Always return true since we're using hardcoded configuration
+// Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return true
+  return !!(supabaseUrl && supabaseAnonKey)
 }
 // Database types
 export interface Database {
@@ -134,8 +139,6 @@ async function getUserProfileSlug(userId: string): Promise<string | null> {
 // Token service functions
 export const tokenService = {
   async saveToken(userId: string, key: string, value: string) {
-    // Security: Removed debug logging of sensitive data
-
     let data, error;
     try {
       const { data, error } = await supabase
@@ -158,7 +161,6 @@ export const tokenService = {
       console.error('Token save error:', error);
       throw error;
     }
-    // Security: Removed debug logging of sensitive data
     return data;
   },
 
@@ -272,18 +274,14 @@ export const bulletinService = {
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.error('[DEBUG] saveBulletin: session refresh error', refreshError);
         throw refreshError;
       }
     } catch (refreshErr) {
-      console.error('[DEBUG] saveBulletin: failed to refresh session', refreshErr);
       throw refreshErr;
     }
 
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    console.log('[DEBUG] saveBulletin: session check', { session: sessionData?.session, error: sessionError });
     if (sessionError || !sessionData?.session) {
-      console.error('[DEBUG] saveBulletin: No valid Supabase session, aborting save');
       throw new Error('No valid Supabase session. Please sign in again.');
     }
 
@@ -329,11 +327,9 @@ export const bulletinService = {
       imageId: bulletinData.imageId || 'none',
       imagePosition: bulletinData.imagePosition || { x: 50, y: 50 },
     };
-    console.log('[DEBUG] saveBulletin: prepared bulletin record', bulletinRecord);
 
     // Save tokens (batch upsert)
     try {
-      // Security: Removed debug logging
       const tokens = [
         { key: `bulletin-${slug}-ward_name`, value: bulletinData.wardName || '', created_by: userId },
         { key: `bulletin-${slug}-theme`, value: bulletinData.theme || '', created_by: userId },
@@ -351,7 +347,6 @@ export const bulletinService = {
         { key: `bulletin-${slug}-image`, value: bulletinData.imageId || 'none', created_by: userId },
         { key: `bulletin-${slug}-imagePosition`, value: JSON.stringify(bulletinData.imagePosition || { x: 50, y: 50 }), created_by: userId },
       ];
-      // Security: Removed debug logging
       let data, error;
       try {
         ({ data, error } = await withTimeout(
@@ -360,18 +355,13 @@ export const bulletinService = {
             .upsert(tokens, { onConflict: 'key,created_by' }),
           20000
         ));
-        // Security: Removed debug logging
       } catch (timeoutError) {
-        console.error('[DEBUG] saveBulletin: token batch upsert timed out or failed', timeoutError);
         throw timeoutError;
       }
       if (error) {
-        console.error('[DEBUG] saveBulletin: token upsert error', error);
         throw error;
       }
-      // Security: Removed debug logging
     } catch (tokenError) {
-      console.error('[DEBUG] saveBulletin: error saving tokens (batch upsert)', tokenError);
     }
 
     const dbBulletinRecord = {
@@ -380,7 +370,6 @@ export const bulletinService = {
       meeting_type: bulletinData.meetingType,
       created_by: userId
     };
-    console.log('[DEBUG] saveBulletin: saving bulletin to database', dbBulletinRecord);
 
     try {
       if (bulletinId) {
@@ -396,9 +385,7 @@ export const bulletinService = {
               .single(),
             20000
           ));
-          console.log('[DEBUG] saveBulletin: bulletin update result', { data, error });
         } catch (timeoutError) {
-          console.error('[DEBUG] saveBulletin: bulletin update timed out or failed', timeoutError);
           throw timeoutError;
         }
         if (error) throw error;
@@ -415,9 +402,7 @@ export const bulletinService = {
               .single(),
             20000
           ));
-          console.log('[DEBUG] saveBulletin: bulletin insert result', { data, error });
         } catch (timeoutError) {
-          console.error('[DEBUG] saveBulletin: bulletin insert timed out or failed', timeoutError);
           throw timeoutError;
         }
         if (error) throw error;
@@ -462,11 +447,9 @@ export const bulletinService = {
     try {
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.error('[DEBUG] getUserBulletins: session refresh error', refreshError);
         throw refreshError;
       }
     } catch (refreshErr) {
-      console.error('[DEBUG] getUserBulletins: failed to refresh session', refreshErr);
       throw refreshErr;
     }
     try {

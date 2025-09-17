@@ -3,7 +3,7 @@
   "description": "A modern, customizable bulletin creation tool for LDS wards and branches",
   "version": "1.0.0",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "type": "module",
   "scripts": {
     "dev": "vite",

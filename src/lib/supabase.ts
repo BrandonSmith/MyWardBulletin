@@ -313,6 +313,7 @@ export const bulletinService = {
       created_at: new Date().toISOString(),
       ward_name: bulletinData.wardName,
       theme: bulletinData.theme || '',
+      userTheme: bulletinData.userTheme || '',
       bishopric_message: bulletinData.bishopricMessage || '',
       announcements: bulletinData.announcements || [],
       meetings: bulletinData.meetings || [],
@@ -333,6 +334,7 @@ export const bulletinService = {
       const tokens = [
         { key: `bulletin-${slug}-ward_name`, value: bulletinData.wardName || '', created_by: userId },
         { key: `bulletin-${slug}-theme`, value: bulletinData.theme || '', created_by: userId },
+        { key: `bulletin-${slug}-userTheme`, value: bulletinData.userTheme || '', created_by: userId },
         { key: `bulletin-${slug}-bishopric`, value: bulletinData.bishopricMessage || '', created_by: userId },
         { key: `bulletin-${slug}-announcements`, value: JSON.stringify(bulletinData.announcements || []), created_by: userId },
         { key: `bulletin-${slug}-meetings`, value: JSON.stringify(bulletinData.meetings || []), created_by: userId },
@@ -479,6 +481,7 @@ export const bulletinService = {
             const tokenPromises = [
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-ward_name`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-theme`),
+              tokenService.getToken(userId, `bulletin-${bulletin.slug}-userTheme`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-bishopric`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-announcements`),
               tokenService.getToken(userId, `bulletin-${bulletin.slug}-meetings`),
@@ -497,11 +500,11 @@ export const bulletinService = {
             tokenPromises.push(tokenService.getToken(userId, `bulletin-${bulletin.slug}-imagePosition`));
             
             const tokenResults = await Promise.all(tokenPromises);
-            const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+            const [wardName, theme, userTheme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 14);
             
             // Handle image tokens (always fetched)
-            const image = tokenResults[13];
-            const imagePosition = tokenResults[14];
+            const image = tokenResults[14];
+            const imagePosition = tokenResults[15];
 
             return {
               id: bulletin.id,
@@ -510,6 +513,7 @@ export const bulletinService = {
               date: bulletin.meeting_date,
               meeting_type: bulletin.meeting_type,
               theme: theme || '',
+              userTheme: userTheme || '',
               bishopric_message: bishopric || '',
               announcements: announcements ? JSON.parse(announcements) : [],
               meetings: meetings ? JSON.parse(meetings) : [],
@@ -596,6 +600,7 @@ export const bulletinService = {
     const tokenPromises = [
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-userTheme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -614,11 +619,11 @@ export const bulletinService = {
     tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`));
     
     const tokenResults = await Promise.all(tokenPromises);
-    const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+    const [wardName, theme, userTheme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 14);
     
     // Handle image tokens (always fetched)
-    const image = tokenResults[13];
-    const imagePosition = tokenResults[14];
+    const image = tokenResults[14];
+    const imagePosition = tokenResults[15];
 
     return {
       id: data.id,
@@ -628,6 +633,7 @@ export const bulletinService = {
       date: data.meeting_date,
       meeting_type: data.meeting_type,
       theme: theme || '',
+      userTheme: userTheme || '',
       bishopric_message: bishopric || '',
       announcements: announcements ? JSON.parse(announcements) : [],
       meetings: meetings ? JSON.parse(meetings) : [],
@@ -710,6 +716,7 @@ export const bulletinService = {
     const tokenPromises = [
       tokenService.getToken(userId, `bulletin-${data.slug}-ward_name`),
       tokenService.getToken(userId, `bulletin-${data.slug}-theme`),
+      tokenService.getToken(userId, `bulletin-${data.slug}-userTheme`),
       tokenService.getToken(userId, `bulletin-${data.slug}-bishopric`),
       tokenService.getToken(userId, `bulletin-${data.slug}-announcements`),
       tokenService.getToken(userId, `bulletin-${data.slug}-meetings`),
@@ -728,11 +735,11 @@ export const bulletinService = {
     tokenPromises.push(tokenService.getToken(userId, `bulletin-${data.slug}-imagePosition`));
     
     const tokenResults = await Promise.all(tokenPromises);
-    const [wardName, theme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 13);
+    const [wardName, theme, userTheme, bishopric, announcements, meetings, events, agenda, prayers, music, leadership, wardLeadership, missionaries, wardMissionaries] = tokenResults.slice(0, 14);
     
     // Handle image tokens (always fetched)
-    const image = tokenResults[13];
-    const imagePosition = tokenResults[14];
+    const image = tokenResults[14];
+    const imagePosition = tokenResults[15];
 
     const result = {
       id: data.id,
@@ -742,6 +749,7 @@ export const bulletinService = {
       date: data.meeting_date,
       meeting_type: data.meeting_type,
       theme: theme || '',
+      userTheme: userTheme || '',
       imageId: image || 'none',
       imagePosition: imagePosition ? JSON.parse(imagePosition) : { x: 50, y: 50 },
       bishopric_message: bishopric || '',

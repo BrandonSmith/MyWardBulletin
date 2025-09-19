@@ -3,6 +3,7 @@ import { sanitizeHtml } from "../lib/sanitizeHtml";
 import { decodeHtml } from '../lib/decodeHtml';
 import { LDS_IMAGES, getImageById } from '../data/images';
 import { useSession } from '../lib/SessionContext';
+import { themes } from '../data/themes';
 
 
 import QRCode from 'qrcode';
@@ -73,8 +74,10 @@ function BulletinPrintLayout({ data, refs }: { data: any, refs?: { page1?: React
   // Check if there's any meaningful ward info to display
   const hasWardInfo = filteredWardLeadership.length > 0 || filteredMissionaries.length > 0 || filteredWardMissionaries.length > 0;
 
+  const selectedTheme = themes.find(t => t.name === data.userTheme);
+
   return (
-    <div className="print-layout font-sans">
+    <div className="print-layout font-sans" style={{ fontFamily: selectedTheme ? selectedTheme.fontFamily : 'sans-serif' }}>
       {/* Page 1: Outside (landscape) */}
       <div
         ref={refs?.page1}

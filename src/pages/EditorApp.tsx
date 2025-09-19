@@ -1252,44 +1252,51 @@ function EditorApp() {
 
           {/* Preview Section */}
           <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                Bulletin Preview
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-3 sm:space-y-0">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                  Bulletin Preview
                 </h2>
-                <button
-                  onClick={() => setShowPrintPreviewModal(true)}
-                  className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  <Printer className="w-4 h-4 mr-2" />
-                  Print Preview
-                </button>
-                <button
-                  onClick={() => setShowThemeModal(true)}
-                  className="inline-flex items-baseline px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  <Paintbrush className="w-4 h-4 mr-2" />
-                  {bulletinData.userTheme ? (
-                    <>
-                      Theme: <span style={{ fontFamily: themes.find(t => t.name === bulletinData.userTheme)?.fontFamily, marginLeft: '0.25rem' }}>{bulletinData.userTheme}</span>
-                    </>
-                  ) : (
-                    'Theme'
-                  )}
-                </button>
-                {currentBulletinId && (
-                  <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-2">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                      Saved Bulletin
-                    </span>
-                    {hasUnsavedChanges && (
-                      <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs">
-                        Unsaved Changes
-                      </span>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setShowPrintPreviewModal(true)}
+                    className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base"
+                  >
+                    <Printer className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Print Preview</span>
+                    <span className="sm:hidden">Print</span>
+                  </button>
+                  <button
+                    onClick={() => setShowThemeModal(true)}
+                    className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base"
+                  >
+                    <Paintbrush className="w-4 h-4 mr-2" />
+                    {bulletinData.userTheme ? (
+                      <>
+                        <span className="hidden sm:inline">Theme: </span>
+                        <span className="sm:hidden">Theme: </span>
+                        <span style={{ fontFamily: themes.find(t => t.name === bulletinData.userTheme)?.fontFamily }}>
+                          {bulletinData.userTheme.length > 8 ? bulletinData.userTheme.substring(0, 8) + '...' : bulletinData.userTheme}
+                        </span>
+                      </>
+                    ) : (
+                      'Theme'
                     )}
-                  </div>
-                )}
+                  </button>
+                </div>
               </div>
+              {currentBulletinId && (
+                <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-4">
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                    Saved Bulletin
+                  </span>
+                  {hasUnsavedChanges && (
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs">
+                      Unsaved Changes
+                    </span>
+                  )}
+                </div>
+              )}
               <div ref={bulletinRef}>
                 <BulletinPreview 
                   data={bulletinData} 

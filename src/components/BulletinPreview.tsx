@@ -269,7 +269,8 @@ export default function BulletinPreview({
   data,
   hideTabs = false,
   hideImageControls = false,
-  onImagePositionChange
+  onImagePositionChange,
+  onThemeSelectClick,
 }: BulletinPreviewProps) {
   const [activeTab, setActiveTab] = useState<'program' | 'announcements' | 'unitinfo'>('program');
 

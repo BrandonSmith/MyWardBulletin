@@ -108,6 +108,7 @@ export interface BulletinData {
   date: string;
   meetingType: string;
   theme: string;
+  userTheme: string;
   bishopricMessage: string; // Will display as appropriate leadership message based on terminology
   announcements: Announcement[];
   meetings: Meeting[];

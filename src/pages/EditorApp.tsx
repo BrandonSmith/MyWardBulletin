@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare, Repeat } from 'lucide-react';
+import { Plus, Download, QrCode, LogIn, Menu, X, MessageSquare, Repeat, Paintbrush, Printer } from 'lucide-react';
 import UnitTypeSelector from '../components/TerminologyToggle';
 import { getCurrentUnitType } from '../lib/config';
 import jsPDF from 'jspdf';
@@ -13,6 +13,8 @@ import AuthModal from '../components/AuthModal';
 import UserMenu from '../components/UserMenu';
 import SavedBulletinsModal from '../components/SavedBulletinsModal';
 import TemplatesModal from '../components/TemplatesModal';
+import ThemeModal from '../components/ThemeModal';
+import PrintPreviewModal from '../components/PrintPreviewModal';
 import ProfileModal from '../components/ProfileModal';
 import PublicBulletinView from '../components/PublicBulletinView';
 import SubmissionReviewModal from '../components/SubmissionReviewModal';
@@ -25,6 +27,7 @@ import Logo from '../components/Logo';
 import BulletinPrintLayout from '../components/BulletinPrintLayout';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { useSession } from '../lib/SessionContext';
+import { themes } from '../data/themes';
 import { handleError, NetworkError, DatabaseError, withErrorHandling, withRetry } from '../lib/errorHandler';
 
 
@@ -55,6 +58,8 @@ function EditorApp() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSavedBulletins, setShowSavedBulletins] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showPrintPreviewModal, setShowPrintPreviewModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSubmissionReview, setShowSubmissionReview] = useState(false);
   const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState(0);
@@ -175,6 +180,7 @@ function EditorApp() {
       date: new Date().toISOString().split('T')[0],
       meetingType: getMeetingTypeForUnit(currentUnitType),
       theme: '',
+      userTheme: '',
       bishopricMessage: '',
       announcements: [],
       meetings: [],
@@ -382,6 +388,7 @@ function EditorApp() {
     date: bulletin.date,
     meetingType: bulletin.meeting_type,
     theme: bulletin.theme || '',
+    userTheme: bulletin.userTheme || '',
     bishopricMessage: bulletin.bishopric_message || '',
     announcements: bulletin.announcements || [],
     meetings: bulletin.meetings || [],
@@ -1250,6 +1257,26 @@ function EditorApp() {
                 <h2 className="text-2xl font-semibold text-gray-900">
                 Bulletin Preview
                 </h2>
+                <button
+                  onClick={() => setShowPrintPreviewModal(true)}
+                  className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  <Printer className="w-4 h-4 mr-2" />
+                  Print Preview
+                </button>
+                <button
+                  onClick={() => setShowThemeModal(true)}
+                  className="inline-flex items-baseline px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  <Paintbrush className="w-4 h-4 mr-2" />
+                  {bulletinData.userTheme ? (
+                    <>
+                      Theme: <span style={{ fontFamily: themes.find(t => t.name === bulletinData.userTheme)?.fontFamily, marginLeft: '0.25rem' }}>{bulletinData.userTheme}</span>
+                    </>
+                  ) : (
+                    'Theme'
+                  )}
+                </button>
                 {currentBulletinId && (
                   <div className="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-2 mb-2">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
@@ -1386,6 +1413,16 @@ function EditorApp() {
           onSelect={handleTemplateSelect}
         />
 
+        <ThemeModal
+          isOpen={showThemeModal}
+          onClose={() => setShowThemeModal(false)}
+          onSelectTheme={(theme) => {
+            handleBulletinDataChange({ ...bulletinData, userTheme: theme.name });
+            setShowThemeModal(false);
+          }}
+          currentUserTheme={bulletinData.userTheme}
+        />
+
         {/* Profile Modal */}
         <ProfileModal
           isOpen={showProfile}
@@ -1453,6 +1490,12 @@ function EditorApp() {
           title={confirmationModal.title}
           message={confirmationModal.message}
           variant={confirmationModal.variant}
+        />
+
+        <PrintPreviewModal
+          isOpen={showPrintPreviewModal}
+          onClose={() => setShowPrintPreviewModal(false)}
+          bulletinData={bulletinData}
         />
 
         {/* Hidden print layout for PDF export */}
